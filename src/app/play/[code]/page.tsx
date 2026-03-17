@@ -6,7 +6,7 @@ import { Loader2, Zap, HelpCircle, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { supabase } from "@/lib/supabase";
 import { GameDisplay } from "@/components/game/GameDisplay";
-import { cn } from "@/lib/utils";
+import { cn, normalizeMath } from "@/lib/utils";
 import { useState, useEffect, Suspense, useCallback, useRef } from "react";
 import { PlayerBar } from "@/components/game/PlayerBar";
 import { useDialog } from "@/components/ui/DialogProvider";
@@ -39,8 +39,7 @@ function StudentPlayContent() {
       const currentQuestion = questions[game.current_q_index];
       if (!currentQuestion) return;
 
-      const normalize = (s: string) => s.replace(/\s+/g, "").toLowerCase();
-      const isCorrect = normalize(answer) === normalize(currentQuestion.a);
+      const isCorrect = normalizeMath(answer) === normalizeMath(currentQuestion.a);
       
       const { error: insertErr } = await supabase
         .from("answers")

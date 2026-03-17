@@ -3,15 +3,83 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { Clock, Zap, Shield, Scissors, Gift, RefreshCw, Check, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getChoseong, processMathText, normalizeMath } from "@/lib/utils";
+import { useDialog } from "@/components/ui/DialogProvider";
 import confetti from "canvas-confetti";
-import { getChoseong } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { MathInput } from "@/components/ui/MathInput";
+
+// --- Sub-component for Segmented Blank Input ---
+interface SegmentedInputProps {
+  value: string;
+  length: number;
+  onChange: (val: string) => void;
+  onEnter?: () => void;
+  autoFocus?: boolean;
+  firstRef?: any;
+}
+
+function SegmentedInput({ value, length, onChange, onEnter, autoFocus, firstRef }: SegmentedInputProps) {
+  const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleChange = (i: number, val: string) => {
+    // Only take the last character typed
+    const char = val.slice(-1);
+    const chars = value.split("");
+    while(chars.length < length) chars.push("");
+    chars[i] = char;
+    const newVal = chars.join("").slice(0, length);
+    onChange(newVal);
+    
+    if (char && i < length - 1) {
+      inputsRef.current[i + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (i: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !value[i] && i > 0) {
+      inputsRef.current[i - 1]?.focus();
+    }
+    if (e.key === 'Enter') onEnter?.();
+    if (e.key === 'ArrowRight' && i < length - 1) inputsRef.current[i + 1]?.focus();
+    if (e.key === 'ArrowLeft' && i > 0) inputsRef.current[i - 1]?.focus();
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const paste = e.clipboardData.getData("text").slice(0, length);
+    onChange(paste);
+    // Focus the next empty slot or the last one
+    const nextIdx = Math.min(paste.length, length - 1);
+    inputsRef.current[nextIdx]?.focus();
+  };
+
+  return (
+    <div className="flex gap-1 bg-white p-2 rounded-xl shadow-sm border border-slate-200">
+      {Array.from({ length }).map((_, i) => (
+        <input
+          key={i}
+          ref={el => {
+            inputsRef.current[i] = el;
+            if (i === 0 && firstRef) firstRef.current = el;
+          }}
+          type="text"
+          maxLength={1}
+          value={value[i] || ""}
+          onChange={e => handleChange(i, e.target.value)}
+          onKeyDown={e => handleKeyDown(i, e)}
+          onPaste={i === 0 ? handlePaste : undefined}
+          autoFocus={autoFocus && i === 0}
+          className="w-10 h-12 bg-slate-50 border-2 border-indigo-100 rounded-lg text-center font-black text-indigo-600 text-xl focus:border-indigo-400 focus:bg-indigo-50/30 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+        />
+      ))}
+    </div>
+  );
+}
 
 interface GameDisplayProps {
   game: any;
@@ -783,7 +851,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
             "다음 빈칸에 들어갈 알맞은 글자를 넣으세요." 
           ) : currentQuestion?.q ? (
             <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-              {currentQuestion.q}
+              {processMathText(currentQuestion.q)}
             </ReactMarkdown>
           ) : (
             "문제를 불러오는 중..."
@@ -871,7 +939,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                      <span>{idx + 1}.</span>
                      <div className="flex-1 text-left">
                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
-                         {opt}
+                         {processMathText(opt)}
                        </ReactMarkdown>
                      </div>
                    </Button>
@@ -907,39 +975,11 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                       if (isBlank) {
                         const wordLen = word.length;
                         return (
-                          <div 
-                            key={wordIdx} 
-                            className="relative group cursor-text w-fit"
-                            onClick={() => {
-                              const input = document.getElementById(`blank-${wordIdx}`) as HTMLInputElement;
-                              input?.focus();
-                            }}
-                          >
-                            <div className="flex gap-1 bg-white p-2 rounded-xl shadow-sm border border-slate-200">
-                              {/* Decorative Boxes (w-10 = 40px, gap-1 = 4px) */}
-                              {Array.from({ length: wordLen }).map((_, i) => (
-                                <div 
-                                  key={i} 
-                                  className={cn(
-                                    "w-10 h-12 bg-slate-50 border-2 border-indigo-100 rounded-lg flex items-center justify-center font-black text-indigo-600 text-xl transition-all",
-                                    (blankAnswers[wordIdx] || "")[i] && "border-indigo-400 bg-indigo-50/30"
-                                  )}
-                                >
-                                  {(blankAnswers[wordIdx] || "")[i] || ""}
-                                </div>
-                              ))}
-                            </div>
-                            
-                            {/* Single Hidden-ish Input for the whole word */}
-                            <input
-                              id={`blank-${wordIdx}`}
-                              type="text"
-                              maxLength={wordLen}
+                          <div key={wordIdx} className="relative group w-fit">
+                            <SegmentedInput
                               value={blankAnswers[wordIdx] || ""}
-                              onCompositionStart={() => { isComposing.current = true; }}
-                              onCompositionEnd={() => { isComposing.current = false; }}
-                              onChange={(e) => {
-                                const val = e.target.value;
+                              length={word.length}
+                              onChange={(val) => {
                                 setBlankAnswers(prev => {
                                   const next = { ...prev, [wordIdx]: val };
                                   const sortedBlanks = [...blanks].sort((a, b) => a - b);
@@ -948,14 +988,9 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                                   return next;
                                 });
                               }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" && !isComposing.current) {
-                                  handleSubmit();
-                                }
-                              }}
-                              className="absolute inset-0 w-full h-full text-transparent bg-transparent caret-indigo-600 cursor-text z-20 outline-none"
+                              onEnter={() => handleSubmit()}
                               autoFocus={blankIndex === 0}
-                              ref={blankIndex === 0 ? firstBlankRef : null}
+                              firstRef={blankIndex === 0 ? firstBlankRef : null}
                             />
 
                             {blanks.length > 1 && (
@@ -979,14 +1014,27 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                </div>
             ) : (
                <>
-                  <div className="w-full border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all overflow-hidden">
-                    <MathInput
-                      value={answer}
-                      onChange={(val) => setAnswer(val)}
-                      onEnter={() => handleSubmit(answer)}
-                      className="w-full p-2 text-center text-3xl font-bold bg-transparent"
-                      placeholder="정답을 입력하세요"
-                    />
+                  <div className="w-full border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all overflow-hidden relative">
+                    {currentQuestion?.math_mode ? (
+                      <MathInput
+                        value={answer}
+                        onChange={(val) => setAnswer(val)}
+                        onEnter={() => handleSubmit(answer)}
+                        className="w-full p-2 text-center text-3xl font-bold bg-transparent"
+                        placeholder="정답을 입력하세요"
+                        template={currentQuestion?.template}
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        value={answer}
+                        onChange={(e) => setAnswer(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSubmit(answer)}
+                        className="w-full p-6 text-center text-3xl font-bold bg-transparent outline-none"
+                        placeholder="정답을 입력하세요"
+                        autoFocus
+                      />
+                    )}
                   </div>
                   <Button 
                     size="xl" 

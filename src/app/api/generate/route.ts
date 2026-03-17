@@ -37,7 +37,8 @@ export async function POST(req: Request) {
           "type": "MULTIPLE_CHOICE, SHORT_ANSWER, OX, 또는 BLANK",
           "blanks": [index1, index2], // '빈칸넣기'일 경우 필수. q를 공백으로 나눴을 때 정답이 될 단어의 인덱스 배열 (0부터 시작)
           "points": 10,
-          "math_mode": false // 수학 수식이 포함되어 수식 전용 에디터(MathLive)가 필요한지 여부 (true/false)
+          "math_mode": false, // 수학 수식이 포함되어 수식 전용 에디터(MathLive)가 필요한지 여부 (true/false)
+          "template": "\\frac{\\square}{\\square}" // 'MATH' 유형일 경우 필수. 학생이 입력할 양식 (숫자가 들어갈 자리에 \\square 사용)
         }
       ]
     `;
@@ -48,6 +49,7 @@ export async function POST(req: Request) {
       
       [퀴즈 유형별 생성 규칙]
       1. MATH (수학/수식): 수학 문제이거나 수식, 분수, 기호가 포함된 경우입니다. 반드시 "math_mode": true 로 설정하고, 모든 수학적 표현은 LaTeX 형식을 사용하되 앞뒤 달러 기호($) 없이 작성하세요. (예: \\frac{1}{2}, 2^{3})
+         - 초등학생이 입력하기 쉽도록 "template" 필드에 정답 양식을 제공하세요. (예: 정답이 \\frac{3}{4} 이라면 template은 "\\frac{\\square}{\\square}" 입니다.)
       2. MULTIPLE_CHOICE (선다형): "math_mode"가 true인 경우 options에도 LaTeX를 사용할 수 있습니다.
       3. SHORT_ANSWER (단답형): 정답이 숫자인 경우에도 수식 기호가 필요하면 MATH 유형으로 생성하세요.
       4. BLANK (빈칸 넣기): 문장 속의 핵심 단어를 빈칸으로 만듭니다.

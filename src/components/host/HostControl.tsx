@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import confetti from "canvas-confetti";
-import { cn, getChoseong } from "@/lib/utils";
+import { cn, getChoseong, processMathText } from "@/lib/utils";
 import { useDialog } from "@/components/ui/DialogProvider";
 import { PlayerBar } from "@/components/game/PlayerBar";
 import ReactMarkdown from 'react-markdown';
@@ -712,9 +712,9 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                <div className="bg-white/10 text-indigo-200 px-8 py-2 rounded-full font-black text-xl mb-8 uppercase tracking-widest border border-white/10">
                  Correct Answer
                </div>
-               <div className="text-[8rem] md:text-[12rem] font-black text-yellow-300 drop-shadow-[0_20px_50px_rgba(253,224,71,0.3)] leading-none font-jua [&_p]:m-0">
-                 <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{currentQuestion?.a || ""}</ReactMarkdown>
-               </div>
+                <div className="text-[8rem] md:text-[12rem] font-black text-yellow-300 drop-shadow-[0_20px_50px_rgba(253,224,71,0.3)] leading-none font-jua [&_p]:m-0">
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(currentQuestion?.a || "")}</ReactMarkdown>
+                </div>
                <div className="mt-12 w-32 h-2 bg-yellow-400/20 rounded-full overflow-hidden">
                   <div className="h-full bg-yellow-400 animate-loading-bar" />
                </div>
@@ -753,7 +753,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               <div className="bg-white/10 px-8 py-3 rounded-2xl border-2 border-white/10 animate-pop text-center">
                 <span className="text-indigo-200 font-bold mb-1 uppercase tracking-widest text-[10px] block">정답</span>
                 <h3 className="text-3xl font-black text-yellow-300 [&_p]:m-0">
-                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{currentQuestion?.a || ""}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(currentQuestion?.a || "")}</ReactMarkdown>
                 </h3>
               </div>
               

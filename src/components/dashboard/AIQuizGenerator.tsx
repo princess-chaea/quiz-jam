@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { processMathText } from "@/lib/utils";
 
 interface AIQuizGeneratorProps {
   onQuestionsGenerated: (questions: any[]) => void;
@@ -18,7 +19,8 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
   const [text, setText] = useState("");
   const [filesData, setFilesData] = useState<{ mimeType: string, data: string, name: string }[]>([]);
   const [count, setCount] = useState(5);
-  const [types, setTypes] = useState<string[]>(["SHORT_ANSWER", "MULTIPLE_CHOICE", "MATH"]);
+  const [types, setTypes] = useState<string[]>(["SHORT_ANSWER", "MULTIPLE_CHOICE"]);
+  const [mathMode, setMathMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<any[] | null>(null);
   const { showAlert } = useDialog();
@@ -30,9 +32,9 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
     const newFilesData: { mimeType: string, data: string, name: string }[] = [];
 
     for (const file of files) {
-      // Check file size limit (2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        await showAlert(`'${file.name}' 파일 용량이 너무 큽니다. 2MB 이하의 파일만 업로드할 수 있습니다.`);
+      // Check file size limit (100MB)
+      if (file.size > 100 * 1024 * 1024) {
+        await showAlert(`'${file.name}' 파일 용량이 너무 큽니다. 100MB 이하의 파일만 업로드할 수 있습니다.`);
         continue;
       }
 
@@ -89,7 +91,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, count, types, filesData }),
+        body: JSON.stringify({ text, count, types, filesData, mathMode }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -190,22 +192,33 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                   <span className="w-5 h-5 bg-indigo-50 text-indigo-600 rounded flex items-center justify-center text-[10px]">2</span>
                   문제 유형 (중복 선택 가능)
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {[
-                    { id: "SHORT_ANSWER", label: "단답형" },
-                    { id: "MULTIPLE_CHOICE", label: "선다형" },
-                    { id: "OX", label: "O/X 퀴즈" },
-                    { id: "BLANK", label: "빈칸 넣기" },
-                    { id: "MATH", label: "수학(수식)" }
-                  ].map(type => (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
                     <button
-                      key={type.id}
-                      onClick={() => toggleType(type.id)}
-                      className={`p-3 rounded-xl border-2 font-bold transition-all ${types.includes(type.id) ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm' : 'border-gray-100 text-gray-400 hover:bg-gray-50'}`}
+                      onClick={() => setMathMode(!mathMode)}
+                      className={`px-4 py-2 rounded-2xl border-2 font-black transition-all flex items-center gap-2 ${mathMode ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'}`}
                     >
-                      {type.label}
+                      <span className="text-lg">∑</span> 수식 모드
                     </button>
-                  ))}
+                    <p className="text-[10px] text-slate-400 font-bold leading-tight">분수, 루트 등 복잡한 수식이 포함된 경우<br/>수식 전용 모드를 활성화하세요.</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      { id: "SHORT_ANSWER", label: "단답형" },
+                      { id: "MULTIPLE_CHOICE", label: "선다형" },
+                      { id: "OX", label: "O/X 퀴즈" },
+                      { id: "BLANK", label: "빈칸 넣기" }
+                    ].map(type => (
+                      <button
+                        key={type.id}
+                        onClick={() => toggleType(type.id)}
+                        className={`p-3 rounded-xl border-2 font-bold transition-all ${types.includes(type.id) ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm' : 'border-gray-100 text-gray-400 hover:bg-gray-50'}`}
+                      >
+                        {type.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -264,7 +277,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                     </div>
                     <div className="flex-1">
                       <div className="font-bold text-slate-800 mb-2 leading-tight [&_p]:m-0">
-                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.q}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(q.q)}</ReactMarkdown>
                       </div>
                       {q.type === "MULTIPLE_CHOICE" && q.options && (
                         <div className="grid grid-cols-2 gap-2 mb-3">
@@ -273,18 +286,28 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                               <span>{idx + 1}.</span>
                               <div className="[&_p]:m-0 [&_p]:inline">
                                 <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
-                                  {opt}
+                                  {processMathText(opt)}
                                 </ReactMarkdown>
                               </div>
                             </div>
                           ))}
                         </div>
                       )}
-                      <div className="text-indigo-600 font-black text-sm flex items-center gap-1 [&_p]:m-0">
-                        <span className="text-slate-400 font-bold">{q.type === "MULTIPLE_CHOICE" ? "정답:" : "A."}</span> 
-                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
-                          {q.a}
-                        </ReactMarkdown>
+                      <div className="text-indigo-600 font-black text-sm flex flex-col gap-1">
+                        <div className="flex items-center gap-1 [&_p]:m-0">
+                          <span className="text-slate-400 font-bold">{q.type === "MULTIPLE_CHOICE" ? "정답:" : "A."}</span> 
+                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                            {processMathText(q.a)}
+                          </ReactMarkdown>
+                        </div>
+                        {q.math_mode && q.template && (
+                          <div className="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+                            <span className="font-bold">양식:</span>
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                              {processMathText(q.template)}
+                            </ReactMarkdown>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
