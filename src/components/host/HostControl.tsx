@@ -1019,7 +1019,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                   "font-black text-gray-800 break-keep leading-tight text-center w-full [&_p]:m-0",
                   "text-5xl md:text-7xl"
                 )}>
-                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{currentQuestion?.q || ""}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(currentQuestion?.q || "")}</ReactMarkdown>
                 </div>
 
                 {/* Question Options for Teacher (Simplified & Hidden Answer) */}

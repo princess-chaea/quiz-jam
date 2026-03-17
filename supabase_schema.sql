@@ -134,7 +134,15 @@ ALTER TABLE profiles ADD COLUMN avatar_url TEXT;
 -- Storage bucket for avatars
 INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true);
 
+-- Storage bucket for AI generation buffer (Temporary)
+INSERT INTO storage.buckets (id, name, public) VALUES ('ai-temp', 'ai-temp', true);
+
 -- Policies for avatar storage
 CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
 CREATE POLICY "Users can insert avatars" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.role() = 'authenticated');
 CREATE POLICY "Users can update avatars" ON storage.objects FOR UPDATE USING (bucket_id = 'avatars' AND auth.uid() = owner);
+
+-- Policies for AI Temp storage (Publicly readable so the server can fetch them easily, but insertable by authenticated users)
+CREATE POLICY "Public AI Temp Access" ON storage.objects FOR SELECT USING (bucket_id = 'ai-temp');
+CREATE POLICY "Users can upload to AI Temp" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'ai-temp' AND auth.role() = 'authenticated');
+CREATE POLICY "Users can delete from AI Temp" ON storage.objects FOR DELETE USING (bucket_id = 'ai-temp' AND auth.role() = 'authenticated');

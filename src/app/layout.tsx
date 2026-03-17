@@ -21,6 +21,8 @@ export const metadata: Metadata = {
 import { DialogProvider } from "@/components/ui/DialogProvider";
 import { ProfileSetupModal } from "@/components/auth/ProfileSetupModal";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { MathKeypadProvider } from "@/components/ui/MathKeypadContext";
+import { MathKeypad } from "@/components/ui/MathKeypad";
 
 export default function RootLayout({
   children,
@@ -31,10 +33,13 @@ export default function RootLayout({
     <html lang="ko" className={`${jua.variable} ${noto.variable}`}>
       <body className="antialiased bg-[#fefce8] text-gray-900 font-noto">
         <AuthProvider>
-          <DialogProvider>
-            {children}
-            <ProfileSetupModal />
-          </DialogProvider>
+          <MathKeypadProvider>
+            <DialogProvider>
+              {children}
+              <ProfileSetupModal />
+              <MathKeypad />
+            </DialogProvider>
+          </MathKeypadProvider>
         </AuthProvider>
       </body>
     </html>

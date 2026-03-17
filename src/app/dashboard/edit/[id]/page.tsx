@@ -324,6 +324,7 @@ export default function QuizEditor() {
                           onChange={(value) => updateQuestion(index, "q", value)}
                           className="w-full text-xl font-bold bg-transparent px-4"
                           placeholder="수식이나 기호를 포함한 질문을 입력하세요"
+                          isTeacher={true}
                         />
                       </div>
                     ) : (
@@ -377,6 +378,7 @@ export default function QuizEditor() {
                                         }}
                                         className="w-full font-bold text-slate-700 text-sm"
                                         placeholder={`수식 보기 ${optIdx + 1}`}
+                                        isTeacher={true}
                                       />
                                     ) : (
                                       <input 
@@ -479,6 +481,7 @@ export default function QuizEditor() {
                               onChange={(value) => updateQuestion(index, "a", value)}
                               className="w-full font-bold bg-transparent px-4"
                               placeholder="수식 정답을 입력하세요"
+                              isTeacher={true}
                             />
                           </div>
                         ) : (

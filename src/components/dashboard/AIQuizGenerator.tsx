@@ -9,6 +9,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { processMathText } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 interface AIQuizGeneratorProps {
   onQuestionsGenerated: (questions: any[]) => void;
@@ -17,7 +18,7 @@ interface AIQuizGeneratorProps {
 
 export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGeneratorProps) {
   const [text, setText] = useState("");
-  const [filesData, setFilesData] = useState<{ mimeType: string, data: string, name: string }[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
   const [count, setCount] = useState(5);
   const [types, setTypes] = useState<string[]>(["SHORT_ANSWER", "MULTIPLE_CHOICE"]);
   const [mathMode, setMathMode] = useState(false);
@@ -26,44 +27,20 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
   const { showAlert } = useDialog();
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+    const newFiles = Array.from(e.target.files || []);
+    if (newFiles.length === 0) return;
     
-    const newFilesData: { mimeType: string, data: string, name: string }[] = [];
+    const validFiles: File[] = [];
 
-    for (const file of files) {
-      // Check file size limit (100MB)
+    for (const file of newFiles) {
       if (file.size > 100 * 1024 * 1024) {
         await showAlert(`'${file.name}' 파일 용량이 너무 큽니다. 100MB 이하의 파일만 업로드할 수 있습니다.`);
         continue;
       }
-
-      // Encode as base64 for Gemini
-      const reader = new FileReader();
-      const filePromise = new Promise<{ mimeType: string, data: string, name: string }>((resolve, reject) => {
-        reader.onload = (event) => {
-          const result = event.target?.result as string;
-          const match = result.match(/data:(.*);base64,(.*)/);
-          if (match) {
-            resolve({ mimeType: file.type || match[1], data: match[2], name: file.name });
-          } else {
-            reject(new Error(`'${file.name}' 파일을 읽을 수 없습니다.`));
-          }
-        };
-        reader.onerror = () => reject(new Error(`'${file.name}' 읽기 오류`));
-        reader.readAsDataURL(file);
-      });
-
-      try {
-        const data = await filePromise;
-        newFilesData.push(data);
-      } catch (err: any) {
-        showAlert(err.message);
-      }
+      validFiles.push(file);
     }
 
-    setFilesData((prev: any[]) => [...prev, ...newFilesData]);
-    // Reset input value so same file can be selected again if removed
+    setFiles(prev => [...prev, ...validFiles]);
     e.target.value = "";
   };
 
@@ -78,7 +55,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
   };
 
   const handleGenerate = async () => {
-    if (!text.trim() && filesData.length === 0) {
+    if (!text.trim() && files.length === 0) {
       await showAlert("학습 자료를 입력하거나 파일을 첨부해주세요.");
       return;
     }
@@ -88,15 +65,36 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
     }
     setLoading(true);
     try {
+      // 1. Upload files to Supabase ai-temp bucket first
+      const uploadedFilePaths: { mimeType: string, path: string, name: string }[] = [];
+      
+      for (const file of files) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('ai-temp')
+          .upload(filePath, file);
+          
+        if (uploadError) throw new Error(`${file.name} 업로드 실패: ${uploadError.message}`);
+        
+        uploadedFilePaths.push({
+          mimeType: file.type,
+          path: filePath,
+          name: file.name
+        });
+      }
+
+      // 2. Call generate API with file paths
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, count, types, filesData, mathMode }),
+        body: JSON.stringify({ text, count, types, storageFiles: uploadedFilePaths, mathMode }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       
-      // Ensure the generated questions have a type falling back to SHORT_ANSWER
       const preparedQuestions = data.map((q: any) => ({
         ...q,
         type: q.type || (types.length === 1 ? types[0] : "SHORT_ANSWER"),
@@ -146,7 +144,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                     학습 자료 입력 (또는 파일 업로드)
                   </label>
                   <label className="cursor-pointer text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded-lg text-sm font-bold transition-colors">
-                    {filesData.length > 0 ? '+ 파일 더 추가' : '+ 파일 첨부'}
+                    {files.length > 0 ? '+ 파일 더 추가' : '+ 파일 첨부'}
                     <input 
                       type="file" 
                       multiple 
@@ -156,13 +154,13 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                     />
                   </label>
                 </div>
-                {filesData.length > 0 && (
+                {files.length > 0 && (
                   <div className="space-y-2 mb-4">
-                    {filesData.map((file, idx) => (
+                    {files.map((file, idx) => (
                       <div key={idx} className="bg-indigo-50 border border-indigo-200 p-4 rounded-2xl flex items-center justify-between animate-in slide-in-from-left-2">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-indigo-100 text-indigo-500 rounded-xl flex items-center justify-center font-bold">
-                            {file.mimeType.startsWith('image/') ? '🖼️' : '📄'}
+                            {file.type.startsWith('image/') ? '🖼️' : '📄'}
                           </div>
                           <div>
                             <p className="font-bold text-slate-800 text-sm truncate max-w-[200px]">{file.name}</p>
@@ -170,7 +168,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                           </div>
                         </div>
                         <button 
-                          onClick={() => setFilesData(prev => prev.filter((_, i) => i !== idx))} 
+                          onClick={() => setFiles(prev => prev.filter((_, i) => i !== idx))} 
                           className="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-xl transition-all"
                         >
                           <X size={16}/>
@@ -250,7 +248,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                 size="xl"
                 className="w-full py-8 text-2xl shadow-xl shadow-indigo-100 group"
                 onClick={handleGenerate}
-                disabled={loading || (!text.trim() && filesData.length === 0)}
+                disabled={loading || (!text.trim() && files.length === 0)}
               >
 
                 {loading ? (

@@ -1,11 +1,19 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: Request) {
   try {
-    const { text, count = 5, types = ["SHORT_ANSWER"], filesData = [] } = await req.json();
+    const { 
+      text, 
+      count = 5, 
+      types = ["SHORT_ANSWER"], 
+      filesData = [], 
+      storageFiles = [], // New field for files uploaded to Supabase Storage
+      mathMode = false 
+    } = await req.json();
 
-    if (!text && filesData.length === 0) {
+    if (!text && filesData.length === 0 && storageFiles.length === 0) {
       return NextResponse.json({ error: "텍스트나 파일이 필요합니다." }, { status: 400 });
     }
 
@@ -16,8 +24,12 @@ export async function POST(req: Request) {
       }, { status: 500 });
     }
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabase = createClient(supabaseUrl!, supabaseAnonKey!);
+
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const typeLabel = types.map((t: string) => {
       if (t === "MULTIPLE_CHOICE") return "선다형(2-4개 보기)";
@@ -37,61 +49,93 @@ export async function POST(req: Request) {
           "type": "MULTIPLE_CHOICE, SHORT_ANSWER, OX, 또는 BLANK",
           "blanks": [index1, index2], // '빈칸넣기'일 경우 필수. q를 공백으로 나눴을 때 정답이 될 단어의 인덱스 배열 (0부터 시작)
           "points": 10,
-          "math_mode": false, // 수학 수식이 포함되어 수식 전용 에디터(MathLive)가 필요한지 여부 (true/false)
-          "template": "\\frac{\\square}{\\square}" // 'MATH' 유형일 경우 필수. 학생이 입력할 양식 (숫자가 들어갈 자리에 \\square 사용)
+          "math_mode": ${mathMode}, // 요청된 mathMode를 기반으로 기본값 설정
+          "template": "\\\\frac{\\\\square}{\\\\square}" // 'MATH' 또는 수식이 필요한 경우 필수. 학생이 입력할 양식 (숫자가 들어갈 자리에 \\\\square 사용)
         }
       ]
     `;
 
     const textPrompt = `
-      제공된 텍스트나 첨부된 파일을 바탕으로 초등학생들이 즐겁게 풀 수 있는 ${typeLabel} 퀴즈 문항 총 ${count}개를 생성해주세요.
-      출력 형식은 반드시 아래의 JSON 배열 형식이어야 합니다. 다른 말은 덧붙이지 마세요.
-      
-      [퀴즈 유형별 생성 규칙]
-      1. MATH (수학/수식): 수학 문제이거나 수식, 분수, 기호가 포함된 경우입니다. 반드시 "math_mode": true 로 설정하고, 모든 수학적 표현은 LaTeX 형식을 사용하되 앞뒤 달러 기호($) 없이 작성하세요. (예: \\frac{1}{2}, 2^{3})
-         - 초등학생이 입력하기 쉽도록 "template" 필드에 정답 양식을 제공하세요. (예: 정답이 \\frac{3}{4} 이라면 template은 "\\frac{\\square}{\\square}" 입니다.)
-      2. MULTIPLE_CHOICE (선다형): "math_mode"가 true인 경우 options에도 LaTeX를 사용할 수 있습니다.
-      3. SHORT_ANSWER (단답형): 정답이 숫자인 경우에도 수식 기호가 필요하면 MATH 유형으로 생성하세요.
-      4. BLANK (빈칸 넣기): 문장 속의 핵심 단어를 빈칸으로 만듭니다.
-      5. OX (O/X 퀴즈): 참/거짓을 판별하는 문제입니다.
+      당신은 대한민국 최고의 문항 출제 전문가이자 친절한 선생님입니다.
+      제공된 학습 자료(텍스트 또는 파일)를 깊이 있게 분석하여, 학생들이 반드시 익혀야 할 핵심 개념을 관통하는 고품질의 퀴즈 문항 ${count}개를 생성해주세요.
 
-      [수학 수식 작성 공통 규칙]
-      - 모든 수학 기호(사칙연산 포함)는 LaTeX를 권장합니다. (예: \\times, \\div)
-      - JSON 출력 시 백슬래시(\\)는 반드시 '\\\\'로 이스케이프 처리하세요.
+      [핵심 출제 원칙]
+      - **전문성**: 단순한 사실 확인을 넘어 사고력을 요하는 문항을 구성하세요.
+      - **일관성**: 요청된 유형(${typeLabel})에 충실하며, 사용자가 선택한 모드(수식 모드 여부)에 맞춰 문항의 성격을 통일하세요.
+      - **집중도**: **[중요]** 만약 현재 "수식 모드(math_mode: true)"가 활성화되어 있다면, 반드시 **수학 및 과학적 수식/계산 문항**에만 집중하세요. 국어, 영어 등 관련 없는 과목의 문항은 생성하지 마세요.
+      - **수준**: 초등학생부터 고등학생까지 풀 수 있도록 문항의 난이도를 자료의 수준에 맞춰 적절히 조절하세요.
+
+      [퀴즈 유형별 생성 규칙]
+      1. MATH (수학/수식): 수학적 개념, 공식, 계산이 포함된 문항입니다.
+         - 반드시 "math_mode": true 로 설정하세요.
+         - 모든 수학적 기호와 식은 LaTeX 형식을 사용하되, 앞뒤 달러 기호($) 없이 작성하세요. (예: \\\\frac{1}{2}, \\\\sqrt{2}, x^{2} + y^{2} = r^{2})
+         - 학생이 숫자를 채워 넣을 수 있도록 "template" 필드에 완성된 양식을 제공하세요. (숫자 자리에 \\\\square 사용)
+      2. MULTIPLE_CHOICE (선다형): "math_mode"가 true인 경우 보기(options)에도 LaTeX를 적극 활용하세요.
+      3. SHORT_ANSWER (단답형): 정답이 숫자나 기호인 경우입니다.
+      4. BLANK (빈칸 넣기): 문장의 핵심 키워드를 공백으로 만듭니다.
+      5. OX (O/X 퀴즈): 자료의 핵심 내용을 참/거짓으로 묻습니다.
+
+      [수학 수식 작성 및 JSON 탈출(Escape) 규칙]
+      - 모든 수학 기호(사칙연산 포함)는 LaTeX를 권장합니다. (예: \\\\times, \\\\div, \\\\pm, \\\\approx)
+      - **JSON 출력 시 백슬래시(\\\\)는 반드시 '\\\\\\\\'로 네 번(4번) 이스케이프 처리하여, 클라이언트에서 '\\\\'로 인식될 수 있게 하세요.** (매우 중요: \\\\frac -> \\\\\\\\frac)
 
       [빈칸 넣기(BLANK) 문항 생성 규칙]:
       1. 'q' 필드에는 빈칸이 포함된 전체 문장을 작성하세요.
-      2. 정답이 될 단어 앞뒤에는 반드시 공백을 한 칸씩 넣어주세요.
-      3. 'blanks' 필드에는 'q'를 공백으로 split 했을 때의 인덱스 배열을 넣으세요.
+      2. 정답이 될 단어 앞뒤에는 반드시 공백을 한 칸씩 넣어주세요. (예: "대한민국의 수도는 서울 입니다.")
+      3. 'blanks' 필드에는 'q'를 공백으로 split 했을 때의 인덱스 배열(0부터 시작)을 넣으세요.
 
       형식:
       ${formatPrompt}
 
-      텍스트:
+      학습 자료:
       ${text || "첨부 파일 참조"}
     `;
 
     const parts: any[] = [{ text: textPrompt }];
 
-    // Add all uploaded files as parts
+    // Handle legacy base64 files (if any)
     for (const file of filesData) {
+      parts.push({
+        inlineData: { mimeType: file.mimeType, data: file.data }
+      });
+    }
+
+    // Handle large files from Supabase Storage
+    const tempFilePaths: string[] = [];
+    for (const file of storageFiles) {
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('ai-temp')
+        .download(file.path);
+      
+      if (downloadError) {
+        console.error(`Error downloading ${file.path}:`, downloadError);
+        continue;
+      }
+
+      tempFilePaths.push(file.path);
+      
+      const buffer = Buffer.from(await fileData.arrayBuffer());
       parts.push({
         inlineData: {
           mimeType: file.mimeType,
-          data: file.data
+          data: buffer.toString('base64')
         }
       });
     }
 
     const result = await model.generateContent(parts);
-
     const response = await result.response;
     const responseText = response.text();
 
-    // Extract JSON from response (Gemini sometimes adds markdown blocks)
+    // Extract JSON from response
     const jsonMatch = responseText.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
       throw new Error("AI가 유효한 JSON 형식을 생성하지 못했습니다.");
+    }
+
+    // Attempt to cleanup temporary files from storage asynchronously
+    if (tempFilePaths.length > 0) {
+      supabase.storage.from('ai-temp').remove(tempFilePaths).catch(e => console.error("Cleanup error:", e));
     }
 
     const questions = JSON.parse(jsonMatch[0]);
