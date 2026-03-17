@@ -2,17 +2,6 @@
 
 import React, { useEffect, useRef } from "react";
 
-// For TypeScript to recognize the custom web component
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      "math-field": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-        value?: string;
-      };
-    }
-  }
-}
-
 interface MathInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -66,10 +55,10 @@ export function MathInput({ value, onChange, onEnter, className = "", placeholde
 
   return (
     <div className={`relative w-full ${className}`}>
+      {/* @ts-ignore */}
       <math-field
         ref={mfRef}
         style={{ width: "100%", display: "block" }}
-        // @ts-ignore
         smart-mode="true"
         math-virtual-keyboard-policy="auto"
         placeholder={placeholder}
