@@ -35,9 +35,12 @@ export function MathInput({
   }, [template, value, onChange]);
 
   useEffect(() => {
-    import("mathlive").then(() => {
+    // Force mathlive import on mount to ensure custom element is registered
+    import("mathlive").then((m) => {
       if (mfRef.current) {
-        // Teachers use built-in keyboard, students use custom
+        // Ensure keyboard policies are set
+        mfRef.current.mathVirtualKeyboardPolicy = isTeacher ? "auto" : "manual";
+        // @ts-ignore
         mfRef.current.virtualKeyboardMode = isTeacher ? "onfocus" : "manual";
       }
     });
@@ -52,7 +55,7 @@ export function MathInput({
         // Also check if the click is on the mathlive virtual keyboard
         const isKeyboardClick = (e.target as HTMLElement).closest('.ML__keyboard');
         if (!isKeyboardClick) {
-          mfRef.current.blur();
+          mfRef.current?.blur?.();
         }
       }
     };
@@ -77,7 +80,17 @@ export function MathInput({
 
     const handleFocus = () => {
       if (!isTeacher) {
-        openKeypad(el, level);
+        // Only open keypad if the element has successfully connected to MathLive
+        if (typeof el.executeCommand === 'function') {
+          openKeypad(el, level);
+        } else {
+          // Retry slightly later if not ready
+          setTimeout(() => {
+            if (typeof el.executeCommand === 'function') {
+              openKeypad(el, level);
+            }
+          }, 100);
+        }
       }
     };
 

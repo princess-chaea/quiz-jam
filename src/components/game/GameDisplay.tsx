@@ -858,7 +858,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
           )}
         </h2>
 
-        {game.current_hint_stage > 0 && !submitted && timeLeft > 0 && currentQuestion?.type !== "OX" && currentQuestion?.type !== "MULTIPLE_CHOICE" && (
+        {game.current_hint_stage > 0 && !submitted && timeLeft > 0 && currentQuestion?.type !== "OX" && currentQuestion?.type !== "MULTIPLE_CHOICE" && !currentQuestion?.math_mode && (
           <div className="mb-10 p-6 bg-indigo-50 rounded-[2rem] border-2 border-indigo-100 flex flex-col items-center animate-in slide-in-from-top-2 duration-300 shadow-inner">
             <span className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
               <Zap size={14} className="fill-indigo-400" /> 

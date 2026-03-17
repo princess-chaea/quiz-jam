@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { X, ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMathKeypad } from "./MathKeypadContext";
+import { usePathname } from "next/navigation";
 
 const KEYPAD_PRESETS = {
   numbers: [
@@ -47,6 +48,7 @@ const KEYPAD_PRESETS = {
 
 export function MathKeypad() {
   const { activeField, isOpen, pos, level, closeKeypad, updatePos } = useMathKeypad();
+  const pathname = usePathname();
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
   const [activeTab, setActiveTab] = useState<'num' | 'elem' | 'mid' | 'high'>('num');
@@ -60,26 +62,32 @@ export function MathKeypad() {
     else if (level === 'high') setActiveTab('high');
   }, [level]);
 
+  // Close keypad on route change
+  useEffect(() => {
+    closeKeypad();
+  }, [pathname]);
+
   if (!mounted || !isOpen) return null;
 
   const insertLatex = (latex: string) => {
-    if (!activeField) return;
+    if (!activeField || typeof activeField.executeCommand !== 'function') return;
     
     // Use focus: true and feedback: true for better placeholder handling
     activeField.executeCommand(['insert', latex, { focus: true, feedback: true }]);
     
-    setTimeout(() => activeField?.focus(), 0);
+    setTimeout(() => activeField?.focus?.(), 0);
   };
 
   const command = (name: string) => {
-    activeField?.executeCommand([name]);
-    setTimeout(() => activeField?.focus(), 0);
+    if (!activeField || typeof activeField.executeCommand !== 'function') return;
+    activeField.executeCommand([name]);
+    setTimeout(() => activeField?.focus?.(), 0);
   };
 
   const moveToNext = () => {
-    if (!activeField) return;
+    if (!activeField || typeof activeField.executeCommand !== 'function') return;
     activeField.executeCommand('moveToNextPlaceholder');
-    setTimeout(() => activeField?.focus(), 0);
+    setTimeout(() => activeField?.focus?.(), 0);
   };
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
@@ -121,8 +129,9 @@ export function MathKeypad() {
 
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
+      if (!target) return;
       if (target.closest('.math-keypad-container')) return;
-      if (target.tagName.toLowerCase() === 'math-field') return;
+      if (target.tagName?.toLowerCase() === 'math-field') return;
       
       closeKeypad();
     };
@@ -152,6 +161,7 @@ export function MathKeypad() {
         <GripVertical className="text-indigo-200" size={14} />
         <button 
             onClick={closeKeypad}
+            onMouseDown={(e) => e.preventDefault()}
             className="hover:bg-red-50 p-1 rounded-full transition-colors"
         >
             <X size={16} className="text-slate-400" />
@@ -169,6 +179,7 @@ export function MathKeypad() {
             <button 
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
+              onMouseDown={(e) => e.preventDefault()}
               className={cn(
                   "flex-1 py-2 px-2 rounded-xl text-xs font-black transition-all whitespace-nowrap",
                   activeTab === tab.id ? "bg-white text-indigo-600 shadow-md scale-105" : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
@@ -202,18 +213,21 @@ export function MathKeypad() {
         <div className="flex gap-2 border-t border-slate-100 pt-3">
           <button 
             onClick={() => command('moveToPreviousChar')}
+            onMouseDown={(e) => e.preventDefault()}
             className="flex-1 h-10 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center justify-center text-slate-500 transition-colors shadow-sm"
           >
             <ChevronLeft size={20} />
           </button>
           <button 
             onClick={() => command('moveToNextChar')}
+            onMouseDown={(e) => e.preventDefault()}
             className="flex-1 h-10 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center justify-center text-slate-500 transition-colors shadow-sm"
           >
             <ChevronRight size={20} />
           </button>
           <button 
             onClick={closeKeypad}
+            onMouseDown={(e) => e.preventDefault()}
             className="flex-[2] h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black transition-colors shadow-[0_4px_10px_rgba(79,70,229,0.3)] shadow-indigo-200"
           >
             확인
@@ -230,6 +244,7 @@ function KeyButton({ label, onClick, className = "", isLatex = false }: { label:
   return (
     <button
       onClick={onClick}
+      onMouseDown={(e) => e.preventDefault()}
       className={cn(
         "h-12 bg-white hover:bg-indigo-50/50 rounded-xl border-b-4 border-slate-200 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center font-black text-slate-700 shadow-sm overflow-hidden",
         className
