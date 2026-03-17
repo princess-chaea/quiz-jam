@@ -67,6 +67,7 @@ export function MathKeypad() {
     closeKeypad();
   }, [pathname]);
 
+  // Prevent SSR hydration mismatch and ensure keypad only shows when open
   if (!mounted || !isOpen) return null;
 
   const insertLatex = (latex: string) => {
