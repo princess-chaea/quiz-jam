@@ -109,7 +109,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
     if (!game?.id || !player.id) return;
     
     const channel = supabase.channel(`game_swaps_${game.id}`)
-      .on('broadcast', { event: 'START_SWAP' }, ({ payload }) => {
+      .on('broadcast', { event: 'START_SWAP' }, ({ payload }: { payload: any }) => {
         console.log(`[Swap Engine] Student ${player.nickname} received START_SWAP for ${payload.nickname} (${payload.playerId})`);
         setActiveSwapperName(payload.nickname);
         
@@ -130,7 +130,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
           setIsMyTurnToSwap(false);
         }
       })
-      .on('broadcast', { event: 'SWAP_COMPLETED' }, ({ payload }) => {
+      .on('broadcast', { event: 'SWAP_COMPLETED' }, ({ payload }: { payload: any }) => {
         const { swapperId, targetId, swapperName, targetName, skipped } = payload;
         console.log(`[Swap Engine] Received SWAP_COMPLETED: ${swapperName} -> ${targetName} (Skipped: ${skipped})`);
         setActiveSwapperName(null);
@@ -151,7 +151,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
           // might still have their own swap turn later in the same round.
         }
       })
-      .on('broadcast', { event: 'SHIELD_BLOCK' }, ({ payload }) => {
+      .on('broadcast', { event: 'SHIELD_BLOCK' }, ({ payload }: { payload: any }) => {
         const { nickname, type } = payload;
         setActiveSwapperName(null);
         setIsSwapExecuting(false); // Critical: Unlock the Confirm button
@@ -300,7 +300,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
     if (game.status !== 'PLAYING') return;
 
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
+      setTimeLeft((prev: number) => {
         if (prev <= 1) {
           clearInterval(timer);
           return 0;

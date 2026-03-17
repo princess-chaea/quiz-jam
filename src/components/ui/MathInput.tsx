@@ -72,6 +72,7 @@ export function MathInput({ value, onChange, onEnter, className = "", placeholde
         // @ts-ignore
         smart-mode="true"
         math-virtual-keyboard-policy="auto"
+        placeholder={placeholder}
       />
     </div>
   );

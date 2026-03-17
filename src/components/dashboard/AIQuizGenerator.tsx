@@ -60,16 +60,16 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
       }
     }
 
-    setFilesData(prev => [...prev, ...newFilesData]);
+    setFilesData((prev: any[]) => [...prev, ...newFilesData]);
     // Reset input value so same file can be selected again if removed
     e.target.value = "";
   };
 
   const toggleType = (t: string) => {
-    setTypes(prev => {
+    setTypes((prev: string[]) => {
       if (prev.includes(t)) {
         if (prev.length === 1) return prev; // Keep at least one
-        return prev.filter(x => x !== t);
+        return prev.filter((x: string) => x !== t);
       }
       return [...prev, t];
     });
