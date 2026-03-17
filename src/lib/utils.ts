@@ -61,3 +61,5 @@ export function processMathText(text: string | null | undefined): string {
   
   return text;
 }
+
+export const normalizeMath = (s: string) => s.replace(/\s+/g, "").toLowerCase();

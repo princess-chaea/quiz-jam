@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { Clock, Zap, Shield, Scissors, Gift, RefreshCw, Check, X } from "lucide-react";
 import { cn, getChoseong, processMathText, normalizeMath } from "@/lib/utils";
