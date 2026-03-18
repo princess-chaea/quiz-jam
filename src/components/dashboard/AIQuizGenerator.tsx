@@ -24,9 +24,26 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
     return "";
   });
   const [files, setFiles] = useState<File[]>([]);
-  const [count, setCount] = useState(5);
-  const [types, setTypes] = useState<string[]>(["SHORT_ANSWER", "MULTIPLE_CHOICE"]);
-  const [mathMode, setMathMode] = useState(false);
+  const [count, setCount] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("ai_gen_count");
+      return saved ? parseInt(saved) : 5;
+    }
+    return 5;
+  });
+  const [types, setTypes] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("ai_gen_types");
+      return saved ? JSON.parse(saved) : ["SHORT_ANSWER", "MULTIPLE_CHOICE"];
+    }
+    return ["SHORT_ANSWER", "MULTIPLE_CHOICE"];
+  });
+  const [mathMode, setMathMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("ai_gen_math_mode") === "true";
+    }
+    return false;
+  });
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<any[] | null>(() => {
     if (typeof window !== "undefined") {
@@ -41,6 +58,18 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
   useEffect(() => {
     sessionStorage.setItem("ai_gen_text", text);
   }, [text]);
+
+  useEffect(() => {
+    sessionStorage.setItem("ai_gen_count", count.toString());
+  }, [count]);
+
+  useEffect(() => {
+    sessionStorage.setItem("ai_gen_types", JSON.stringify(types));
+  }, [types]);
+
+  useEffect(() => {
+    sessionStorage.setItem("ai_gen_math_mode", mathMode.toString());
+  }, [mathMode]);
 
   useEffect(() => {
     if (preview) {
@@ -154,6 +183,9 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
       onQuestionsGenerated(preview);
       sessionStorage.removeItem("ai_gen_preview");
       sessionStorage.removeItem("ai_gen_text");
+      sessionStorage.removeItem("ai_gen_count");
+      sessionStorage.removeItem("ai_gen_types");
+      sessionStorage.removeItem("ai_gen_math_mode");
       onClose();
     }
   };
