@@ -5,13 +5,13 @@ import { Buffer } from "buffer";
 
 export async function POST(req: Request) {
   try {
-    const { 
-      text, 
-      count = 5, 
-      types = ["SHORT_ANSWER"], 
-      filesData = [], 
-      storageFiles = [], 
-      mathMode = false 
+    const {
+      text,
+      count = 5,
+      types = ["SHORT_ANSWER"],
+      filesData = [],
+      storageFiles = [],
+      mathMode = false
     } = await req.json();
 
     if (!text && filesData.length === 0 && storageFiles.length === 0) {
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     const supabase = createClient(supabaseUrl!, supabaseAnonKey!);
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const typeLabel = types.map((t: string) => {
       if (t === "MULTIPLE_CHOICE") return "선다형(2-4개 보기)";
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
       const { data: fileData, error: downloadError } = await supabase.storage
         .from('ai-temp')
         .download(file.path);
-      
+
       if (downloadError) {
         console.error(`Error downloading ${file.path}:`, downloadError);
         continue;
@@ -136,7 +136,7 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error("Gemini Error:", error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: error.message || "오류가 발생했습니다.",
       details: error.stack
     }, { status: 500 });
