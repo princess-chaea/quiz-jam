@@ -8,7 +8,7 @@ import { useMathKeypad } from "./MathKeypadContext";
 import { usePathname } from "next/navigation";
 
 const KEYPAD_PRESETS = {
-  numbers: [
+  num: [
     { label: "1", latex: "1" }, { label: "2", latex: "2" }, { label: "3", latex: "3" },
     { label: "+", latex: "+" },
     { label: "4", latex: "4" }, { label: "5", latex: "5" }, { label: "6", latex: "6" },
@@ -18,19 +18,26 @@ const KEYPAD_PRESETS = {
     { label: ".", latex: "." }, { label: "0", latex: "0" }, { label: "=", latex: "=" },
     { label: "÷", latex: "\\div" },
   ],
-  elementary: [
+  elem: [
     { label: "□/□", latex: "\\frac{#?}{#?}" }, { label: "0.1", latex: "0.1" }, 
     { label: "3.14", latex: "3.14" }, { label: ">", latex: ">" },
     { label: "<", latex: "<" }, { label: "cm²", latex: "\\text{cm}^2" }, 
     { label: "m²", latex: "\\text{m}^2" }, { label: "km²", latex: "\\text{km}^2" },
+    { label: "( )", latex: "(#?)" }, { label: "{}", latex: "{#?}" },
+    { label: "[:]", latex: "#? : #?" }, { label: "kg", latex: "\\text{kg}" },
+    { label: "g", latex: "\\text{g}" }, { label: "mL", latex: "\\text{mL}" },
+    { label: "L", latex: "\\text{L}" }, { label: "원", latex: "\\text{원}" },
   ],
-  middle: [
+  mid: [
     { label: "xⁿ", latex: "#?^{#?}" }, { label: "√□", latex: "\\sqrt{#?}" },
     { label: "|□|", latex: "|#?|" }, { label: "π", latex: "\\pi" },
     { label: "x", latex: "x" }, { label: "y", latex: "y" }, { label: "z", latex: "z" },
     { label: "△", latex: "\\triangle" }, { label: "∠", latex: "\\angle" },
     { label: "⊥", latex: "\\perp" }, { label: "∥", latex: "\\parallel" },
     { label: "≡", latex: "\\equiv" }, { label: "∽", latex: "\\sim" },
+    { label: "±", latex: "\\pm" }, { label: "≤", latex: "\\le" },
+    { label: "≥", latex: "\\ge" }, { label: "∞", latex: "\\infty" },
+    { label: "y=ax+b", latex: "y=ax+b" }, { label: "x²", latex: "x^2" },
   ],
   high: [
     { label: "∪", latex: "\\cup" }, { label: "∩", latex: "\\cap" }, 
@@ -43,6 +50,7 @@ const KEYPAD_PRESETS = {
     { label: "n!", latex: "#? !" }, { label: "Σ", latex: "\\sum_{#?=#?}^{#?}" },
     { label: "log", latex: "\\log_{#?}{#?}" }, { label: "ln", latex: "\\ln{#?}" },
     { label: "→a", latex: "\\vec{#?}" },
+    { label: "∂", latex: "\\partial" }, { label: "∇", latex: "\\nabla" },
   ]
 };
 
@@ -111,6 +119,26 @@ export function MathKeypad() {
   }, [isOpen, closeKeypad]);
 
   // Prevent SSR hydration mismatch
+  // Handle click outside to close the keypad
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Don't close if clicking the keypad itself or the active math-field
+      const keypadEl = document.querySelector('.math-keypad-container');
+      const isKeypadClick = keypadEl?.contains(target);
+      const isActiveFieldClick = activeField?.contains(target);
+      
+      if (!isKeypadClick && !isActiveFieldClick) {
+        closeKeypad();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, closeKeypad, activeField]);
+
   if (!mounted) return null;
 
   const insertLatex = (latex: string) => {
@@ -198,7 +226,7 @@ export function MathKeypad() {
         <div className="grid grid-cols-4 gap-2 min-h-[220px]">
           {activeTab === 'num' ? (
             <>
-              {KEYPAD_PRESETS.numbers.map((key, idx) => (
+              {KEYPAD_PRESETS.num.map((key, idx) => (
                 <KeyButton key={"num" + key.label + idx} onClick={() => insertLatex(key.latex)} label={key.label} />
               ))}
               <KeyButton onClick={() => command('deleteBackward')} label="⌫" className="bg-red-50 text-red-500 border-red-200" />

@@ -27,10 +27,29 @@ export function MathInput({
   const mfRef = useRef<any>(null);
   const { openKeypad } = useMathKeypad();
   const [mounted, setMounted] = React.useState(false);
+  const [isReady, setIsReady] = React.useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    // Force mathlive import on mount to ensure custom element is registered
+    import("mathlive").then((m) => {
+      setIsReady(true);
+      if (mfRef.current) {
+        // Ensure keyboard policies are set
+        mfRef.current.mathVirtualKeyboardPolicy = isTeacher ? "auto" : "manual";
+        // @ts-ignore
+        mfRef.current.virtualKeyboardMode = isTeacher ? "onfocus" : "manual";
+        
+        // If there's an initial value, ensure it's set correctly now that the element is upgraded
+        if (value) {
+          mfRef.current.value = value;
+        }
+      }
+    });
+  }, [isTeacher, value]);
 
   useEffect(() => {
     if (mfRef.current && template && !value) {
@@ -39,17 +58,12 @@ export function MathInput({
     }
   }, [template, value, onChange]);
 
+  // Sync value changes after initialization
   useEffect(() => {
-    // Force mathlive import on mount to ensure custom element is registered
-    import("mathlive").then((m) => {
-      if (mfRef.current) {
-        // Ensure keyboard policies are set
-        mfRef.current.mathVirtualKeyboardPolicy = isTeacher ? "auto" : "manual";
-        // @ts-ignore
-        mfRef.current.virtualKeyboardMode = isTeacher ? "onfocus" : "manual";
-      }
-    });
-  }, [isTeacher]);
+    if (isReady && mfRef.current && mfRef.current.value !== value) {
+      mfRef.current.value = value || "";
+    }
+  }, [value, isReady]);
 
   // Handle click outside to blur for teachers
   useEffect(() => {
@@ -68,12 +82,6 @@ export function MathInput({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isTeacher]);
-
-  useEffect(() => {
-    if (mfRef.current && mfRef.current.value !== value) {
-      mfRef.current.value = value;
-    }
-  }, [value]);
 
   useEffect(() => {
     const el = mfRef.current;

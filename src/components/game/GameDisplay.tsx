@@ -45,6 +45,11 @@ function SegmentedInput({ value, length, onChange, onEnter, autoFocus, firstRef 
 
   const handleClick = () => {
     hiddenInputRef.current?.focus();
+    // Move cursor to end when clicking
+    if (hiddenInputRef.current) {
+      const len = hiddenInputRef.current.value.length;
+      hiddenInputRef.current.setSelectionRange(len, len);
+    }
   };
 
   return (
@@ -52,7 +57,7 @@ function SegmentedInput({ value, length, onChange, onEnter, autoFocus, firstRef 
       className="flex gap-1 bg-white p-2 rounded-xl shadow-sm border border-slate-200 relative cursor-text"
       onClick={handleClick}
     >
-      {/* Hidden native input for IME support */}
+      {/* Hidden native input for IME support - improved styling for Korean */}
       <input
         ref={hiddenInputRef}
         type="text"
@@ -62,7 +67,8 @@ function SegmentedInput({ value, length, onChange, onEnter, autoFocus, firstRef 
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         autoFocus={autoFocus}
-        className="absolute opacity-0 w-0 h-0 pointer-events-none"
+        className="absolute inset-0 opacity-0 cursor-default text-transparent bg-transparent border-none outline-none caret-transparent"
+        style={{ fontSize: '16px' }} // Standard font size avoids zoom on mobile and helps IME
       />
       
       {Array.from({ length }).map((_, i) => (
