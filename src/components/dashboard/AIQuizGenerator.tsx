@@ -83,7 +83,11 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
           
         if (uploadError) {
           console.error("Storage upload error:", uploadError);
-          throw new Error(`${file.name} 업로드 실패: ${uploadError.message}. (Supabase Storage 'ai-temp' 버킷이 'Public'으로 설정되어 있고 'INSERT' 정책이 있는지 확인해주세요.)`);
+          let msg = uploadError.message;
+          if (msg.includes("Bucket not found")) {
+            msg = "Supabase에 'ai-temp' 버킷이 없습니다. Supabase SQL Editor에서 'INSERT INTO storage.buckets (id, name, public) VALUES ('ai-temp', 'ai-temp', true);' 명령어를 실행해 주세요.";
+          }
+          throw new Error(`${file.name} 업로드 실패: ${msg}`);
         }
         
         uploadedFilePaths.push({

@@ -52,23 +52,15 @@ export function processMathText(text: string | null | undefined): string {
   const mathRegex = /(\\[a-zA-Z]+(\{.*?\})?|[\d\w](\^|_)\{?.*?\}?|\\(times|div|pm|neq|le|ge|approx|pi|theta|alpha|beta|gamma|delta|sigma|omega|lambda|sqrt|frac))/g;
 
   if (mathRegex.test(text)) {
-    // If it looks like a single math expression (no or few spaces), wrap the whole thing
-    const spaceCount = (text.match(/ /g) || []).length;
-    if (spaceCount < 3) {
-      return `$${text.trim()}$`;
-    }
-    
     // For mixed text, we try to wrap recognized LaTeX bits
-    // This is tricky. A better way: if it contains any common LaTeX commands, 
-    // and it's not already wrapped, let's see if we can just wrap the whole thing 
-    // but ONLY if it's mostly math.
-    
-    // Actually, for the AI generator, it usually gives "What is \frac{1}{2}?"
-    // If we wrap the whole thing, it becomes "$What is \frac{1}{2}$", which renders text as math (italics).
-    // So we should try to wrap ONLY the LaTeX part.
+    // We avoid wrapping if the string contains Korean characters unless it's a specific LaTeX command.
+    // This prevents the "Unicode text character used in math mode" warning in KaTeX.
     
     return text.replace(/(\\[a-zA-Z]+\{.*?\}|(\\[a-zA-Z]+)|[\w\d](\^|_)\{?.*?\}?|[\w\d](\^|_)[\w\d])/g, (match) => {
-      // Don't wrap if it's just a common word that happens to match (though backslash usually prevents this)
+      // If the match contains Korean characters, don't wrap it in $ (it's likely plain text)
+      if (/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(match)) {
+        return match;
+      }
       return `$${match}$`;
     });
   }
