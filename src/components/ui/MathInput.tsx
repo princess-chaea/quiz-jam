@@ -65,23 +65,24 @@ export function MathInput({
     }
   }, [value, isReady]);
 
-  // Handle click outside to blur for teachers
+  // Handle click outside to blur (for both teachers and students)
   useEffect(() => {
-    if (!isTeacher) return;
-
     const handleClickOutside = (e: MouseEvent) => {
-      if (mfRef.current && !mfRef.current.contains(e.target as Node)) {
-        // Also check if the click is on the mathlive virtual keyboard
-        const isKeyboardClick = (e.target as HTMLElement).closest('.ML__keyboard');
-        if (!isKeyboardClick) {
-          mfRef.current?.blur?.();
-        }
+      if (!mfRef.current) return;
+      
+      const path = e.composedPath() as HTMLElement[];
+      const isInsideMf = path.includes(mfRef.current);
+      const isInsideKeypad = path.some(el => el.classList?.contains('math-keypad-container'));
+      const isKeyboardClick = path.some(el => el.classList?.contains('ML__keyboard'));
+      
+      if (!isInsideMf && !isInsideKeypad && !isKeyboardClick) {
+        mfRef.current?.blur?.();
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isTeacher]);
+    document.addEventListener("mousedown", handleClickOutside, true);
+    return () => document.removeEventListener("mousedown", handleClickOutside, true);
+  }, []);
 
   useEffect(() => {
     const el = mfRef.current;

@@ -70,14 +70,21 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
       
       for (const file of files) {
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
+        const randomId = Math.random().toString(36).substring(2, 10);
+        const fileName = `${Date.now()}-${randomId}.${fileExt}`;
         const filePath = `${fileName}`;
         
         const { error: uploadError } = await supabase.storage
           .from('ai-temp')
-          .upload(filePath, file);
+          .upload(filePath, file, {
+            contentType: file.type || 'application/octet-stream',
+            upsert: false
+          });
           
-        if (uploadError) throw new Error(`${file.name} 업로드 실패: ${uploadError.message}`);
+        if (uploadError) {
+          console.error("Storage upload error:", uploadError);
+          throw new Error(`${file.name} 업로드 실패: ${uploadError.message}. (Supabase Storage 'ai-temp' 버킷이 'Public'으로 설정되어 있고 'INSERT' 정책이 있는지 확인해주세요.)`);
+        }
         
         uploadedFilePaths.push({
           mimeType: file.type,

@@ -24,6 +24,11 @@ import { useDialog } from "@/components/ui/DialogProvider";
 import { Spinner } from "@/components/ui/Spinner";
 import { Footer } from "@/components/layout/Footer";
 import { MathInput } from "@/components/ui/MathInput";
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
+import { processMathText } from "@/lib/utils";
 
 export default function QuizEditor() {
   const { id } = useParams();
@@ -328,13 +333,27 @@ export default function QuizEditor() {
                         />
                       </div>
                     ) : (
-                      <textarea 
-                        value={q.q}
-                        onChange={(e) => updateQuestion(index, "q", e.target.value)}
-                        className="w-full p-4 text-xl font-bold border-2 border-gray-50 bg-gray-50 rounded-2xl focus:border-indigo-400 focus:bg-white outline-none transition-all placeholder:text-gray-300 min-h-[80px]"
-                        placeholder="일반 텍스트 질문을 입력하세요 (엔터로 줄바꿈 가능)"
-                        rows={2}
-                      />
+                      <div className="space-y-2">
+                        <textarea 
+                          value={q.q}
+                          onChange={(e) => updateQuestion(index, "q", e.target.value)}
+                          className="w-full p-4 text-xl font-bold border-2 border-gray-50 bg-gray-50 rounded-2xl focus:border-indigo-400 focus:bg-white outline-none transition-all placeholder:text-gray-300 min-h-[80px]"
+                          placeholder="일반 텍스트 질문을 입력하세요 (엔터로 줄바꿈 가능)"
+                          rows={2}
+                        />
+                        {q.q && (q.q.includes('\\') || q.q.includes('^') || q.q.includes('_')) && (
+                          <div className="px-4 py-2 bg-indigo-50/30 rounded-xl border border-indigo-100/50">
+                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                              <Sparkles size={10}/> Preview
+                            </p>
+                            <div className="text-slate-700 font-bold leading-tight prose prose-slate max-w-none">
+                              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                {processMathText(q.q)}
+                              </ReactMarkdown>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
 
@@ -381,18 +400,27 @@ export default function QuizEditor() {
                                         isTeacher={true}
                                       />
                                     ) : (
-                                      <input 
-                                        type="text"
-                                        value={opt}
-                                        onChange={(e) => {
-                                          const newOpts = [...(q.options || ["", ""])];
-                                          newOpts[optIdx] = e.target.value;
-                                          updateQuestion(index, "options", newOpts);
-                                          if (isCorrect) updateQuestion(index, "a", e.target.value);
-                                        }}
-                                        className="w-full bg-transparent outline-none font-bold text-slate-700 text-sm placeholder:text-slate-300 placeholder:font-medium py-2"
-                                        placeholder={`보기 ${optIdx + 1}`}
-                                      />
+                                      <div className="flex-1 space-y-1">
+                                        <input 
+                                          type="text"
+                                          value={opt}
+                                          onChange={(e) => {
+                                            const newOpts = [...(q.options || ["", ""])];
+                                            newOpts[optIdx] = e.target.value;
+                                            updateQuestion(index, "options", newOpts);
+                                            if (isCorrect) updateQuestion(index, "a", e.target.value);
+                                          }}
+                                          className="w-full bg-transparent outline-none font-bold text-slate-700 text-sm placeholder:text-slate-300 placeholder:font-medium py-2"
+                                          placeholder={`보기 ${optIdx + 1}`}
+                                        />
+                                        {opt && (opt.includes('\\') || opt.includes('^') || opt.includes('_')) && (
+                                          <div className="text-[10px] text-indigo-500 font-bold bg-white/50 px-2 py-0.5 rounded border border-indigo-100 w-fit">
+                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                                              {processMathText(opt)}
+                                            </ReactMarkdown>
+                                          </div>
+                                        )}
+                                      </div>
                                     )}
                                   </div>
                                   {(q.options || []).length > 2 && (

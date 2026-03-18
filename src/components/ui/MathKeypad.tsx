@@ -102,42 +102,33 @@ export function MathKeypad() {
     };
   }, [isDragging, updatePos]); // Removed 'pos' from deps as it's not used inside anymore (using dragStart.current)
 
+  // Consolidated click-outside listener for robustness (including Shadow DOM)
   useEffect(() => {
     if (!isOpen) return;
 
     const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target) return;
-      if (target.closest('.math-keypad-container')) return;
-      if (target.tagName?.toLowerCase() === 'math-field') return;
+      const path = e.composedPath() as HTMLElement[];
       
-      closeKeypad();
-    };
-
-    window.addEventListener('mousedown', handleClickOutside, true);
-    return () => window.removeEventListener('mousedown', handleClickOutside, true);
-  }, [isOpen, closeKeypad]);
-
-  // Prevent SSR hydration mismatch
-  // Handle click outside to close the keypad
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      // Don't close if clicking the keypad itself or the active math-field
-      const keypadEl = document.querySelector('.math-keypad-container');
-      const isKeypadClick = keypadEl?.contains(target);
-      const isActiveFieldClick = activeField?.contains(target);
+      // Check if the click is inside the keypad
+      const isKeypadClick = path.some(el => 
+        el.classList?.contains('math-keypad-container')
+      );
       
-      if (!isKeypadClick && !isActiveFieldClick) {
+      // Check if the click is on a math-field (the input area)
+      const isMathFieldClick = path.some(el => 
+        el.tagName?.toLowerCase() === 'math-field'
+      );
+
+      // If click is outside both the keypad and the math-field, close it
+      if (!isKeypadClick && !isMathFieldClick) {
         closeKeypad();
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, closeKeypad, activeField]);
+    // Use capture: true to catch clicks before they might be stopped by e.stopPropagation()
+    window.addEventListener('mousedown', handleClickOutside, true);
+    return () => window.removeEventListener('mousedown', handleClickOutside, true);
+  }, [isOpen, closeKeypad]);
 
   if (!mounted) return null;
 
