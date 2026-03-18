@@ -48,20 +48,29 @@ export function processMathText(text: string | null | undefined): string {
   // that look like math (contain \ or ^ or _) and wrap them if they don't have spaces,
   // or wrap the whole thing if it's mostly math.
   
-  // Let's use a regex that matches LaTeX commands and their immediate surroundings
-  const mathRegex = /(\\[a-zA-Z]+(\{.*?\})?|[\d\w](\^|_)\{?.*?\}?|\\(times|div|pm|neq|le|ge|approx|pi|theta|alpha|beta|gamma|delta|sigma|omega|lambda|sqrt|frac))/g;
+// 1. Identify common LaTeX commands and structures
+  // This includes \frac{...}{...}, \sqrt{...}, \times, \div, etc.
+  // We look for patterns starting with a backslash and potentially followed by braced content.
+  // Updated to handle double backslashes often coming from escaped JSON
+  const mathRegex = /(\\\\[a-zA-Z]+|\\([a-zA-Z]+({[^}]*})*|[^a-zA-Z])|([a-zA-Z\d]+(\^|_){?[a-zA-Z\d]+}?))/g;
 
   if (mathRegex.test(text)) {
-    // For mixed text, we try to wrap recognized LaTeX bits
-    // We avoid wrapping if the string contains Korean characters unless it's a specific LaTeX command.
-    // This prevents the "Unicode text character used in math mode" warning in KaTeX.
-    
-    return text.replace(/(\\[a-zA-Z]+\{.*?\}|(\\[a-zA-Z]+)|[\w\d](\^|_)\{?.*?\}?|[\w\d](\^|_)[\w\d])/g, (match) => {
-      // If the match contains Korean characters, don't wrap it in $ (it's likely plain text)
+    // Reset regex index
+    mathRegex.lastIndex = 0;
+
+    return text.replace(mathRegex, (match) => {
+      // If it contains Korean, leave it alone
       if (/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(match)) {
         return match;
       }
-      return `$${match}$`;
+      
+      // Clean up double backslashes to single ones for KaTeX
+      let cleanMatch = match;
+      if (match.startsWith('\\\\')) {
+        cleanMatch = match.substring(1); // Keep one backslash
+      }
+      
+      return `$${cleanMatch}$`;
     });
   }
 

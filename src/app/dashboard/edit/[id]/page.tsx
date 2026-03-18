@@ -318,44 +318,44 @@ export default function QuizEditor() {
 
                 <div className="grid grid-cols-1 gap-6">
                   {/* Question */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                      <Type size={14} /> Question
-                    </label>
-                    {q.math_mode ? (
-                      <div className="w-full border-2 border-gray-50 bg-gray-50 rounded-2xl focus-within:border-indigo-400 focus-within:bg-white transition-all overflow-hidden flex items-center min-h-[80px]">
-                        <MathInput 
-                          value={q.q}
-                          onChange={(value) => updateQuestion(index, "q", value)}
-                          className="w-full text-xl font-bold bg-transparent px-4"
-                          placeholder="수식이나 기호를 포함한 질문을 입력하세요"
-                          isTeacher={true}
-                        />
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                          <Type size={14} /> Question
+                        </label>
+                        {q.q && (q.q.includes('\\') || q.q.includes('^') || q.q.includes('_')) && (
+                          <span className="text-[10px] font-bold text-indigo-400 bg-indigo-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Sparkles size={10} /> Math Detected
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      <div className="space-y-2">
+                      
+                      <div className="space-y-3">
                         <textarea 
                           value={q.q}
                           onChange={(e) => updateQuestion(index, "q", e.target.value)}
-                          className="w-full p-4 text-xl font-bold border-2 border-gray-50 bg-gray-50 rounded-2xl focus:border-indigo-400 focus:bg-white outline-none transition-all placeholder:text-gray-300 min-h-[80px]"
-                          placeholder="일반 텍스트 질문을 입력하세요 (엔터로 줄바꿈 가능)"
-                          rows={2}
+                          className="w-full p-4 text-lg font-bold border-2 border-slate-100 bg-slate-50/50 rounded-2xl focus:border-indigo-400 focus:bg-white outline-none transition-all placeholder:text-slate-300 min-h-[100px] resize-none"
+                          placeholder="질문을 입력하세요. 수식은 \frac{1}{2} 처럼 LaTeX로 입력하면 미리보기에 표시됩니다."
+                          rows={3}
                         />
-                        {q.q && (q.q.includes('\\') || q.q.includes('^') || q.q.includes('_')) && (
-                          <div className="px-4 py-2 bg-indigo-50/30 rounded-xl border border-indigo-100/50">
-                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1 flex items-center gap-1">
-                              <Sparkles size={10}/> Preview
-                            </p>
-                            <div className="text-slate-700 font-bold leading-tight prose prose-slate max-w-none">
+                        
+                        {/* Preview Area - Always visible if there's content to preview */}
+                        <div className="p-4 bg-white rounded-2xl border-2 border-slate-50 shadow-sm">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                            <Sparkles size={10}/> Live Preview
+                          </p>
+                          <div className="text-slate-700 font-bold text-lg leading-relaxed prose prose-slate max-w-none">
+                            {q.q ? (
                               <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
                                 {processMathText(q.q)}
                               </ReactMarkdown>
-                            </div>
+                            ) : (
+                              <span className="text-slate-300 font-medium text-base">미리보기가 여기에 표시됩니다...</span>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Answer Section based on type */}

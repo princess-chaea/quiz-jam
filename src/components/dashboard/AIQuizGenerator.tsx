@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Sparkles, Loader2, Plus, X, ListOrdered } from "lucide-react";
 import { useDialog } from "@/components/ui/DialogProvider";
@@ -17,14 +17,38 @@ interface AIQuizGeneratorProps {
 }
 
 export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGeneratorProps) {
-  const [text, setText] = useState("");
+  const [text, setText] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("ai_gen_text") || "";
+    }
+    return "";
+  });
   const [files, setFiles] = useState<File[]>([]);
   const [count, setCount] = useState(5);
   const [types, setTypes] = useState<string[]>(["SHORT_ANSWER", "MULTIPLE_CHOICE"]);
   const [mathMode, setMathMode] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState<any[] | null>(null);
+  const [preview, setPreview] = useState<any[] | null>(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("ai_gen_preview");
+      return saved ? JSON.parse(saved) : null;
+    }
+    return null;
+  });
   const { showAlert } = useDialog();
+
+  // Persist state to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem("ai_gen_text", text);
+  }, [text]);
+
+  useEffect(() => {
+    if (preview) {
+      sessionStorage.setItem("ai_gen_preview", JSON.stringify(preview));
+    } else {
+      sessionStorage.removeItem("ai_gen_preview");
+    }
+  }, [preview]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || []);
@@ -69,12 +93,15 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
       const uploadedFilePaths: { mimeType: string, path: string, name: string }[] = [];
       
       for (const file of files) {
+        if (!file) continue;
+        console.log(`[AI Generator] Uploading file: ${file.name} (${file.type}, ${file.size} bytes)`);
+        
         const fileExt = file.name.split('.').pop();
         const randomId = Math.random().toString(36).substring(2, 10);
         const fileName = `${Date.now()}-${randomId}.${fileExt}`;
         const filePath = `${fileName}`;
         
-        const { error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
           .from('ai-temp')
           .upload(filePath, file, {
             contentType: file.type || 'application/octet-stream',
@@ -82,13 +109,15 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
           });
           
         if (uploadError) {
-          console.error("Storage upload error:", uploadError);
+          console.error("[AI Generator] Supabase Storage upload error details:", JSON.stringify(uploadError, null, 2));
           let msg = uploadError.message;
           if (msg.includes("Bucket not found")) {
             msg = "Supabase에 'ai-temp' 버킷이 없습니다. Supabase SQL Editor에서 'INSERT INTO storage.buckets (id, name, public) VALUES ('ai-temp', 'ai-temp', true);' 명령어를 실행해 주세요.";
           }
-          throw new Error(`${file.name} 업로드 실패: ${msg}`);
+          throw new Error(`${file.name} 업로드 실패 (Status: ${uploadError.status || 'unknown'}): ${msg}`);
         }
+        
+        console.log(`[AI Generator] Successfully uploaded ${file.name} to ${filePath}`);
         
         uploadedFilePaths.push({
           mimeType: file.type,
@@ -123,13 +152,33 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
   const handleAdd = () => {
     if (preview) {
       onQuestionsGenerated(preview);
+      sessionStorage.removeItem("ai_gen_preview");
+      sessionStorage.removeItem("ai_gen_text");
       onClose();
     }
   };
 
+  const handleClose = async () => {
+    if (loading) {
+      const confirmClose = window.confirm("문항 생성 중입니다. 정말 닫으시겠습니까?");
+      if (!confirmClose) return;
+    }
+    if (preview && preview.length > 0) {
+      const confirmClose = window.confirm("생성된 문항이 있습니다. 퀴즈에 추가하지 않고 닫으시겠습니까?");
+      if (!confirmClose) return;
+    }
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh] animate-pop">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200"
+      onClick={handleClose}
+    >
+      <div 
+        className="bg-white rounded-[2.5rem] shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh] animate-pop"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="bg-indigo-600 p-8 text-white flex justify-between items-center relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12">
              <Sparkles size={120} />
@@ -140,7 +189,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
             </h3>
             <p className="text-white/70 text-sm font-bold mt-1">학습 자료만 넣으면 퀴즈가 뚝딱!</p>
           </div>
-          <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-xl transition-colors relative z-10">
+          <button onClick={handleClose} className="hover:bg-white/20 p-2 rounded-xl transition-colors relative z-10">
             <X size={24} />
           </button>
         </div>
