@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Sparkles, Loader2, Plus, X, ListOrdered } from "lucide-react";
 import { useDialog } from "@/components/ui/DialogProvider";
