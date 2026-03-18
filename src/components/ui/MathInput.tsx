@@ -26,6 +26,11 @@ export function MathInput({
 }: MathInputProps) {
   const mfRef = useRef<any>(null);
   const { openKeypad } = useMathKeypad();
+  const [mounted, setMounted] = React.useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (mfRef.current && template && !value) {
@@ -110,6 +115,14 @@ export function MathInput({
       el.removeEventListener("focus", handleFocus);
     };
   }, [onChange, onEnter, openKeypad, level, isTeacher]);
+
+  if (!mounted) {
+    return (
+      <div className={`relative w-full ${className}`}>
+        <div className="bg-slate-50 rounded-2xl border-2 border-slate-100 h-[68px] animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div className={`relative w-full ${className}`}>

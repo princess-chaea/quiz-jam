@@ -24,58 +24,62 @@ interface SegmentedInputProps {
 }
 
 function SegmentedInput({ value, length, onChange, onEnter, autoFocus, firstRef }: SegmentedInputProps) {
-  const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const hiddenInputRef = useRef<HTMLInputElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
-  const handleChange = (i: number, val: string) => {
-    // Only take the last character typed
-    const char = val.slice(-1);
-    const chars = value.split("");
-    while(chars.length < length) chars.push("");
-    chars[i] = char;
-    const newVal = chars.join("").slice(0, length);
+  // Sync ref with firstRef if provided
+  useEffect(() => {
+    if (firstRef && hiddenInputRef.current) {
+      firstRef.current = hiddenInputRef.current;
+    }
+  }, [firstRef]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVal = e.target.value.slice(0, length);
     onChange(newVal);
-    
-    if (char && i < length - 1) {
-      inputsRef.current[i + 1]?.focus();
-    }
   };
 
-  const handleKeyDown = (i: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !value[i] && i > 0) {
-      inputsRef.current[i - 1]?.focus();
-    }
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') onEnter?.();
-    if (e.key === 'ArrowRight' && i < length - 1) inputsRef.current[i + 1]?.focus();
-    if (e.key === 'ArrowLeft' && i > 0) inputsRef.current[i - 1]?.focus();
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const paste = e.clipboardData.getData("text").slice(0, length);
-    onChange(paste);
-    // Focus the next empty slot or the last one
-    const nextIdx = Math.min(paste.length, length - 1);
-    inputsRef.current[nextIdx]?.focus();
+  const handleClick = () => {
+    hiddenInputRef.current?.focus();
   };
 
   return (
-    <div className="flex gap-1 bg-white p-2 rounded-xl shadow-sm border border-slate-200">
+    <div 
+      className="flex gap-1 bg-white p-2 rounded-xl shadow-sm border border-slate-200 relative cursor-text"
+      onClick={handleClick}
+    >
+      {/* Hidden native input for IME support */}
+      <input
+        ref={hiddenInputRef}
+        type="text"
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        autoFocus={autoFocus}
+        className="absolute opacity-0 w-0 h-0 pointer-events-none"
+      />
+      
       {Array.from({ length }).map((_, i) => (
-        <input
+        <div
           key={i}
-          ref={el => {
-            inputsRef.current[i] = el;
-            if (i === 0 && firstRef) firstRef.current = el;
-          }}
-          type="text"
-          maxLength={1}
-          value={value[i] || ""}
-          onChange={e => handleChange(i, e.target.value)}
-          onKeyDown={e => handleKeyDown(i, e)}
-          onPaste={i === 0 ? handlePaste : undefined}
-          autoFocus={autoFocus && i === 0}
-          className="w-10 h-12 bg-slate-50 border-2 border-indigo-100 rounded-lg text-center font-black text-indigo-600 text-xl focus:border-indigo-400 focus:bg-indigo-50/30 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
-        />
+          className={cn(
+            "w-10 h-12 bg-slate-50 border-2 rounded-lg flex items-center justify-center font-black text-indigo-600 text-xl transition-all relative",
+            isFocused && value.length === i ? "border-indigo-500 bg-indigo-50/30 ring-2 ring-indigo-200" : "border-indigo-100",
+            value[i] ? "border-indigo-200 bg-white" : ""
+          )}
+        >
+          {value[i] || ""}
+          {/* Custom blinking cursor for the active box */}
+          {isFocused && value.length === i && (
+            <div className="absolute w-0.5 h-6 bg-indigo-500 animate-pulse" />
+          )}
+        </div>
       ))}
     </div>
   );

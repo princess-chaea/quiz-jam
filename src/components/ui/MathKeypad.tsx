@@ -65,10 +65,53 @@ export function MathKeypad() {
   // Close keypad on route change
   useEffect(() => {
     closeKeypad();
-  }, [pathname]);
+  }, [pathname, closeKeypad]);
 
-  // Prevent SSR hydration mismatch and ensure keypad only shows when open
-  if (!mounted || !isOpen) return null;
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+      updatePos({
+        x: clientX - dragStart.current.x,
+        y: clientY - dragStart.current.y
+      });
+    };
+
+    const handleEnd = () => setIsDragging(false);
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchmove', handleMove);
+    window.addEventListener('touchend', handleEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [isDragging, updatePos]); // Removed 'pos' from deps as it's not used inside anymore (using dragStart.current)
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target) return;
+      if (target.closest('.math-keypad-container')) return;
+      if (target.tagName?.toLowerCase() === 'math-field') return;
+      
+      closeKeypad();
+    };
+
+    window.addEventListener('mousedown', handleClickOutside, true);
+    return () => window.removeEventListener('mousedown', handleClickOutside, true);
+  }, [isOpen, closeKeypad]);
+
+  // Prevent SSR hydration mismatch
+  if (!mounted) return null;
 
   const insertLatex = (latex: string) => {
     if (!activeField || typeof activeField.executeCommand !== 'function') return;
@@ -98,56 +141,17 @@ export function MathKeypad() {
     dragStart.current = { x: clientX - pos.x, y: clientY - pos.y };
   };
 
-  useEffect(() => {
-    if (!isDragging) return;
-
-    const handleMove = (e: MouseEvent | TouchEvent) => {
-      const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
-      const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
-      updatePos({
-        x: clientX - dragStart.current.x,
-        y: clientY - dragStart.current.y
-      });
-    };
-
-    const handleEnd = () => setIsDragging(false);
-
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', handleEnd);
-    window.addEventListener('touchmove', handleMove);
-    window.addEventListener('touchend', handleEnd);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleEnd);
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('touchend', handleEnd);
-    };
-  }, [isDragging, pos, updatePos]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target) return;
-      if (target.closest('.math-keypad-container')) return;
-      if (target.tagName?.toLowerCase() === 'math-field') return;
-      
-      closeKeypad();
-    };
-
-    window.addEventListener('mousedown', handleClickOutside, true);
-    return () => window.removeEventListener('mousedown', handleClickOutside, true);
-  }, [isOpen, closeKeypad]);
-
   const keypadUI = (
     <div 
       style={{ 
         transform: `translate(${pos.x}px, ${pos.y}px)`,
-        zIndex: 10000
+        zIndex: 10000,
+        display: isOpen ? 'block' : 'none'
       }}
-      className="math-keypad-container fixed bottom-24 left-1/2 -ml-[175px] w-[350px] bg-white/95 backdrop-blur-xl rounded-[2.5rem] border border-white/50 shadow-[0_30px_60px_rgba(0,0,0,0.18)] overflow-hidden animate-pop"
+      className={cn(
+        "math-keypad-container fixed bottom-24 left-1/2 -ml-[175px] w-[350px] bg-white/95 backdrop-blur-xl rounded-[2.5rem] border border-white/50 shadow-[0_30px_60px_rgba(0,0,0,0.18)] overflow-hidden",
+        isOpen ? "animate-pop" : "hidden"
+      )}
     >
       <div 
         onMouseDown={handleDragStart}
@@ -162,7 +166,7 @@ export function MathKeypad() {
         <GripVertical className="text-indigo-200" size={14} />
         <button 
             onClick={closeKeypad}
-            onMouseDown={(e) => e.preventDefault()}
+            onMouseDown={(e: React.MouseEvent) => e.preventDefault()}
             className="hover:bg-red-50 p-1 rounded-full transition-colors"
         >
             <X size={16} className="text-slate-400" />
@@ -180,7 +184,7 @@ export function MathKeypad() {
             <button 
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              onMouseDown={(e) => e.preventDefault()}
+              onMouseDown={(e: React.MouseEvent) => e.preventDefault()}
               className={cn(
                   "flex-1 py-2 px-2 rounded-xl text-xs font-black transition-all whitespace-nowrap",
                   activeTab === tab.id ? "bg-white text-indigo-600 shadow-md scale-105" : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
@@ -194,16 +198,16 @@ export function MathKeypad() {
         <div className="grid grid-cols-4 gap-2 min-h-[220px]">
           {activeTab === 'num' ? (
             <>
-              {KEYPAD_PRESETS.numbers.map(key => (
-                <KeyButton key={"num" + key.label} onClick={() => insertLatex(key.latex)} label={key.label} />
+              {KEYPAD_PRESETS.numbers.map((key, idx) => (
+                <KeyButton key={"num" + key.label + idx} onClick={() => insertLatex(key.latex)} label={key.label} />
               ))}
               <KeyButton onClick={() => command('deleteBackward')} label="⌫" className="bg-red-50 text-red-500 border-red-200" />
               <KeyButton onClick={moveToNext} label="Tab" className="bg-emerald-50 text-emerald-600 border-emerald-200" />
             </>
           ) : (
             <>
-              {(KEYPAD_PRESETS[activeTab as keyof typeof KEYPAD_PRESETS] || []).map(key => (
-                <KeyButton key={activeTab + key.label} onClick={() => insertLatex(key.latex)} label={key.label} isLatex />
+              {(KEYPAD_PRESETS[activeTab as keyof typeof KEYPAD_PRESETS] || []).map((key, idx) => (
+                <KeyButton key={activeTab + key.label + idx} onClick={() => insertLatex(key.latex)} label={key.label} isLatex />
               ))}
               <KeyButton onClick={() => command('deleteBackward')} label="⌫" className="bg-red-50 text-red-500 border-red-200" />
               <KeyButton onClick={moveToNext} label="Tab" className="bg-emerald-50 text-emerald-600 border-emerald-200" />
@@ -214,21 +218,21 @@ export function MathKeypad() {
         <div className="flex gap-2 border-t border-slate-100 pt-3">
           <button 
             onClick={() => command('moveToPreviousChar')}
-            onMouseDown={(e) => e.preventDefault()}
+            onMouseDown={(e: React.MouseEvent) => e.preventDefault()}
             className="flex-1 h-10 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center justify-center text-slate-500 transition-colors shadow-sm"
           >
             <ChevronLeft size={20} />
           </button>
           <button 
             onClick={() => command('moveToNextChar')}
-            onMouseDown={(e) => e.preventDefault()}
+            onMouseDown={(e: React.MouseEvent) => e.preventDefault()}
             className="flex-1 h-10 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center justify-center text-slate-500 transition-colors shadow-sm"
           >
             <ChevronRight size={20} />
           </button>
           <button 
             onClick={closeKeypad}
-            onMouseDown={(e) => e.preventDefault()}
+            onMouseDown={(e: React.MouseEvent) => e.preventDefault()}
             className="flex-[2] h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black transition-colors shadow-[0_4px_10px_rgba(79,70,229,0.3)] shadow-indigo-200"
           >
             확인

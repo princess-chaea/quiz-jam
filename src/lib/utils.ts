@@ -37,7 +37,8 @@ export function processMathText(text: string | null | undefined): string {
   // or starts with a backslash
   const mathPatterns = [
     /\\frac/g, /\\sqrt/g, /\^/g, /_/g, /\\times/g, /\\div/g, /\\theta/g, /\\pi/g, 
-    /\\alpha/g, /\\beta/g, /\\pm/g, /\\neq/g, /\\le/g, /\\ge/g, /\\approx/g
+    /\\alpha/g, /\\beta/g, /\\pm/g, /\\neq/g, /\\le/g, /\\ge/g, /\\approx/g,
+    /\\sin/g, /\\cos/g, /\\tan/g, /\\log/g, /\\lim/g, /\\sum/g, /\\int/g
   ];
 
   let isMath = text.trim().startsWith("\\");
@@ -50,15 +51,17 @@ export function processMathText(text: string | null | undefined): string {
     }
   }
 
-  // If it's effectively just a math expression, wrap the whole thing
-  if (isMath && !text.includes(" ")) {
-    return `$${text}$`;
+  // If it's effectively a math expression (even with spaces), wrap the whole thing
+  // We'll be slightly more aggressive now: if it has math tokens, wrap unless it looks like regular prose (many spaces and long words)
+  if (isMath) {
+    const spaceCount = (text.match(/ /g) || []).length;
+    const isProse = spaceCount > 5 || text.length > 50; 
+    
+    if (!isProse) {
+      return `$${text.trim()}$`;
+    }
   }
 
-  // If it's mixed text, we should ideally find and wrap only the math parts.
-  // For now, simpler: if it has common math tokens, wrap them.
-  // But Gemini usually provides the whole answer as just the math expression.
-  
   return text;
 }
 

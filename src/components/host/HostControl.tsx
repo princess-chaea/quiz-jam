@@ -881,12 +881,14 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                         <div className="flex-1 min-w-0">
                           {ans && (
                             <div className={cn(
-                              "w-full px-3 py-1 rounded-xl font-bold text-xs text-center border truncate",
+                              "w-full px-3 py-1 rounded-xl font-bold text-xs text-center border truncate [&_p]:m-0",
                               ans.is_correct 
                                 ? "bg-emerald-500/80 border-emerald-400/50 text-white" 
                                 : "bg-red-500/80 border-red-400/50 text-white"
                             )}>
-                              {ans.answer || '(미입력)'}
+                              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                                {processMathText(ans.answer || '(미입력)')}
+                              </ReactMarkdown>
                             </div>
                           )}
                         </div>
@@ -1035,7 +1037,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                         </div>
                         <div className="break-all line-clamp-2 [&_p]:m-0 flex-1">
                           <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
-                            {opt}
+                            {processMathText(opt)}
                           </ReactMarkdown>
                         </div>
                       </div>

@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
+import { Buffer } from "buffer";
 
 export async function POST(req: Request) {
   try {
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
     const supabase = createClient(supabaseUrl!, supabaseAnonKey!);
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const typeLabel = types.map((t: string) => {
       if (t === "MULTIPLE_CHOICE") return "선다형(2-4개 보기)";
@@ -114,11 +115,13 @@ export async function POST(req: Request) {
 
       tempFilePaths.push(file.path);
       
-      const buffer = Buffer.from(await fileData.arrayBuffer());
+      const arrayBuffer = await fileData.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      
       parts.push({
         inlineData: {
           mimeType: file.mimeType,
-          data: buffer.toString('base64')
+          data: base64
         }
       });
     }
