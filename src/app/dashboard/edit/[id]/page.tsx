@@ -331,29 +331,42 @@ export default function QuizEditor() {
                       </div>
                       
                       <div className="space-y-3">
-                        <textarea 
-                          value={q.q}
-                          onChange={(e) => updateQuestion(index, "q", e.target.value)}
-                          className="w-full p-4 text-lg font-bold border-2 border-slate-100 bg-slate-50/50 rounded-2xl focus:border-indigo-400 focus:bg-white outline-none transition-all placeholder:text-slate-300 min-h-[100px] resize-none"
-                          placeholder="질문을 입력하세요. 수식은 \frac{1}{2} 처럼 LaTeX로 입력하면 미리보기에 표시됩니다."
-                          rows={3}
-                        />
+                        {q.math_mode ? (
+                          <MathInput
+                            value={q.q}
+                            onChange={(value) => updateQuestion(index, "q", value)}
+                            className="w-full"
+                            containerClassName="min-h-[140px] flex flex-col"
+                            placeholder="질문을 입력하세요. 수식은 가상 키보드를 사용하여 입력할 수 있습니다."
+                            isTeacher={true}
+                          />
+                        ) : (
+                          <textarea 
+                            value={q.q}
+                            onChange={(e) => updateQuestion(index, "q", e.target.value)}
+                            className="w-full p-4 text-lg font-bold border-2 border-slate-100 bg-slate-50/50 rounded-2xl focus:border-indigo-400 focus:bg-white outline-none transition-all placeholder:text-slate-300 min-h-[100px] resize-none"
+                            placeholder="질문을 입력하세요. 수식은 \frac{1}{2} 처럼 LaTeX로 입력하면 미리보기에 표시됩니다."
+                            rows={3}
+                          />
+                        )}
                         
-                        {/* Preview Area - Always visible if there's content to preview */}
-                        <div className="p-4 bg-white rounded-2xl border-2 border-slate-50 shadow-sm">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                            <Sparkles size={10}/> Live Preview
-                          </p>
-                          <div className="text-slate-700 font-bold text-lg leading-relaxed prose prose-slate max-w-none">
-                            {q.q ? (
-                              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                                {processMathText(q.q)}
-                              </ReactMarkdown>
-                            ) : (
-                              <span className="text-slate-300 font-medium text-base">미리보기가 여기에 표시됩니다...</span>
-                            )}
+                        {/* Preview Area - Only visible in non-math mode to help with LaTeX */}
+                        {!q.math_mode && (
+                          <div className="p-4 bg-white rounded-2xl border-2 border-slate-50 shadow-sm">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                              <Sparkles size={10}/> Live Preview
+                            </p>
+                            <div className="text-slate-700 font-bold text-lg leading-relaxed prose prose-slate max-w-none">
+                              {q.q ? (
+                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                  {processMathText(q.q)}
+                                </ReactMarkdown>
+                              ) : (
+                                <span className="text-slate-300 font-medium text-base">미리보기가 여기에 표시됩니다...</span>
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     </div>
 

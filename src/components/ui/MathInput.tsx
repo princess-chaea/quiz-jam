@@ -12,6 +12,7 @@ interface MathInputProps {
   template?: string;
   level?: 'elementary' | 'middle' | 'high';
   isTeacher?: boolean;
+  containerClassName?: string;
 }
 
 export function MathInput({ 
@@ -22,7 +23,8 @@ export function MathInput({
   placeholder, 
   template, 
   level = 'elementary',
-  isTeacher = false
+  isTeacher = false,
+  containerClassName = ""
 }: MathInputProps) {
   const mfRef = useRef<any>(null);
   const { openKeypad } = useMathKeypad();
@@ -135,7 +137,7 @@ export function MathInput({
 
   return (
     <div className={`relative w-full ${className}`}>
-      <div className="bg-white rounded-2xl border-2 border-indigo-100 shadow-sm focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-100 transition-all overflow-hidden p-1">
+      <div className={`bg-white rounded-2xl border-2 border-indigo-100 shadow-sm focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-100 transition-all overflow-hidden p-1 ${containerClassName}`}>
         {/* @ts-ignore */}
         <math-field
           ref={mfRef}
@@ -145,7 +147,8 @@ export function MathInput({
             padding: "0.75rem",
             border: "none",
             outline: "none",
-            background: "transparent"
+            background: "transparent",
+            minHeight: "3.5rem"
           }}
           smart-mode="true"
           math-virtual-keyboard-policy={isTeacher ? "auto" : "manual"}

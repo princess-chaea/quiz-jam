@@ -168,7 +168,8 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
         ...q,
         type: q.type || (types.length === 1 ? types[0] : "SHORT_ANSWER"),
         points: q.points || 10,
-        timeLimit: 20
+        timeLimit: 20,
+        math_mode: mathMode
       }));
       setPreview(preparedQuestions);
     } catch (err) {
