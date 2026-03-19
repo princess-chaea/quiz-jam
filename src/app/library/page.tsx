@@ -19,7 +19,11 @@ import { TopNavbar } from "@/components/layout/TopNavbar";
 import { useDialog } from "@/components/ui/DialogProvider";
 import { Spinner } from "@/components/ui/Spinner";
 import { Footer } from "@/components/layout/Footer";
-import { cn } from "@/lib/utils";
+import { cn, processMathText } from "@/lib/utils";
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 export default function LibraryPage() {
   const router = useRouter();
@@ -256,18 +260,28 @@ export default function LibraryPage() {
                       <span className="bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">Q{idx + 1}</span>
                       <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">{q.points}점</span>
                     </div>
-                    <h4 className="text-lg font-bold text-gray-800 mb-4 break-keep line-clamp-3">
-                      {q.type === 'BLANK' ? '빈칸 채우기 문제입니다.' : q.q}
-                    </h4>
+                    <div className="text-lg font-bold text-gray-800 mb-4 break-keep line-clamp-3 prose prose-slate max-w-none [&_p]:m-0">
+                      {q.type === 'BLANK' ? (
+                        '빈칸 채우기 문제입니다.'
+                      ) : (
+                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                          {processMathText(q.q)}
+                        </ReactMarkdown>
+                      )}
+                    </div>
                     
                     {q.type === 'MULTIPLE_CHOICE' && (
                       <div className="grid grid-cols-1 gap-2">
                         {q.options?.map((opt: string, oIdx: number) => (
                           <div key={oIdx} className={cn(
-                            "p-3 rounded-xl border text-sm font-medium",
+                            "p-3 rounded-xl border text-sm font-medium flex items-center gap-1 [&_p]:m-0",
                             opt === q.a ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-white border-gray-100 text-gray-500"
                           )}>
-                            {oIdx + 1}. {opt} {opt === q.a && '✓'}
+                            <span>{oIdx + 1}.</span> 
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                              {processMathText(opt)}
+                            </ReactMarkdown>
+                            {opt === q.a && '✓'}
                           </div>
                         ))}
                       </div>
@@ -289,16 +303,28 @@ export default function LibraryPage() {
                     {q.type === 'BLANK' && (
                       <div className="p-4 bg-white rounded-xl border border-dashed border-gray-200">
                         <p className="text-sm font-bold text-gray-400 mb-2">지문:</p>
-                        <p className="text-indigo-600 font-black mb-3 break-keep">{q.q}</p>
+                        <div className="text-indigo-600 font-black mb-3 break-keep prose prose-indigo max-w-none [&_p]:m-0">
+                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                            {processMathText(q.q)}
+                          </ReactMarkdown>
+                        </div>
                         <p className="text-sm font-bold text-gray-400 mb-1">정답:</p>
-                        <p className="text-emerald-600 font-black">{q.a}</p>
+                        <div className="text-emerald-600 font-black prose prose-emerald max-w-none [&_p]:m-0">
+                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                            {processMathText(q.a)}
+                          </ReactMarkdown>
+                        </div>
                       </div>
                     )}
 
                     {q.type === 'SHORT' && (
                       <div className="p-3 bg-white rounded-xl border border-gray-100">
                          <p className="text-sm font-bold text-gray-400 mb-1">정답:</p>
-                         <p className="text-indigo-600 font-black">{q.a}</p>
+                         <div className="text-indigo-600 font-black prose prose-indigo max-w-none [&_p]:m-0">
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                              {processMathText(q.a)}
+                            </ReactMarkdown>
+                          </div>
                       </div>
                     )}
                   </div>
