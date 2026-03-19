@@ -139,7 +139,7 @@ export default function LibraryPage() {
               </select>
             </div>
 
-            <div className={`flex items-center gap-2 bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-2 transition-all ${filterLevel === '초등' ? 'opacity-100' : 'opacity-0 pointer-events-none w-0 !px-0 !border-0 overflow-hidden'}`}>
+            <div className={`flex items-center gap-2 bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-2 transition-all ${['초등', '중', '고등'].includes(filterLevel) ? 'opacity-100' : 'opacity-0 pointer-events-none w-0 !px-0 !border-0 overflow-hidden'}`}>
               <Hash className="text-gray-400" size={18} />
               <select 
                 value={filterGrade}
@@ -147,7 +147,7 @@ export default function LibraryPage() {
                 className="bg-transparent font-bold outline-none text-gray-700 cursor-pointer"
               >
                 <option value="all">모든 학년</option>
-                {[1, 2, 3, 4, 5, 6].map(g => (
+                {(filterLevel === '초등' ? [1, 2, 3, 4, 5, 6] : [1, 2, 3]).map(g => (
                   <option key={g} value={g.toString()}>{g}학년</option>
                 ))}
               </select>

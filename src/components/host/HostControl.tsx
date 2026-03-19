@@ -956,7 +956,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
       {/* Current Question Display */}
-      <div className="bg-white p-10 shadow-xl relative z-10 border-b-8 border-indigo-200 shrink-0">
+      <div className="flex-1 bg-white p-10 relative z-10 flex flex-col justify-center overflow-y-auto">
         {/* Game Entry Code */}
         <div className="absolute top-4 left-4 flex items-center gap-2 bg-indigo-50 px-4 py-1.5 rounded-xl border border-indigo-100">
           <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">CODE</span>
@@ -976,7 +976,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           </Button>
         </div>
         
-          <div className="max-w-6xl mx-auto text-center">
+          <div className="max-w-6xl mx-auto text-center py-12">
             <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-700 px-6 py-2 rounded-full font-black text-xl mb-6">
               <HelpCircle size={24} /> Question #{game.current_q_index + 1}
             </div>
@@ -1122,61 +1122,6 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             </div>
           </div>
         </div>
-
-      {/* Progress Bar */}
-      <div className="h-4 bg-gray-200 w-full overflow-hidden">
-        <div 
-          className="h-full bg-indigo-500 transition-all duration-1000" 
-          style={{ width: `${(answers.length / players.length) * 100}%` }}
-        ></div>
-      </div>
-
-      {/* Student Status Grid */}
-      <div className="flex-1 p-8 overflow-y-auto bg-gray-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-2xl font-jua text-gray-700">제출 현황 ({answers.length}/{players.length})</h3>
-            <div className="flex gap-4">
-              <div className="flex items-center gap-1.5 text-sm font-black text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-100">
-                <CheckCircle2 size={16} /> 제출 완료
-              </div>
-              <div className="flex items-center gap-1.5 text-sm font-black text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-                <AlertCircle size={16} /> 대기 중
-              </div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 pb-20">
-            {players.map(player => {
-              const answer = answers.find(a => a.player_id === player.id);
-              const isTimeout = answer?.answer === '(시간초과)';
-              const hasSubmitted = !!answer && !isTimeout;
-              
-              return (
-                <div 
-                  key={player.id}
-                  className={cn(
-                    "p-4 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2",
-                    hasSubmitted ? 'bg-green-50 border-green-200 text-green-700 shadow-md scale-105' : 
-                    isTimeout ? 'bg-red-50 border-red-200 text-red-700 shadow-sm' :
-                    'bg-white border-gray-100 text-gray-300'
-                  )}
-                >
-                  <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center font-black",
-                    hasSubmitted ? 'bg-green-600 text-white' : 
-                    isTimeout ? 'bg-red-600 text-white' :
-                    'bg-gray-100 text-gray-300'
-                  )}>
-                    {player.nickname[0]}
-                  </div>
-                  <span className="text-xs font-bold truncate w-full text-center">{player.nickname}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
 
       {/* Fixed Footer Container */}
       <div className="fixed bottom-0 left-0 right-0 z-[100] flex flex-col pointer-events-none">

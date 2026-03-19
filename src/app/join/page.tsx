@@ -139,8 +139,7 @@ export default function JoinPage() {
     <main className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-b from-yellow-50 to-orange-100">
       <div className="w-full max-w-md text-center animate-pop">
         <div className="mb-12">
-          <GraduationCap size={80} className="mx-auto text-indigo-600 mb-4 animate-bounce" />
-          <h1 className="text-5xl font-jua text-indigo-800 mb-2">클래스 퀴즈 잼!</h1>
+          <img src="/logo.png" alt="클래스 퀴즈 잼!" className="h-40 mx-auto object-contain animate-bounce mb-4" />
           <p className="text-gray-600 text-lg font-bold">퀴즈 코드를 입력하고 입장하세요</p>
         </div>
 

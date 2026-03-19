@@ -172,6 +172,20 @@ export default function QuizEditor() {
           </button>
           <div className="flex flex-col">
             <span className="text-[10px] uppercase font-black tracking-widest text-indigo-400">Quiz Editor</span>
+            {/* 학년 선택 */}
+            <div className={`flex items-center gap-2 bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-2 transition-all ${['초등', '중', '고등'].includes(quiz.school_level || '') ? 'opacity-100' : 'opacity-0 pointer-events-none w-0 !px-0 !border-0 overflow-hidden'}`}>
+              <Hash className="text-gray-400" size={18} />
+              <select 
+                value={quiz.grade || ""}
+                onChange={(e) => setQuiz({ ...quiz, grade: e.target.value ? parseInt(e.target.value) : undefined })}
+                className="bg-transparent font-bold outline-none text-gray-700 cursor-pointer"
+              >
+                <option value="">학년 선택</option>
+                {(quiz.school_level === '초등' ? [1, 2, 3, 4, 5, 6] : [1, 2, 3]).map(g => (
+                  <option key={g} value={g}>{g}학년</option>
+                ))}
+              </select>
+            </div>
             <input 
               type="text" 
               value={quiz.title}

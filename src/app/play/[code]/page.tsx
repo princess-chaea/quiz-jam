@@ -281,7 +281,7 @@ function StudentPlayContent() {
              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-white to-indigo-50 w-full rounded-3xl">
                 <div className="animate-bounce mb-8">
                   <div className="w-40 h-40 bg-white rounded-full flex items-center justify-center shadow-2xl border-8 border-indigo-100 relative">
-                    <HelpCircle size={80} className="text-indigo-400" />
+                    <img src="/logo.png" alt="Quiz Jam Logo" className="w-24 h-24 object-contain translate-y-1" />
                     <div className="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-3 rounded-2xl animate-pulse">
                       <Zap size={24} fill="white" />
                     </div>

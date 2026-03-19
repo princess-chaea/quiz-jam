@@ -25,13 +25,10 @@ export function TopNavbar() {
   return (
     <nav className="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm w-full">
       <div 
-        className="flex items-center gap-2 cursor-pointer group" 
+        className="flex items-center cursor-pointer group" 
         onClick={() => router.push("/dashboard")}
       >
-        <div className="bg-indigo-600 p-2 rounded-xl text-white group-hover:bg-indigo-700 transition-colors">
-          <BookOpen size={24} />
-        </div>
-        <span className="text-2xl font-jua text-indigo-900 group-hover:text-indigo-700 transition-colors">퀴즈 잼!</span>
+        <img src="/logo.png" alt="퀴즈 잼!" className="h-10 object-contain group-hover:scale-105 transition-transform" />
       </div>
       
       <div className="flex items-center gap-6">

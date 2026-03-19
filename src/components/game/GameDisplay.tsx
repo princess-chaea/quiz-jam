@@ -456,6 +456,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
           "w-full bg-white rounded-[4rem] border-[16px] shadow-2xl overflow-hidden flex flex-col items-center p-12 mb-10 transition-all duration-500 scale-105",
           result.is_correct ? "border-emerald-500" : "border-red-500"
         )}>
+          <img src="/logo.png" className="w-16 h-16 object-contain mb-4 animate-pop" alt="Quiz Jam Logo" />
           {/* Central Icon Section */}
           <div className="mb-10 animate-pop">
             {result.is_correct ? (
@@ -830,11 +831,14 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
         )}
 
         <div className="flex justify-between items-end mb-8 mt-2">
-          <div className="flex flex-col gap-1">
-             <span className="text-xs font-black text-indigo-400 uppercase tracking-widest">Question</span>
-             <span className="bg-indigo-600 text-white px-5 py-1 rounded-2xl text-2xl font-black shadow-lg shadow-indigo-100">
-               #{game.current_q_index + 1}
-             </span>
+          <div className="flex items-center gap-3">
+             <img src="/logo.png" className="w-10 h-10 object-contain" alt="Quiz Jam" />
+             <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none">Question</span>
+                <span className="bg-indigo-600 text-white px-4 py-1 rounded-xl text-xl font-black shadow-lg shadow-indigo-100 italic">
+                  #{game.current_q_index + 1}
+                </span>
+             </div>
           </div>
 
           <div className="flex flex-col items-center gap-1">

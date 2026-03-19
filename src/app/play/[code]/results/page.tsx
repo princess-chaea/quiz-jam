@@ -60,12 +60,16 @@ function ResultsContent() {
       <div className="min-h-screen bg-indigo-50 flex flex-col items-center justify-center p-6 text-center">
         <div className="max-w-md w-full animate-pop">
           <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-b-8 border-indigo-200">
-            <div className="bg-indigo-600 p-12 flex flex-col items-center text-white relative">
+            <div className="bg-indigo-600 p-10 flex flex-col items-center text-white relative">
               <div className="absolute top-4 right-4 opacity-20">
                  <Zap size={80} />
               </div>
-              <Trophy size={80} className="mb-4 text-yellow-400 drop-shadow-lg" />
-              <h1 className="text-3xl font-jua mb-2">게임 종료!</h1>
+              <img src="/logo.png" className="w-16 h-16 object-contain mb-4 animate-pop shadow-md rounded-2xl bg-white/10 p-2" alt="Quiz Jam Logo" />
+              <div className="relative mb-2">
+                <Trophy size={64} className="text-yellow-400 drop-shadow-lg" />
+                <Star size={24} className="absolute -top-2 -right-2 text-yellow-200 animate-pulse" />
+              </div>
+              <h1 className="text-3xl font-jua">게임 종료!</h1>
               <p className="opacity-80 font-bold">{name} 학생, 수고하셨습니다!</p>
             </div>
 
