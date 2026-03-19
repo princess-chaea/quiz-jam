@@ -49,6 +49,7 @@ export async function POST(req: Request) {
     "type": "SHORT_ANSWER",
     "blanks": [],
     "points": 10,
+    "timeLimit": 60,
     "math_mode": false,
     "template": ""
   }
@@ -57,7 +58,9 @@ export async function POST(req: Request) {
     const textPrompt = "당신은 대한민국 최고의 문항 출제 전문가입니다. " +
       "제공된 학습 자료를 분석하여 " + count + "개의 고품질 퀴즈 문항을 생성해주세요.\n\n" +
       "[핵심 출제 원칙]\n" +
-      "- 전문성: 사고력을 요하는 문항을 구성하세요.\n" +
+      "- 전문성: 사고력을 요하는 문항을 구성세요.\n" +
+      "- 배점(points): 문항의 난이도에 따라 10, 20, 30, 40, 50점 중 하나를 차등하여 부여하세요. 어려운 문제일수록 높은 점수를 주어야 합니다.\n" +
+      "- 시간(timeLimit): 유형에 따라 다음 시간을 기본으로 설정하세요 (단답형/빈칸/수학: 60, 선다형/OX: 30).\n" +
       "- 일관성: 요청된 유형(" + typeLabel + ")에 충실하세요.\n" +
       "- 언어: 모든 문장은 자연스러운 한국어 경어체(~요, ~까요?)를 사용하세요.\n" +
       "- 수학(math_mode): 정답 입력에 분수, 루트 등이 필요한 경우만 math_mode를 true로 설정하세요.\n\n" +

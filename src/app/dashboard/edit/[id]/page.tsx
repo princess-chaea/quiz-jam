@@ -133,8 +133,9 @@ export default function QuizEditor() {
         .update({ 
           title: quiz.title, 
           questions: quiz.questions,
-          is_public: quiz.is_public ?? true,
+          is_public: quiz.is_public !== false,
           school_level: quiz.school_level || null,
+          grade: quiz.grade || null,
           subjects: quiz.subjects || []
         })
         .eq("id", id);
@@ -241,6 +242,22 @@ export default function QuizEditor() {
                     ))}
                   </div>
                 </div>
+
+                {quiz.school_level === '초등' && (
+                  <div>
+                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest block mb-3">학년</label>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5, 6].map(g => (
+                        <button
+                          key={g}
+                          onClick={() => setQuiz({...quiz, grade: g})}
+                          className={`w-10 h-10 rounded-xl font-bold transition-all border-2 flex items-center justify-center ${quiz.grade === g ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm' : 'bg-white border-gray-100 text-gray-400 hover:bg-gray-50 hover:border-gray-200'}`}
+                        >{g}</button>
+                      ))}
+                      <span className="self-center font-bold text-gray-400 ml-1">학년</span>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="text-xs font-black text-gray-400 uppercase tracking-widest block mb-3">관련 과목</label>

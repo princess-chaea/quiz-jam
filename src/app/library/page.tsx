@@ -13,7 +13,8 @@ import {
   GraduationCap,
   BookOpen,
   Filter,
-  X
+  X,
+  Hash
 } from "lucide-react";
 import { TopNavbar } from "@/components/layout/TopNavbar";
 import { useDialog } from "@/components/ui/DialogProvider";
@@ -33,6 +34,7 @@ export default function LibraryPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLevel, setFilterLevel] = useState<string>("all");
+  const [filterGrade, setFilterGrade] = useState<string>("all");
   const [filterSubject, setFilterSubject] = useState<string>("all");
   const [copyingId, setCopyingId] = useState<string | null>(null);
   const [previewQuiz, setPreviewQuiz] = useState<any>(null);
@@ -77,6 +79,7 @@ export default function LibraryPage() {
           questions: quiz.questions,
           is_public: false, // Default copied quizzes to private
           school_level: quiz.school_level,
+          grade: quiz.grade,
           subjects: quiz.subjects
         }])
         .select()
@@ -96,8 +99,9 @@ export default function LibraryPage() {
   const filteredQuizzes = quizzes.filter(quiz => {
     const matchSearch = quiz.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchLevel = filterLevel === "all" || (quiz.school_level && quiz.school_level.includes(filterLevel));
+    const matchGrade = filterGrade === "all" || (quiz.grade && quiz.grade.toString() === filterGrade);
     const matchSubject = filterSubject === "all" || (quiz.subjects && quiz.subjects.includes(filterSubject));
-    return matchSearch && matchLevel && matchSubject;
+    return matchSearch && matchLevel && matchGrade && matchSubject;
   });
 
   return (
@@ -132,6 +136,20 @@ export default function LibraryPage() {
                 <option value="초등">초등학교</option>
                 <option value="중">중학교</option>
                 <option value="고등">고등학교</option>
+              </select>
+            </div>
+
+            <div className={`flex items-center gap-2 bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-2 transition-all ${filterLevel === '초등' ? 'opacity-100' : 'opacity-0 pointer-events-none w-0 !px-0 !border-0 overflow-hidden'}`}>
+              <Hash className="text-gray-400" size={18} />
+              <select 
+                value={filterGrade}
+                onChange={(e) => setFilterGrade(e.target.value)}
+                className="bg-transparent font-bold outline-none text-gray-700 cursor-pointer"
+              >
+                <option value="all">모든 학년</option>
+                {[1, 2, 3, 4, 5, 6].map(g => (
+                  <option key={g} value={g.toString()}>{g}학년</option>
+                ))}
               </select>
             </div>
             
@@ -175,12 +193,17 @@ export default function LibraryPage() {
                         {quiz.school_level}학교
                       </span>
                     )}
+                    {quiz.grade && (
+                      <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-black">
+                        {quiz.grade}학년
+                      </span>
+                    )}
                     {quiz.subjects && quiz.subjects.map((subj: string) => (
                       <span key={subj} className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black">
                         {subj}
                       </span>
                     ))}
-                    {!quiz.school_level && (!quiz.subjects || quiz.subjects.length === 0) && (
+                    {!quiz.school_level && !quiz.grade && (!quiz.subjects || quiz.subjects.length === 0) && (
                       <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-xs font-black">
                         분류 없음
                       </span>
