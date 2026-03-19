@@ -28,7 +28,7 @@ export function TopNavbar() {
         className="flex items-center cursor-pointer group" 
         onClick={() => router.push("/dashboard")}
       >
-        <img src="/logo.png" alt="퀴즈 잼!" className="h-10 object-contain group-hover:scale-105 transition-transform" />
+        <img src="/logo.png" alt="퀴즈 잼!" className="h-14 object-contain group-hover:scale-105 transition-transform" />
       </div>
       
       <div className="flex items-center gap-6">

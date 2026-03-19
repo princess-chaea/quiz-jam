@@ -47,7 +47,7 @@ export default function TeacherLanding() {
       <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center">
-            <img src="/logo.png" alt="클래스 퀴즈 잼!" className="h-10 object-contain" />
+            <img src="/logo.png" alt="클래스 퀴즈 잼!" className="h-14 object-contain" />
           </div>
           <button 
             onClick={() => router.push("/join")}
@@ -145,7 +145,7 @@ export default function TeacherLanding() {
       <footer className="py-20 border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center">
-            <img src="/logo.png" alt="클래스 퀴즈 잼!" className="h-8 object-contain" />
+            <img src="/logo.png" alt="클래스 퀴즈 잼!" className="h-10 object-contain" />
           </div>
           <p className="text-slate-400 text-sm font-bold">
             © 2026 Class Quiz Jam • Created for Inspired Education

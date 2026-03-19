@@ -170,6 +170,7 @@ export default function QuizEditor() {
           >
             <ChevronLeft size={24} />
           </button>
+          <img src="/logo.png" alt="logo" className="h-10 object-contain hidden md:block" />
           <div className="flex flex-col">
             <span className="text-[10px] uppercase font-black tracking-widest text-indigo-400">Quiz Editor</span>
             <input 
