@@ -344,7 +344,6 @@ export default function QuizEditor() {
                             rows={3}
                           />
                         )}
-                        )}
                       </div>
                     </div>
 
