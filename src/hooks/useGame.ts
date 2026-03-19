@@ -20,6 +20,7 @@ export interface Player {
   team: 'RED' | 'BLUE' | 'GREEN' | 'YELLOW' | null;
   buffs: string[];
   is_alive: boolean;
+  avatar_id?: number;
 }
 
 export function useGame(quizCode: string) {
