@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     const supabase = createClient(supabaseUrl!, supabaseAnonKey!);
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const typeLabel = types.map((t: string) => {
       if (t === "MULTIPLE_CHOICE") return "선다형(2-4개 보기)";
@@ -59,11 +59,14 @@ export async function POST(req: Request) {
       "[핵심 출제 원칙]\n" +
       "- 전문성: 사고력을 요하는 문항을 구성하세요.\n" +
       "- 일관성: 요청된 유형(" + typeLabel + ")에 충실하세요.\n" +
+      "- 언어: 모든 문장은 자연스러운 한국어 경어체(~요, ~까요?)를 사용하세요.\n" +
       "- 수학(math_mode): 정답 입력에 분수, 루트 등이 필요한 경우만 math_mode를 true로 설정하세요.\n\n" +
       "[퀴즈 유형별 규칙]\n" +
-      "1. MATH: 모든 수식은 LaTeX 형식을 사용하세요 (예: \\\\frac{1}{2}). 빈 칸은 \\\\square를 사용하세요.\n" +
-      "2. MULTIPLE_CHOICE: 보기(options)에도 LaTeX를 활용하세요.\n" +
-      "3. BLANK: 'q' 필드에 빈칸이 포함된 전체 문장을 쓰고, 'blanks'에 인덱스를 넣으세요.\n\n" +
+      "1. SHORT_ANSWER/MATH: 질문에서 '빈칸'을 의미하는 \\\\square 또는 □ 기호 사용을 엄격히 금지합니다. " +
+      "대신 전체 문맥을 설명한 뒤 \"~은 무엇일까요?\" 또는 \"~의 값은 얼마입니까?\"와 같이 완전한 질문 형태로 작성하세요.\n" +
+      "2. MATH: 모든 수식은 LaTeX 형식을 사용하세요 (예: \\\\frac{1}{2}).\n" +
+      "3. MULTIPLE_CHOICE: 보기(options)에도 LaTeX를 활용하세요.\n" +
+      "4. BLANK: 'q' 필드에 빈칸이 포함된 전체 문장을 쓰고, 'blanks'에 인덱스를 넣으세요.\n\n" +
       "[수식 및 JSON 규칙]\n" +
       "- 분수는 반드시 \\\\frac{분자}{분모} 형식을 사용하세요. / 기호를 금지합니다.\n" +
       "- JSON 출력 시 백슬래시는 반드시 4번(\\\\\\\\\\\\) 이스케이프 하세요.\n\n" +

@@ -317,7 +317,7 @@ export default function LibraryPage() {
                       </div>
                     )}
 
-                    {q.type === 'SHORT' && (
+                    {(q.type?.toUpperCase() === 'SHORT' || q.type?.toUpperCase() === 'SHORT_ANSWER' || q.type?.toUpperCase() === 'MATH') && (
                       <div className="p-3 bg-white rounded-xl border border-gray-100">
                          <p className="text-sm font-bold text-gray-400 mb-1">정답:</p>
                          <div className="text-indigo-600 font-black prose prose-indigo max-w-none [&_p]:m-0">
