@@ -134,8 +134,20 @@ export function Leaderboard({ players }: LeaderboardProps) {
               >
                 <div className="flex items-center gap-4">
                   <span className="text-white/40 font-black text-xl w-8">{index + 4}</span>
-                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-bold text-white relative">
-                    {player.nickname[0]}
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-bold text-white relative overflow-hidden">
+                    {player.avatar_id ? (
+                      <img 
+                        src={`/avatars/avatar_${player.avatar_id}.png`} 
+                        alt="" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          (e.target as HTMLImageElement).parentElement!.innerText = player.nickname[0];
+                        }}
+                      />
+                    ) : (
+                      player.nickname[0]
+                    )}
                     {player.team && (
                       <div className={cn(
                         "absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-indigo-900",

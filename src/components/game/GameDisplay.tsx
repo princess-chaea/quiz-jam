@@ -670,13 +670,25 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                     <div className="py-12 flex flex-col items-center text-center gap-8 animate-in slide-in-from-bottom-4 duration-300">
                        <div className="relative group">
                           <div className={cn(
-                            "w-32 h-32 rounded-[2.5rem] border-8 border-white shadow-2xl flex items-center justify-center text-5xl text-white font-black animate-pop",
+                            "w-32 h-32 rounded-[2.5rem] border-8 border-white shadow-2xl flex items-center justify-center text-5xl text-white font-black animate-pop overflow-hidden",
                             pendingSwapTarget.team === 'RED' ? 'bg-red-500' :
                             pendingSwapTarget.team === 'BLUE' ? 'bg-blue-500' :
                             pendingSwapTarget.team === 'GREEN' ? 'bg-emerald-500' :
                             pendingSwapTarget.team === 'YELLOW' ? 'bg-yellow-400' : 'bg-indigo-500'
                           )}>
-                            {pendingSwapTarget.nickname[0]}
+                            {pendingSwapTarget.avatar_id ? (
+                              <img 
+                                src={`/avatars/avatar_${pendingSwapTarget.avatar_id}.png`} 
+                                alt="" 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                  (e.target as HTMLImageElement).parentElement!.innerText = pendingSwapTarget.nickname[0];
+                                }}
+                              />
+                            ) : (
+                              pendingSwapTarget.nickname[0]
+                            )}
                           </div>
                           <div className="absolute -top-2 -right-2 bg-indigo-600 text-white p-2 rounded-xl shadow-lg border-2 border-white">
                              <Check size={24} strokeWidth={4} />
@@ -730,13 +742,25 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                               className="w-full flex flex-col items-center gap-3 p-6 rounded-[2.5rem] border-4 border-white bg-white shadow-sm hover:shadow-xl hover:border-indigo-400 hover:-translate-y-1 transition-all active:scale-[0.95] group"
                             >
                               <div className={cn(
-                                "w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-white font-black text-2xl shadow-inner group-hover:scale-110 transition-transform",
+                                "w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-white font-black text-2xl shadow-inner group-hover:scale-110 transition-transform overflow-hidden",
                                 p.team === 'RED' ? 'bg-red-500' :
                                 p.team === 'BLUE' ? 'bg-blue-500' :
                                 p.team === 'GREEN' ? 'bg-emerald-500' :
                                 p.team === 'YELLOW' ? 'bg-yellow-400' : 'bg-indigo-500'
                               )}>
-                                {p.nickname[0]}
+                                {p.avatar_id ? (
+                                  <img 
+                                    src={`/avatars/avatar_${p.avatar_id}.png`} 
+                                    alt="" 
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                      (e.target as HTMLImageElement).parentElement!.innerText = p.nickname[0];
+                                    }}
+                                  />
+                                ) : (
+                                  p.nickname[0]
+                                )}
                               </div>
                               <div className="flex flex-col items-center text-center">
                                 <span className="font-black text-slate-800 text-lg group-hover:text-indigo-600 transition-colors truncate w-full max-w-[120px]">

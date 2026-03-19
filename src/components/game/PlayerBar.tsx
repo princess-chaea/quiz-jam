@@ -33,14 +33,26 @@ export function PlayerBar({ players, currentNickname, submissions, className }: 
           >
             <div className="relative">
               <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs relative",
+                "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs relative overflow-hidden",
                 isMe ? "bg-white text-indigo-600" : "bg-indigo-50 text-indigo-600",
                 player.team === 'RED' && !isMe ? 'bg-red-500 text-white' :
                 player.team === 'BLUE' && !isMe ? 'bg-blue-500 text-white' :
                 player.team === 'GREEN' && !isMe ? 'bg-green-500 text-white' :
                 player.team === 'YELLOW' && !isMe ? 'bg-yellow-400 text-white' : ''
               )}>
-                {player.nickname[0]}
+                {player.avatar_id ? (
+                  <img 
+                    src={`/avatars/avatar_${player.avatar_id}.png`} 
+                    alt="" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      (e.target as HTMLImageElement).parentElement!.innerText = player.nickname[0];
+                    }}
+                  />
+                ) : (
+                  player.nickname[0]
+                )}
                 {hasSubmitted && (
                   <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-0.5 border-2 border-white">
                     <CheckCircle2 size={10} />

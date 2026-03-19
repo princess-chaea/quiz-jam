@@ -300,7 +300,21 @@ function StudentPlayContent() {
                     <h3 className="text-3xl font-jua mb-4">{me.team === 'RED' ? '빨강팀' : me.team === 'BLUE' ? '파랑팀' : me.team === 'GREEN' ? '초록팀' : '노랑팀'}</h3>
                     <div className="flex justify-center gap-3">
                       {players.filter(p => p.team === me.team && p.nickname !== name).map(p => (
-                        <div key={p.id} className="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center font-bold shadow-sm" title={p.nickname}>{p.nickname[0]}</div>
+                        <div key={p.id} className="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center font-bold shadow-sm overflow-hidden" title={p.nickname}>
+                          {p.avatar_id ? (
+                            <img 
+                              src={`/avatars/avatar_${p.avatar_id}.png`} 
+                              alt="" 
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                (e.target as HTMLImageElement).parentElement!.innerText = p.nickname[0];
+                              }}
+                            />
+                          ) : (
+                            p.nickname[0]
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>

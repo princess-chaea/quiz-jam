@@ -114,7 +114,8 @@ export default function JoinPage() {
             game_id: game.id, 
             nickname: cleanNickname, 
             score: 0,
-            team: assignedTeam 
+            team: assignedTeam,
+            avatar_id: Math.floor(Math.random() * 30) + 1
           }])
           .select()
           .single();

@@ -369,13 +369,25 @@ function PlayerCard({
       </div>
 
       <div className={cn(
-        "w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl mb-3 transition-all duration-500",
+        "w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl mb-3 transition-all duration-500 overflow-hidden",
         !player.team ? "bg-slate-100 text-slate-400 group-hover:bg-indigo-600 group-hover:text-white" :
         player.team === 'RED' ? 'bg-red-500 text-white' :
         player.team === 'BLUE' ? 'bg-blue-500 text-white' :
         player.team === 'GREEN' ? 'bg-green-500 text-white' : 'bg-yellow-400 text-white'
       )}>
-        {player.nickname[0]}
+        {player.avatar_id ? (
+          <img 
+            src={`/avatars/avatar_${player.avatar_id}.png`} 
+            alt="" 
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+              (e.target as HTMLImageElement).parentElement!.innerText = player.nickname[0];
+            }}
+          />
+        ) : (
+          player.nickname[0]
+        )}
       </div>
       <div className="font-black text-slate-800 truncate w-full text-base">{player.nickname}</div>
     </div>
