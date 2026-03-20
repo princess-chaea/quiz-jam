@@ -59,13 +59,13 @@ export function processMathText(text: string | null | undefined): string {
         let mathPart = match[1].trim();
         const punctuationPart = match[2];
         if (mathPart) {
-          // Preserve internal spaces in math mode by escaping them
-          const escapedMath = mathPart.replace(/ /g, '\\ ');
+          // Preserve internal spaces in math mode by escaping them, but avoid double escaping
+          const escapedMath = mathPart.replace(/(?<!\\) /g, '\\ ');
           return `${leadingSpace}$${escapedMath}$${punctuationPart}${trailingSpace}`;
         }
       }
       
-      const escapedClean = clean.trim().replace(/ /g, '\\ ');
+      const escapedClean = clean.trim().replace(/(?<!\\) /g, '\\ ');
       return `${leadingSpace}$${escapedClean}$${trailingSpace}`;
     }
     

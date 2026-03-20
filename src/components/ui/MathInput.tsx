@@ -133,12 +133,16 @@ export function MathInput({
     if (!el) return;
 
     const handleUpdate = (e: Event) => {
-      // Use getValue() for more reliability in some MathLive versions
-      const liveValue = el.getValue?.() || el.value;
-      // When emitting, update lastValueRef to the RAW outgoing value
-      // so the sync effect doesn't try to re-apply it.
-      lastValueRef.current = liveValue; 
-      onChange(liveValue);
+      // Use getValue() for more reliability 
+      const liveValue = el.getValue?.() || el.value || "";
+      
+      // CRITICAL: Convert LaTeX spaces (\ ) back to regular spaces for the parent state.
+      // This ensures that Text Mode sees normal spaces, and then toMathLiveValue 
+      // converts them back to \  for the math-field.
+      const normalizedValue = liveValue.replace(/\\ /g, ' ');
+      
+      lastValueRef.current = normalizedValue; 
+      onChange(normalizedValue);
     };
 
     const handleFocus = () => {
