@@ -1,7 +1,8 @@
 "use client";
-
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useMathKeypad } from "./MathKeypadContext";
+import { cn } from "@/lib/utils";
+import { Keyboard } from "lucide-react";
 
 declare global {
   namespace JSX {
@@ -52,24 +53,22 @@ export function MathInput({
   const mfRef = useRef<any>(null);
   const lastValueRef = useRef<string>(value);
   const { openKeypad } = useMathKeypad();
-  const [mounted, setMounted] = React.useState(false);
-  const [isReady, setIsReady] = React.useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    // Force mathlive import on mount to ensure custom element is registered
-    import("mathlive").then((m) => {
+    // Force mathlive import on mount
+    import("mathlive").then(() => {
       setIsReady(true);
       if (mfRef.current) {
-        // Ensure keyboard policies are set
-        mfRef.current.mathVirtualKeyboardPolicy = isTeacher ? "auto" : "manual";
-        // @ts-ignore
-        mfRef.current.virtualKeyboardMode = isTeacher ? "onfocus" : "manual";
+        // Use manual keyboard policy to prevent unwanted popups and allow hardware keyboard focus
+        mfRef.current.mathVirtualKeyboardPolicy = "manual";
         
-        // Add shortcuts for arithmetic symbols
+        // Add shortcuts for arithmetic symbols and SPACES
         mfRef.current.inlineShortcuts = {
           ...mfRef.current.inlineShortcuts,
           '*': { mode: 'math', value: '\\times' },
@@ -83,7 +82,7 @@ export function MathInput({
         lastValueRef.current = sanitized || "";
       }
     });
-  }, [isTeacher]); // Removed 'value' from deps to avoid re-running setup on every change
+  }, []);
 
   useEffect(() => {
     if (mfRef.current && template && !value) {
@@ -103,11 +102,10 @@ export function MathInput({
     }
   }, [value, isReady]);
 
-  // Handle click outside to blur (for both teachers and students)
+  // Handle click outside to blur
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (!mfRef.current) return;
-      
       const path = e.composedPath() as HTMLElement[];
       const isInsideMf = path.includes(mfRef.current);
       const isInsideKeypad = path.some(el => el.classList?.contains('math-keypad-container'));
@@ -117,7 +115,6 @@ export function MathInput({
         mfRef.current?.blur?.();
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside, true);
     return () => document.removeEventListener("mousedown", handleClickOutside, true);
   }, []);
@@ -134,11 +131,9 @@ export function MathInput({
 
     const handleFocus = () => {
       if (!isTeacher) {
-        // Only open keypad if the element has successfully connected to MathLive
         if (typeof el.executeCommand === 'function') {
           openKeypad(el, level);
         } else {
-          // Retry slightly later if not ready
           setTimeout(() => {
             if (typeof el.executeCommand === 'function') {
               openKeypad(el, level);
@@ -169,37 +164,66 @@ export function MathInput({
     };
   }, [onChange, onEnter, openKeypad, level, isTeacher]);
 
-  if (!mounted) {
+  const handleToggleKeyboard = () => {
+    // @ts-ignore
+    if (window.mathVirtualKeyboard) {
+      // @ts-ignore
+      if (window.mathVirtualKeyboard.visible) {
+        // @ts-ignore
+        window.mathVirtualKeyboard.hide();
+      } else {
+        // @ts-ignore
+        window.mathVirtualKeyboard.show();
+      }
+    }
+  };
+
+  if (!isReady || !mounted) {
     return (
-      <div className={`relative w-full ${className}`}>
-        <div className="bg-slate-50 rounded-2xl border-2 border-slate-100 h-[68px] animate-pulse" />
+      <div className={cn("relative w-full rounded-2xl bg-slate-50 border-2 border-slate-100 flex items-center justify-center min-h-[100px]", containerClassName)}>
+         <div className="flex flex-col items-center gap-2">
+           <div className="w-6 h-6 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+           <p className="text-[10px] font-bold text-slate-400 italic">수식 편집기 로드 중...</p>
+         </div>
       </div>
     );
   }
 
+  const sanitizedValue = sanitizeLaTeX(value);
+
   return (
-    <div className={`relative w-full ${className}`}>
-      <div className={`bg-white rounded-2xl border-2 border-indigo-100 shadow-sm focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-100 transition-all overflow-hidden p-1 ${containerClassName}`}>
-        {/* @ts-ignore */}
-        <math-field
-          ref={mfRef}
-          style={{ 
-            width: "100%", 
-            fontSize: "1.25rem",
-            padding: "0.75rem",
-            border: "none",
-            outline: "none",
-            background: "transparent",
-            minHeight: "3.5rem",
-            whiteSpace: "pre-wrap",
-            overflowWrap: "break-word"
-          }}
-          multiline="true"
-          smart-mode="true"
-          smart-fence="true"
-          math-virtual-keyboard-policy={isTeacher ? "auto" : "manual"}
-          placeholder={placeholder}
-        />
+    <div className={cn("relative w-full rounded-2xl overflow-hidden group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all", containerClassName)}>
+      <math-field
+        ref={mfRef}
+        className={cn("w-full p-4 text-lg font-bold outline-none", className)}
+        style={{ 
+          width: "100%", 
+          minHeight: "100px",
+          background: "transparent",
+          border: "none"
+        }}
+        multiline="true"
+        smart-mode="true"
+        math-virtual-keyboard-policy="manual"
+        placeholder={placeholder}
+      >
+        {sanitizedValue || ""}
+      </math-field>
+      
+      <div className="absolute right-3 top-3 flex gap-2 opacity-0 group-hover/math:opacity-100 transition-opacity">
+         <button 
+          type="button"
+          onClick={handleToggleKeyboard}
+          className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-500 hover:border-indigo-200 shadow-sm transition-all"
+          title="가상 키보드"
+        >
+          <Keyboard size={16} />
+        </button>
+      </div>
+
+      <div className="absolute right-3 bottom-3 flex items-center gap-1 opacity-40 group-hover/math:opacity-100 transition-all pointer-events-none">
+        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+        <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">수식 모드</span>
       </div>
     </div>
   );

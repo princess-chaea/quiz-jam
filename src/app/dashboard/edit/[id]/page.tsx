@@ -355,6 +355,7 @@ export default function QuizEditor() {
                       <div className="space-y-3">
                         {q.math_mode ? (
                           <MathInput
+                            key={`math-input-${index}-${q.math_mode}`}
                             value={q.q}
                             onChange={(value) => updateQuestion(index, "q", value)}
                             className="w-full"
@@ -364,6 +365,7 @@ export default function QuizEditor() {
                           />
                         ) : (
                           <textarea 
+                            key={`text-input-${index}-${q.math_mode}`}
                             value={q.q}
                             onChange={(e) => updateQuestion(index, "q", e.target.value)}
                             className="w-full p-4 text-lg font-bold border-2 border-slate-100 bg-slate-50/50 rounded-2xl focus:border-indigo-400 focus:bg-white outline-none transition-all placeholder:text-slate-300 min-h-[100px] resize-none"

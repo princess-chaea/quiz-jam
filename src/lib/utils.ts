@@ -56,14 +56,17 @@ export function processMathText(text: string | null | undefined): string {
       // Check for trailing punctuation (.,?!) to keep it outside the math block
       const match = clean.trim().match(/^(.*?)(\s*[.,?!]*)$/);
       if (match) {
-        const mathPart = match[1].trim();
+        let mathPart = match[1].trim();
         const punctuationPart = match[2];
         if (mathPart) {
-          return `${leadingSpace}$${mathPart}$${punctuationPart}${trailingSpace}`;
+          // Preserve internal spaces in math mode by escaping them
+          const escapedMath = mathPart.replace(/ /g, '\\ ');
+          return `${leadingSpace}$${escapedMath}$${punctuationPart}${trailingSpace}`;
         }
       }
       
-      return `${leadingSpace}$${clean.trim()}$${trailingSpace}`;
+      const escapedClean = clean.trim().replace(/ /g, '\\ ');
+      return `${leadingSpace}$${escapedClean}$${trailingSpace}`;
     }
     
     // No math markers found in this non-Korean segment
