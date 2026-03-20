@@ -4,6 +4,31 @@ import { useMathKeypad } from "./MathKeypadContext";
 import { cn } from "@/lib/utils";
 import { Keyboard } from "lucide-react";
 
+/**
+ * Converts plain text or mixed LaTeX into a format that MathLive renders correctly,
+ * specifically preserving spaces and Korean characters.
+ */
+const toMathLiveValue = (text: string) => {
+  if (!text) return "";
+  
+  // 1. Normalize double backslashes (\\) to single (\) if followed by a LaTeX command char
+  let result = text.replace(/\\\\(?=[a-zA-Z{}])/g, '\\');
+  
+  // 2. Preserve spaces by converting them to LaTeX space commands (\ )
+  // We use negative lookbehind to avoid double-escaping already escaped spaces.
+  // Note: Modern browsers support this. If compatibility is a concern, we can use a more complex regex.
+  // We also wrap Korean characters in \text{} for better rendering in math mode if needed,
+  // but MathLive's smartMode usually handles this. The key is the SPACES.
+  try {
+    result = result.replace(/(?<!\\) /g, '\\ ');
+  } catch (e) {
+    // Fallback for environments that don't support negative lookbehind
+    result = result.replace(/([^\\ ]) /g, '$1\\ ');
+    if (result.startsWith(' ')) result = '\\ ' + result.slice(1);
+  }
+  
+  return result;
+};
 
 interface MathInputProps {
   value: string;
@@ -16,13 +41,6 @@ interface MathInputProps {
   isTeacher?: boolean;
   containerClassName?: string;
 }
-
-const sanitizeLaTeX = (val: string) => {
-  if (!val) return "";
-  // Convert double backslashes (\\) to single (\) if followed by a LaTeX command char
-  // This cleans up data that was over-escaped during generation or storage
-  return val.replace(/\\\\(?=[a-zA-Z{}])/g, '\\');
-};
 
 export function MathInput({ 
   value, 
@@ -47,10 +65,10 @@ export function MathInput({
 
   useEffect(() => {
     // Force mathlive import on mount
-    import("mathlive").then(() => {
+    import("mathlive").then((mathlive) => {
       setIsReady(true);
       if (mfRef.current) {
-        // Use manual keyboard policy to prevent unwanted popups and allow hardware keyboard focus
+        // Use manual keyboard policy to allow hardware keyboard focus and avoid auto-popups
         mfRef.current.mathVirtualKeyboardPolicy = "manual";
         
         // Add shortcuts for arithmetic symbols and SPACES
@@ -60,30 +78,39 @@ export function MathInput({
           '/': { mode: 'math', value: '\\div' },
           ' ': { mode: 'math', value: '\\ ' }
         };
+
+        // Enable smart mode to better handle mixed text/math
+        mfRef.current.smartMode = true;
         
         // Ensure initial value is set correctly
-        const sanitized = sanitizeLaTeX(value);
-        mfRef.current.value = sanitized || "";
-        lastValueRef.current = sanitized || "";
+        const prepared = toMathLiveValue(value);
+        mfRef.current.value = prepared || "";
+        lastValueRef.current = value;
       }
     });
   }, []);
 
   useEffect(() => {
     if (mfRef.current && template && !value) {
-      mfRef.current.value = template;
+      const prepared = toMathLiveValue(template);
+      mfRef.current.value = prepared;
+      lastValueRef.current = template;
       onChange(template);
     }
   }, [template, value, onChange]);
 
   // Sync value changes after initialization
   useEffect(() => {
-    const sanitized = sanitizeLaTeX(value);
-    if (isReady && mfRef.current && sanitized !== lastValueRef.current) {
-      if (mfRef.current.value !== sanitized) {
-        mfRef.current.value = sanitized || "";
+    if (!isReady || !mfRef.current) return;
+    
+    // Only update mfRef.current.value if it's meaningfully different
+    // to prevent cursor jumping or blocking input
+    if (value !== lastValueRef.current) {
+      const prepared = toMathLiveValue(value);
+      if (mfRef.current.value !== prepared) {
+        mfRef.current.value = prepared || "";
       }
-      lastValueRef.current = sanitized || "";
+      lastValueRef.current = value;
     }
   }, [value, isReady]);
 
@@ -91,7 +118,7 @@ export function MathInput({
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (!mfRef.current) return;
-      const path = e.composedPath() as HTMLElement[];
+      const path = (e.composedPath?.() || []) as HTMLElement[];
       const isInsideMf = path.includes(mfRef.current);
       const isInsideKeypad = path.some(el => el.classList?.contains('math-keypad-container'));
       const isKeyboardClick = path.some(el => el.classList?.contains('ML__keyboard'));
@@ -108,10 +135,12 @@ export function MathInput({
     const el = mfRef.current;
     if (!el) return;
 
-    const handleInput = (e: Event) => {
-      const newValue = (e.target as any).value;
-      lastValueRef.current = newValue;
-      onChange(newValue);
+    const handleUpdate = (e: Event) => {
+      const liveValue = (e.target as any).value;
+      // When emitting, update lastValueRef to the RAW outgoing value
+      // so the sync effect doesn't try to re-apply it.
+      lastValueRef.current = liveValue; 
+      onChange(liveValue);
     };
 
     const handleFocus = () => {
@@ -135,17 +164,19 @@ export function MathInput({
       }
     };
 
-    el.addEventListener("input", handleInput);
-    el.addEventListener("change", handleInput);
+    // Use 'input' for real-time updates and 'change' for finality
+    el.addEventListener("input", handleUpdate);
+    el.addEventListener("change", handleUpdate);
     el.addEventListener("keydown", handleKeyDown);
     el.addEventListener("focus", handleFocus);
-    el.addEventListener("blur", handleInput);
+    el.addEventListener("blur", handleUpdate);
+    
     return () => {
-      el.removeEventListener("input", handleInput);
-      el.removeEventListener("change", handleInput);
+      el.removeEventListener("input", handleUpdate);
+      el.removeEventListener("change", handleUpdate);
       el.removeEventListener("keydown", handleKeyDown);
       el.removeEventListener("focus", handleFocus);
-      el.removeEventListener("blur", handleInput);
+      el.removeEventListener("blur", handleUpdate);
     };
   }, [onChange, onEnter, openKeypad, level, isTeacher]);
 
@@ -174,8 +205,6 @@ export function MathInput({
     );
   }
 
-  const sanitizedValue = sanitizeLaTeX(value);
-
   return (
     <div className={cn("relative w-full rounded-2xl overflow-hidden group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all", containerClassName)}>
       <math-field
@@ -185,15 +214,13 @@ export function MathInput({
           width: "100%", 
           minHeight: "100px",
           background: "transparent",
-          border: "none"
+          border: "none",
+          fontSize: "1.25rem"
         }}
         multiline="true"
-        smart-mode="true"
         math-virtual-keyboard-policy="manual"
         placeholder={placeholder}
-      >
-        {sanitizedValue || ""}
-      </math-field>
+      />
       
       <div className="absolute right-3 top-3 flex gap-2 opacity-0 group-hover/math:opacity-100 transition-opacity">
          <button 
