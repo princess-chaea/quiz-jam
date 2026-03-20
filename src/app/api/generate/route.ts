@@ -56,23 +56,22 @@ export async function POST(req: Request) {
 ]`;
 
     const textPrompt = "당신은 대한민국 최고의 문항 출제 전문가입니다. " +
-      "제공된 학습 자료를 분석하여 " + count + "개의 고품질 퀴즈 문항을 생성해주세요.\n\n" +
+      "제공된 학습 자료의 핵심 교육 개념을 분석하여 " + count + "개의 고품질 퀴즈 문항을 생성해주세요.\n\n" +
       "[핵심 출제 원칙]\n" +
-      "- 전문성: 사고력을 요하는 문항을 구성세요.\n" +
-      "- 배점(points): 문항의 난이도에 따라 10, 20, 30, 40, 50점 중 하나를 차등하여 부여하세요. 어려운 문제일수록 높은 점수를 주어야 합니다.\n" +
-      "- 시간(timeLimit): 유형에 따라 다음 시간을 기본으로 설정하세요 (단답형/빈칸/수학: 60, 선다형/OX: 30).\n" +
-      "- 일관성: 요청된 유형(" + typeLabel + ")에 충실하세요.\n" +
-      "- 언어: 모든 문장은 자연스러운 한국어 경어체(~요, ~까요?)를 사용하세요.\n" +
-      "- 수학(math_mode): 정답 입력에 분수, 루트 등이 필요한 경우만 math_mode를 true로 설정하세요.\n\n" +
+      "- 개념 중심: 학습 자료에 나타난 주요 개념, 원리, 용어를 묻는 문제 위주로 구성하세요.\n" +
+      "- 계산식 활용: 단순 수치 계산 문제는 복잡한 문장보다는 깔끔한 계산식(예: $\\frac{1}{2} \\times 4 = ?$)을 활용하여 명료하게 출제하세요.\n" +
+      "- 메타 질문 금지: 자료 자체에 대한 질문(차시, 제목, 목표 등)은 절대 금지합니다.\n" +
+      "- 깔끔명료함: 정답('a')은 불필요한 괄호나 설명 없이 핵심 정답만 제시하세요.\n" +
+      "- 언어: 모든 문장은 자연스러운 한국어 경어체를 사용하며, 표준 맞춤법과 띄어쓰기를 철저히 지키세요.\n" +
+      "- 수식(math_mode): 정답 입력에 수식이 필요한 경우만 true로 설정하세요. 질문('q') 내의 텍스트와 수식이 혼합된 경우, 텍스트 부분의 띄어쓰기가 무시되지 않도록 수식 기호($)를 수식 부분에만 정확히 사용하거나 텍스트를 \\text{...}로 감싸세요.\n\n" +
       "[퀴즈 유형별 규칙]\n" +
-      "1. SHORT_ANSWER: 정답('a')은 반드시 단어, 숫자, 또는 매우 짧은 구절이어야 합니다. 줄글로 설명하는 서술형 문제는 금지하며, 질문은 명확하게 답이 떨어지도록 작성하세요.\n" +
-      "2. MATH: 모든 수식은 LaTeX 형식을 사용하세요 (예: \\frac{1}{2}).\n" +
-      "3. MULTIPLE_CHOICE: 보기(options)에도 LaTeX를 활용하세요.\n" +
-      "4. BLANK: 'q' 필드에 빈칸 없이 완성된 전체 정답 문장을 쓰세요. 단어 사이는 반드시 공백으로 구분해야 합니다. 빈칸 자리에 \\square나 □를 절대 쓰지 마세요. 'blanks' 필드에는 공백으로 구분된 단어들 중 빈칸으로 만들 단어의 인덱스(0부터 시작)를 배열로 넣으세요. blanks 배열은 절대 비워둘 수 없습니다.\n" +
-      "   - 예시: q: \"대한민국의 수도는 서울입니다.\", blanks: [2] -> '서울입니다'가 빈칸이 됨\n\n" +
+      "1. SHORT_ANSWER: 정답은 반드시 단어, 숫자, 또는 매우 짧은 구절이어야 합니다.\n" +
+      "2. MATH: 모든 수식은 LaTeX 형식을 사용하세요.\n" +
+      "3. MULTIPLE_CHOICE: 보기(options)는 4지선다형을 기본으로 합니다.\n" +
+      "4. BLANK: 문맥상 아주 중요한 용어나 수치에 빈칸을 만드세요.\n\n" +
       "[수식 및 JSON 규칙]\n" +
-      "- 분수는 반드시 \\frac{분자}{분모} 형식을 사용하세요. / 기호를 금지합니다.\n" +
-      "- JSON 출력 시 백슬래시는 JSON 표준에 따라 한 번만 이스케이프(\\)하세요. (예: \"\\frac{1}{2}\")\n\n" +
+      "- 분수는 \\frac{분자}{분모} 형식을 사용하세요. 곱하기는 \\times, 나누기는 \\div를 사용하세요.\n" +
+      "- JSON 출력 시 백슬래시는 JSON 표준에 따라 한 번만 이스케이프(\\)하세요.\n\n" +
       "형식:\n" + formatPrompt + "\n\n" +
       "학습 자료:\n" + (text || "첨부 파일 참조");
 
@@ -98,14 +97,35 @@ export async function POST(req: Request) {
       }
 
       tempFilePaths.push(file.path);
-      const isMedia = file.mimeType.startsWith('image/') || file.mimeType === 'application/pdf';
+      const binaryTypes = [
+        'image/',
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument',
+        'application/vnd.ms-',
+        'application/msword',
+        'application/haansoft' // Support for Hancom Office formats
+      ];
 
-      if (isMedia) {
+      const isBinary = binaryTypes.some(t => file.mimeType.startsWith(t));
+
+      if (isBinary) {
         try {
           const arrayBuffer = await fileData.arrayBuffer();
           const base64 = Buffer.from(arrayBuffer).toString('base64');
+          
+          // Map Haansoft/custom MIME types to standard ones if necessary
+          let mimeType = file.mimeType;
+          if (mimeType.includes('haansoftpptx') || mimeType.includes('pptx')) {
+            mimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+          } else if (mimeType.includes('haansoftdocx') || mimeType.includes('docx')) {
+            mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          } else if (mimeType.includes('haansofthwp')) {
+            // HWP is tricky for Gemini, but let's send it as application/octet-stream 
+            // Better to try converting or just keep as haansoft for now
+          }
+
           parts.push({
-            inlineData: { mimeType: file.mimeType, data: base64 }
+            inlineData: { mimeType: mimeType, data: base64 }
           });
         } catch (err) {
           console.error(`Buffer error for ${file.path}:`, err);
@@ -142,6 +162,20 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error("Gemini Error:", error);
+    
+    // Handle 429 Too Many Requests
+    const isRateLimit = 
+      error.message?.includes("429") || 
+      error.message?.includes("quota") || 
+      error.status === 429;
+
+    if (isRateLimit) {
+      return NextResponse.json({
+        error: "인공지능 서버 할당량이 초과되었습니다. 잠시 후 다시 시도해 주세요. (무료 서버는 1분당 요청 횟수 및 토큰 수가 제한되어 있습니다.)",
+        isRateLimit: true
+      }, { status: 429 });
+    }
+
     return NextResponse.json({
       error: error.message || "오류가 발생했습니다.",
       details: error.stack

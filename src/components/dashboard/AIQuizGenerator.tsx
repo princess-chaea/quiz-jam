@@ -212,6 +212,8 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
         errorMsg = "첨부파일 용량이 너무 커서 인공지능이 처리할 수 없습니다. 더 작은 파일을 사용하거나 파일 개수를 줄여주세요.";
       } else if (errorMsg.includes("JSON")) {
         errorMsg = "인공지능이 응답 형식을 맞추지 못했습니다. 다시 시도해 주세요.";
+      } else if (errorMsg.includes("할당량") || errorMsg.includes("limit") || errorMsg.includes("429")) {
+        errorMsg = "현재 인공지능 사용량이 많아 할당량이 초과되었습니다. 약 30초~1분 후 다시 시도해 주세요.\n(팁: 파일 용량이 크면 할당량을 더 빨리 소모합니다.)";
       }
       
       await showAlert("문항 생성 실패: " + errorMsg);

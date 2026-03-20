@@ -43,6 +43,7 @@ export function MathInput({
   containerClassName = ""
 }: MathInputProps) {
   const mfRef = useRef<any>(null);
+  const lastValueRef = useRef<string>(value);
   const { openKeypad } = useMathKeypad();
   const [mounted, setMounted] = React.useState(false);
   const [isReady, setIsReady] = React.useState(false);
@@ -69,13 +70,12 @@ export function MathInput({
           ' ': { mode: 'math', value: '\\ ' }
         };
         
-        // If there's an initial value, ensure it's set correctly now that the element is upgraded
-        if (value) {
-          mfRef.current.value = value;
-        }
+        // Ensure initial value is set correctly
+        mfRef.current.value = value || "";
+        lastValueRef.current = value || "";
       }
     });
-  }, [isTeacher, value]);
+  }, [isTeacher]); // Removed 'value' from deps to avoid re-running setup on every change
 
   useEffect(() => {
     if (mfRef.current && template && !value) {
@@ -86,8 +86,11 @@ export function MathInput({
 
   // Sync value changes after initialization
   useEffect(() => {
-    if (isReady && mfRef.current && mfRef.current.value !== value) {
-      mfRef.current.value = value || "";
+    if (isReady && mfRef.current && value !== lastValueRef.current) {
+      if (mfRef.current.value !== value) {
+        mfRef.current.value = value || "";
+      }
+      lastValueRef.current = value || "";
     }
   }, [value, isReady]);
 
@@ -115,7 +118,9 @@ export function MathInput({
     if (!el) return;
 
     const handleInput = (e: Event) => {
-      onChange((e.target as any).value);
+      const newValue = (e.target as any).value;
+      lastValueRef.current = newValue;
+      onChange(newValue);
     };
 
     const handleFocus = () => {
@@ -142,12 +147,16 @@ export function MathInput({
     };
 
     el.addEventListener("input", handleInput);
+    el.addEventListener("change", handleInput);
     el.addEventListener("keydown", handleKeyDown);
     el.addEventListener("focus", handleFocus);
+    el.addEventListener("blur", handleInput);
     return () => {
       el.removeEventListener("input", handleInput);
+      el.removeEventListener("change", handleInput);
       el.removeEventListener("keydown", handleKeyDown);
       el.removeEventListener("focus", handleFocus);
+      el.removeEventListener("blur", handleInput);
     };
   }, [onChange, onEnter, openKeypad, level, isTeacher]);
 

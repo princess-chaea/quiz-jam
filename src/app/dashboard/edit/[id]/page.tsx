@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
@@ -70,29 +70,38 @@ export default function QuizEditor() {
     }
   };
 
-  const handleAddQuestion = () => {
+  const handleAddQuestion = useCallback(() => {
     const newQuestion = { q: "", a: "", type: "SHORT_ANSWER", options: ["", ""], blanks: [], correct_idx: -1, points: 10, timeLimit: 20, math_mode: false };
-    setQuiz({ ...quiz, questions: [...quiz.questions, newQuestion] });
-  };
+    setQuiz((prev: any) => ({ ...prev, questions: [...prev.questions, newQuestion] }));
+  }, []);
 
-  const handleAIGenerated = (newQuestions: any[]) => {
-    const prepared = newQuestions.map(q => ({ ...q, timeLimit: q.timeLimit || 20, type: q.type || "SHORT_ANSWER" }));
-    setQuiz({ ...quiz, questions: [...quiz.questions, ...prepared] });
-  };
+  const handleAIGenerated = useCallback((newQuestions: any[]) => {
+    setQuiz((prev: any) => {
+      const prepared = newQuestions.map(q => ({ 
+        ...q, 
+        timeLimit: q.timeLimit || 20, 
+        type: q.type || "SHORT_ANSWER" 
+      }));
+      return { ...prev, questions: [...prev.questions, ...prepared] };
+    });
+  }, []);
 
-  const handleRemoveQuestion = (index: number) => {
-    const newQuestions = quiz.questions.filter((_: any, i: number) => i !== index);
-    setQuiz({ ...quiz, questions: newQuestions });
-  };
+  const handleRemoveQuestion = useCallback((index: number) => {
+    setQuiz((prev: any) => {
+      if (!prev) return prev;
+      const newQuestions = prev.questions.filter((_: any, i: number) => i !== index);
+      return { ...prev, questions: newQuestions };
+    });
+  }, []);
 
-  const updateQuestion = (index: number, field: string, value: any) => {
+  const updateQuestion = useCallback((index: number, field: string, value: any) => {
     setQuiz((prev: any) => {
       if (!prev) return prev;
       const newQuestions = [...prev.questions];
       newQuestions[index] = { ...newQuestions[index], [field]: value };
       return { ...prev, questions: newQuestions };
     });
-  };
+  }, []);
 
   // Drag and Drop Logic
   const handleDragStart = (e: React.DragEvent, index: number) => {

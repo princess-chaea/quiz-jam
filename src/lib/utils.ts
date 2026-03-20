@@ -49,17 +49,21 @@ export function processMathText(text: string | null | undefined): string {
       // If the segment consists only of whitespace/punctuation, don't wrap
       if (!/[a-zA-Z0-9\\^_{}=□]/.test(clean)) return part;
 
+      // Check for leading and trailing whitespace to preserve it
+      const leadingSpace = part.match(/^\s*/)?.[0] || "";
+      const trailingSpace = part.match(/\s*$/)?.[0] || "";
+      
       // Check for trailing punctuation (.,?!) to keep it outside the math block
-      const match = clean.match(/^(.*?)(\s*[.,?!]*)$/);
+      const match = clean.trim().match(/^(.*?)(\s*[.,?!]*)$/);
       if (match) {
         const mathPart = match[1].trim();
         const punctuationPart = match[2];
         if (mathPart) {
-          return `$${mathPart}$${punctuationPart}`;
+          return `${leadingSpace}$${mathPart}$${punctuationPart}${trailingSpace}`;
         }
       }
       
-      return `$${clean.trim()}$`;
+      return `${leadingSpace}$${clean.trim()}$${trailingSpace}`;
     }
     
     // No math markers found in this non-Korean segment
