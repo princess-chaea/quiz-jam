@@ -12,8 +12,8 @@ const toMathLiveValue = (text: string) => {
   if (!text) return "";
   
   // 1. Normalize and clean up existing backslash-space debris
-  // Collapse \\  or \  back to regular spaces first to avoid doubling
-  let result = text.replace(/\\\\ /g, ' ').replace(/\\ /g, ' ');
+  // Turn any sequence of backslashes followed by a space into a single regular space
+  let result = text.replace(/\\+ /g, ' ');
   
   // Normalize remaining double backslashes for commands
   result = result.replace(/\\\\/g, '\\');
@@ -182,7 +182,7 @@ export function MathInput({
       el.removeEventListener("focus", handleFocus);
       el.removeEventListener("blur", handleUpdate);
     };
-  }, [onChange, onEnter, openKeypad, level, isTeacher]);
+  }, [isReady, onChange, onEnter, openKeypad, level, isTeacher]);
 
   const handleToggleKeyboard = () => {
     // @ts-ignore
