@@ -86,8 +86,8 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
     const validFiles: File[] = [];
 
     for (const file of newFiles) {
-      if (file.size > 100 * 1024 * 1024) {
-        await showAlert(`'${file.name}' 파일 용량이 너무 큽니다. 100MB 이하의 파일만 업로드할 수 있습니다.`);
+      if (file.size > 20 * 1024 * 1024) {
+        await showAlert(`'${file.name}' 파일 용량이 너무 큽니다. 20MB 이하의 파일만 업로드할 수 있습니다.`);
         continue;
       }
       validFiles.push(file);
@@ -120,6 +120,11 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
     try {
       // 1. Upload files to Supabase ai-temp bucket first
       const uploadedFilePaths: { mimeType: string, path: string, name: string }[] = [];
+      
+      const totalSize = files.reduce((acc, f) => acc + f.size, 0);
+      if (totalSize > 50 * 1024 * 1024) {
+        throw new Error("첨부된 전체 파일 용량이 너무 큽니다 (최대 50MB). 일부 파일을 제외해주세요.");
+      }
       
       for (const file of files) {
         if (!file) continue;
@@ -164,16 +169,52 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       
-      const preparedQuestions = data.map((q: any) => ({
-        ...q,
-        type: q.type || (types.length === 1 ? types[0] : "SHORT_ANSWER"),
-        points: q.points || 10,
-        timeLimit: 20,
-        math_mode: mathMode
-      }));
+      const preparedQuestions = data.map((q: any) => {
+        let processed = { ...q };
+        
+        // Ensure type consistency
+        const type = q.type || (types.length === 1 ? types[0] : "SHORT_ANSWER");
+        
+        // Fallback for BLANK type: if AI used markers but didn't provide blanks array
+        if (type === 'BLANK' && (!processed.blanks || processed.blanks.length === 0)) {
+          console.log("[AI Generator] Fallback: Detecting blanks from markers in text");
+          const words = (processed.q || "").split(/\s+/).filter(Boolean);
+          const detectedBlanks: number[] = [];
+          
+          words.forEach((word: string, idx: number) => {
+            if (word.includes('\\square') || word.includes('□') || word.includes('____')) {
+              detectedBlanks.push(idx);
+            }
+          });
+          
+          if (detectedBlanks.length > 0) {
+            processed.blanks = detectedBlanks;
+            // If answer 'a' is also missing or just the marker, try to sync it if possible
+            // But usually we can't know the answer if it's just a marker.
+            // At least the UI will highlight the blank now.
+          }
+        }
+
+        return {
+          ...processed,
+          type,
+          points: processed.points || 10,
+          timeLimit: 20,
+          math_mode: mathMode
+        };
+      });
       setPreview(preparedQuestions);
     } catch (err) {
-      await showAlert("생성 실패: " + (err as Error).message);
+      console.error("[AI Generator] Error:", err);
+      let errorMsg = (err as Error).message;
+      
+      if (errorMsg.includes("payload") || errorMsg.includes("too large") || errorMsg.includes("413")) {
+        errorMsg = "첨부파일 용량이 너무 커서 인공지능이 처리할 수 없습니다. 더 작은 파일을 사용하거나 파일 개수를 줄여주세요.";
+      } else if (errorMsg.includes("JSON")) {
+        errorMsg = "인공지능이 응답 형식을 맞추지 못했습니다. 다시 시도해 주세요.";
+      }
+      
+      await showAlert("문항 생성 실패: " + errorMsg);
     } finally {
       setLoading(false);
     }
@@ -206,7 +247,6 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
   return (
     <div 
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200"
-      onClick={handleClose}
     >
       <div 
         className="bg-white rounded-[2.5rem] shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh] animate-pop"

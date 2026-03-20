@@ -350,7 +350,7 @@ export default function QuizEditor() {
                             onChange={(value) => updateQuestion(index, "q", value)}
                             className="w-full"
                             containerClassName="min-h-[140px] flex flex-col"
-                            placeholder="질문을 입력하세요. 수식은 가상 키보드를 사용하여 입력할 수 있습니다."
+                            placeholder="질문을 입력하세요."
                             isTeacher={true}
                           />
                         ) : (
@@ -358,7 +358,7 @@ export default function QuizEditor() {
                             value={q.q}
                             onChange={(e) => updateQuestion(index, "q", e.target.value)}
                             className="w-full p-4 text-lg font-bold border-2 border-slate-100 bg-slate-50/50 rounded-2xl focus:border-indigo-400 focus:bg-white outline-none transition-all placeholder:text-slate-300 min-h-[100px] resize-none"
-                            placeholder="질문을 입력하세요. 수식은 \frac{1}{2} 처럼 LaTeX로 입력하면 미리보기에 표시됩니다."
+                            placeholder="질문을 입력하세요."
                             rows={3}
                           />
                         )}

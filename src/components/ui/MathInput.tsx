@@ -45,6 +45,14 @@ export function MathInput({
         // @ts-ignore
         mfRef.current.virtualKeyboardMode = isTeacher ? "onfocus" : "manual";
         
+        // Add shortcuts for arithmetic symbols
+        mfRef.current.inlineShortcuts = {
+          ...mfRef.current.inlineShortcuts,
+          '*': { mode: 'math', value: '\\times' },
+          '/': { mode: 'math', value: '\\div' },
+          ' ': { mode: 'math', value: '\\ ' }
+        };
+        
         // If there's an initial value, ensure it's set correctly now that the element is upgraded
         if (value) {
           mfRef.current.value = value;
@@ -138,7 +146,6 @@ export function MathInput({
   return (
     <div className={`relative w-full ${className}`}>
       <div className={`bg-white rounded-2xl border-2 border-indigo-100 shadow-sm focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-100 transition-all overflow-hidden p-1 ${containerClassName}`}>
-        {/* @ts-ignore */}
         <math-field
           ref={mfRef}
           style={{ 
@@ -148,9 +155,13 @@ export function MathInput({
             border: "none",
             outline: "none",
             background: "transparent",
-            minHeight: "3.5rem"
+            minHeight: "3.5rem",
+            whiteSpace: "pre-wrap",
+            overflowWrap: "break-word"
           }}
+          multiline="true"
           smart-mode="true"
+          smart-fence="true"
           math-virtual-keyboard-policy={isTeacher ? "auto" : "manual"}
           placeholder={placeholder}
         />
