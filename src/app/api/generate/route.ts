@@ -70,8 +70,8 @@ export async function POST(req: Request) {
       "3. MULTIPLE_CHOICE: 보기(options)는 4지선다형을 기본으로 합니다.\n" +
       "4. BLANK: 문맥상 아주 중요한 용어나 수치에 빈칸을 만드세요.\n\n" +
       "[수식 및 JSON 규칙]\n" +
-      "- 분수는 \\frac{분자}{분모} 형식을 사용하세요. 곱하기는 \\times, 나누기는 \\div를 사용하세요.\n" +
-      "- JSON 출력 시 백슬래시는 JSON 표준에 따라 한 번만 이스케이프(\\)하세요.\n\n" +
+      "- 분수는 \\frac{분자}{분모} 형식을 사용하세요. 곱하기는 \\times, 나누기는 \\div를 사용하세요. (백슬래시 하나 사용)\n" +
+      "- JSON 응답 시 백슬래시가 포함된 문자열을 올바르게 이스케이프하여 유효한 JSON이 되도록 하세요.\n\n" +
       "형식:\n" + formatPrompt + "\n\n" +
       "학습 자료:\n" + (text || "첨부 파일 참조");
 

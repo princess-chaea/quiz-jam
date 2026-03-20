@@ -31,6 +31,13 @@ interface MathInputProps {
   containerClassName?: string;
 }
 
+const sanitizeLaTeX = (val: string) => {
+  if (!val) return "";
+  // Convert double backslashes (\\) to single (\) if followed by a LaTeX command char
+  // This cleans up data that was over-escaped during generation or storage
+  return val.replace(/\\\\(?=[a-zA-Z{}])/g, '\\');
+};
+
 export function MathInput({ 
   value, 
   onChange, 
@@ -71,8 +78,9 @@ export function MathInput({
         };
         
         // Ensure initial value is set correctly
-        mfRef.current.value = value || "";
-        lastValueRef.current = value || "";
+        const sanitized = sanitizeLaTeX(value);
+        mfRef.current.value = sanitized || "";
+        lastValueRef.current = sanitized || "";
       }
     });
   }, [isTeacher]); // Removed 'value' from deps to avoid re-running setup on every change
@@ -86,11 +94,12 @@ export function MathInput({
 
   // Sync value changes after initialization
   useEffect(() => {
-    if (isReady && mfRef.current && value !== lastValueRef.current) {
-      if (mfRef.current.value !== value) {
-        mfRef.current.value = value || "";
+    const sanitized = sanitizeLaTeX(value);
+    if (isReady && mfRef.current && sanitized !== lastValueRef.current) {
+      if (mfRef.current.value !== sanitized) {
+        mfRef.current.value = sanitized || "";
       }
-      lastValueRef.current = value || "";
+      lastValueRef.current = sanitized || "";
     }
   }, [value, isReady]);
 

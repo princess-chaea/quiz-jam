@@ -44,7 +44,7 @@ export function processMathText(text: string | null | undefined): string {
     // Markers: \ (backslash), ^ (sup), _ (sub), = (equals), or \u25A1 (square)
     if (/\\|\^|_|=|□/.test(part)) {
       // Normalize double backslashes (often from JSON escaping)
-      let clean = part.replace(/\\\\/g, '\\');
+      let clean = part.replace(/\\\\(?=[a-zA-Z{}])/g, '\\');
       
       // If the segment consists only of whitespace/punctuation, don't wrap
       if (!/[a-zA-Z0-9\\^_{}=□]/.test(clean)) return part;
