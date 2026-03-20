@@ -54,7 +54,7 @@ export function MathInput({
   containerClassName = ""
 }: MathInputProps) {
   const mfRef = useRef<any>(null);
-  const lastValueRef = useRef<string>(value);
+  const lastValueRef = useRef<string | undefined>(undefined);
   const { openKeypad } = useMathKeypad();
   const [mounted, setMounted] = useState(false);
   const [isReady, setIsReady] = useState(false);
@@ -81,11 +81,6 @@ export function MathInput({
 
         // Enable smart mode to better handle mixed text/math
         mfRef.current.smartMode = true;
-        
-        // Ensure initial value is set correctly
-        const prepared = toMathLiveValue(value);
-        mfRef.current.value = prepared || "";
-        lastValueRef.current = value;
       }
     });
   }, []);
@@ -103,9 +98,9 @@ export function MathInput({
   useEffect(() => {
     if (!isReady || !mfRef.current) return;
     
-    // Only update mfRef.current.value if it's meaningfully different
+    // Only update mfRef.current.value if it's the first time or meaningfully different
     // to prevent cursor jumping or blocking input
-    if (value !== lastValueRef.current) {
+    if (lastValueRef.current === undefined || value !== lastValueRef.current) {
       const prepared = toMathLiveValue(value);
       if (mfRef.current.value !== prepared) {
         mfRef.current.value = prepared || "";
@@ -220,7 +215,9 @@ export function MathInput({
         multiline="true"
         math-virtual-keyboard-policy="manual"
         placeholder={placeholder}
-      />
+      >
+        {toMathLiveValue(value)}
+      </math-field>
       
       <div className="absolute right-3 top-3 flex gap-2 opacity-0 group-hover/math:opacity-100 transition-opacity">
          <button 
