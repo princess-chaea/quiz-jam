@@ -40,9 +40,8 @@ export function processMathText(text: string | null | undefined): string {
     // If it's a Korean segment, return as is
     if (/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(part)) return part;
     
-    // Part is non-Korean. Let's check for math markers:
-    // Markers: \ (backslash), ^ (sup), _ (sub), = (equals), or \u25A1 (square)
-    if (/\\|\^|_|=|□/.test(part)) {
+    // Markers: \ (backslash), ^ (sup), _ (sub), = (equals), \u25A1 (square), or ~ (space)
+    if (/\\|\^|_|=|□|~/.test(part)) {
       // Normalize double backslashes (often from JSON escaping)
       let clean = part.replace(/\\\\(?=[a-zA-Z{}])/g, '\\');
       

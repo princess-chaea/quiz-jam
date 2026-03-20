@@ -11,23 +11,16 @@ import { Keyboard } from "lucide-react";
 const toMathLiveValue = (text: string) => {
   if (!text) return "";
   
-  // 1. Normalize double backslashes (\\) to single (\) if followed by a LaTeX command char
-  let result = text.replace(/\\\\(?=[a-zA-Z{}])/g, '\\');
+  // 1. Normalize and clean up existing backslash-space debris
+  // Collapse \\  or \  back to regular spaces first to avoid doubling
+  let result = text.replace(/\\\\ /g, ' ').replace(/\\ /g, ' ');
   
-  // 2. Preserve spaces and arithmetic symbols by escaping them for MathLive
-  // If it's already LaTeX, we only escape spaces that aren't preceded by \
-  try {
-    // Escape arithmetic symbols if they aren't already preceded by \
-    // result = result.replace(/(?<!\\)([+\-=><*/])/g, '\\$1 ');
-    
-    // Most importantly, ensure spaces are converted to LaTeX spaces (\ )
-    result = result.replace(/(?<!\\) /g, '\\ ');
-  } catch (e) {
-    // Simple fallback: replace space if not preceded by backslash
-    result = result.replace(/([^\\]) /g, '$1\\ ');
-    // Handle leading space
-    if (result.startsWith(' ')) result = '\\ ' + result.slice(1);
-  }
+  // Normalize remaining double backslashes for commands
+  result = result.replace(/\\\\/g, '\\');
+  
+  // 2. Convert regular spaces to ~ (non-breaking space) for MathLive.
+  // This avoids backslash issues entirely as ~ is a single character.
+  result = result.replace(/ /g, '~');
   
   return result;
 };
@@ -136,10 +129,8 @@ export function MathInput({
       // Use getValue() for more reliability 
       const liveValue = el.getValue?.() || el.value || "";
       
-      // CRITICAL: Convert LaTeX spaces (\ ) back to regular spaces for the parent state.
-      // This ensures that Text Mode sees normal spaces, and then toMathLiveValue 
-      // converts them back to \  for the math-field.
-      const normalizedValue = liveValue.replace(/\\ /g, ' ');
+      // CRITICAL: Convert LaTeX non-breaking spaces (~) back to regular spaces for the parent state.
+      const normalizedValue = liveValue.replace(/~/g, ' ');
       
       lastValueRef.current = normalizedValue; 
       onChange(normalizedValue);
@@ -161,11 +152,11 @@ export function MathInput({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === " ") {
-        // Explicitly handle space to insert a LaTeX space command
+        // Explicitly handle space to insert a LaTeX non-breaking space (~)
         e.preventDefault();
         if (typeof el.executeCommand === 'function') {
-            el.executeCommand(["insert", "\\ "]);
-            // Manually trigger update since we prevented default
+            el.executeCommand(["insert", "~"]);
+            // Manually trigger update
             handleUpdate(e);
         }
         return;
