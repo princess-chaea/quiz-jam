@@ -3,6 +3,22 @@
 import React, { useEffect, useRef } from "react";
 import { useMathKeypad } from "./MathKeypadContext";
 
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'math-field': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        ref?: React.RefObject<any>;
+        style?: React.CSSProperties;
+        multiline?: string;
+        'smart-mode'?: string;
+        'smart-fence'?: string;
+        'math-virtual-keyboard-policy'?: string;
+        placeholder?: string;
+      };
+    }
+  }
+}
+
 interface MathInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -146,6 +162,7 @@ export function MathInput({
   return (
     <div className={`relative w-full ${className}`}>
       <div className={`bg-white rounded-2xl border-2 border-indigo-100 shadow-sm focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-100 transition-all overflow-hidden p-1 ${containerClassName}`}>
+        {/* @ts-ignore */}
         <math-field
           ref={mfRef}
           style={{ 
