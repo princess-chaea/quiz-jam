@@ -14,16 +14,18 @@ const toMathLiveValue = (text: string) => {
   // 1. Normalize double backslashes (\\) to single (\) if followed by a LaTeX command char
   let result = text.replace(/\\\\(?=[a-zA-Z{}])/g, '\\');
   
-  // 2. Preserve spaces by converting them to LaTeX space commands (\ )
-  // We use negative lookbehind to avoid double-escaping already escaped spaces.
-  // Note: Modern browsers support this. If compatibility is a concern, we can use a more complex regex.
-  // We also wrap Korean characters in \text{} for better rendering in math mode if needed,
-  // but MathLive's smartMode usually handles this. The key is the SPACES.
+  // 2. Preserve spaces and arithmetic symbols by escaping them for MathLive
+  // If it's already LaTeX, we only escape spaces that aren't preceded by \
   try {
+    // Escape arithmetic symbols if they aren't already preceded by \
+    // result = result.replace(/(?<!\\)([+\-=><*/])/g, '\\$1 ');
+    
+    // Most importantly, ensure spaces are converted to LaTeX spaces (\ )
     result = result.replace(/(?<!\\) /g, '\\ ');
   } catch (e) {
-    // Fallback for environments that don't support negative lookbehind
-    result = result.replace(/([^\\ ]) /g, '$1\\ ');
+    // Simple fallback: replace space if not preceded by backslash
+    result = result.replace(/([^\\]) /g, '$1\\ ');
+    // Handle leading space
     if (result.startsWith(' ')) result = '\\ ' + result.slice(1);
   }
   
@@ -131,7 +133,8 @@ export function MathInput({
     if (!el) return;
 
     const handleUpdate = (e: Event) => {
-      const liveValue = (e.target as any).value;
+      // Use getValue() for more reliability in some MathLive versions
+      const liveValue = el.getValue?.() || el.value;
       // When emitting, update lastValueRef to the RAW outgoing value
       // so the sync effect doesn't try to re-apply it.
       lastValueRef.current = liveValue; 
@@ -153,6 +156,17 @@ export function MathInput({
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === " ") {
+        // Explicitly handle space to insert a LaTeX space command
+        e.preventDefault();
+        if (typeof el.executeCommand === 'function') {
+            el.executeCommand(["insert", "\\ "]);
+            // Manually trigger update since we prevented default
+            handleUpdate(e);
+        }
+        return;
+      }
+      
       if (e.key === "Enter" && onEnter) {
         e.preventDefault();
         onEnter();
