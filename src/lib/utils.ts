@@ -36,18 +36,7 @@ export function processMathText(text: string | null | undefined): string {
   // 1. If it already has $, assume it's correctly formatted
   if (text.includes("$")) return text;
 
-  // 2. Detect if this is likely a single LaTeX block from MathLive (e.g. multi-line or complex formatting)
-  // Hallmarks: starts with \displaylines, contains \frac, \begin, etc. and lacks clear Korean delimiters outside commands
-  const isBlockMath = text.includes("\\displaylines") || 
-                     text.includes("\\begin{") || 
-                     (text.includes("\\frac") && text.length > 50);
-
-  if (isBlockMath) {
-    // For block math, we wrap the entire string once to avoid breaking internal commands
-    return `$${text.trim()}$`;
-  }
-
-  // 3. Standard split by Korean characters for mixed inline text
+  // 2. Standard split by Korean characters for mixed inline text
   const parts = text.split(/([ㄱ-ㅎ|ㅏ-ㅣ|가-힣]+)/);
   
   return parts.map(part => {

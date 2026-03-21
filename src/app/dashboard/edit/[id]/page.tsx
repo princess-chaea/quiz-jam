@@ -359,6 +359,7 @@ export default function QuizEditor() {
                             isTeacher={true}
                             level={quiz?.school_level === '초등' ? 'elementary' : quiz?.school_level === '중' ? 'middle' : quiz?.school_level === '고등' ? 'high' : 'elementary'}
                             multiline={true}
+                            showScrollbar={true}
                           />
                         </div>
                       </div>
@@ -414,6 +415,7 @@ export default function QuizEditor() {
                                         placeholder={`보기 ${optIdx + 1}`}
                                         isTeacher={true}
                                         level={quiz?.school_level === '초등' ? 'elementary' : quiz?.school_level === '중' ? 'middle' : quiz?.school_level === '고등' ? 'high' : 'elementary'}
+                                        showScrollbar={true}
                                       />
                                     </div>
                                     {(q.options || []).length > 2 && (
@@ -504,6 +506,7 @@ export default function QuizEditor() {
                               containerClassName="min-h-[60px] bg-slate-50/50 border-slate-100"
                               isTeacher={true}
                               level={quiz?.school_level === '초등' ? 'elementary' : quiz?.school_level === '중' ? 'middle' : quiz?.school_level === '고등' ? 'high' : 'elementary'}
+                              showScrollbar={true}
                             />
                           </div>
                       )}

@@ -40,6 +40,7 @@ interface MathInputProps {
   isTeacher?: boolean;
   containerClassName?: string;
   multiline?: boolean;
+  showScrollbar?: boolean; // New prop to force scrollbar
 }
 
 export function MathInput({ 
@@ -53,7 +54,8 @@ export function MathInput({
   isTeacher = false,
   containerClassName = "",
   focusOnMount = false,
-  multiline = false
+  multiline = false,
+  showScrollbar = false,
 }: MathInputProps) {
   const mfRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -334,7 +336,11 @@ export function MathInput({
   return (
     <div 
       ref={containerRef}
-      className={cn("relative w-full rounded-2xl overflow-hidden group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text", containerClassName)}
+      className={cn(
+        "relative w-full rounded-2xl group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text", 
+        (!multiline || showScrollbar) ? "overflow-x-auto overflow-y-hidden custom-scrollbar" : "overflow-hidden",
+        containerClassName
+      )}
       onClick={(e) => {
         // Stop propagation to prevent accidental blurs from parent click handlers
         e.stopPropagation();
@@ -354,18 +360,19 @@ export function MathInput({
       <style dangerouslySetInnerHTML={{ __html: `
         math-field {
           display: block !important;
-          width: 100% !important;
+          width: ${(multiline && !showScrollbar) ? '100%' : 'max-content'} !important;
+          min-width: 100% !important;
           min-height: 2.5rem;
           height: auto !important;
-          overflow: visible !important;
           background: transparent !important;
+          overflow: visible !important;
         }
         math-field::part(container) {
           width: 100% !important;
-          display: block !important;
-          padding: 1rem !important; /* Move padding here */
-          overflow-x: auto !important;
-          overflow-y: hidden !important;
+          display: flex !important;
+          align-items: center !important;
+          padding: 1rem !important;
+          overflow: visible !important;
         }
         math-field::part(content) {
           white-space: ${multiline ? 'pre-wrap' : 'nowrap'} !important;

@@ -1036,7 +1036,15 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                   (currentQuestion?.q?.length || 0) > 80 ? "text-2xl md:text-3xl" : 
                   "text-3xl md:text-5xl"
                 )}>
-                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(currentQuestion?.q || "")}</ReactMarkdown>
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkMath]} 
+                    rehypePlugins={[rehypeKatex]}
+                    components={{
+                      p: ({node, ...props}) => <span className="whitespace-pre-wrap block" {...props} />,
+                    }}
+                  >
+                    {processMathText(currentQuestion?.q || "")}
+                  </ReactMarkdown>
                 </div>
 
                 {/* Question Options for Teacher (Simplified & Hidden Answer) */}
