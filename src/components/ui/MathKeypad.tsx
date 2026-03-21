@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, GripVertical, Keyboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMathKeypad } from "./MathKeypadContext";
 import { usePathname } from "next/navigation";
@@ -248,6 +248,14 @@ export function MathKeypad() {
             className="flex-1 h-10 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center justify-center text-slate-500 transition-colors shadow-sm"
           >
             <ChevronRight size={20} />
+          </button>
+          <button 
+            onClick={() => command('showVirtualKeyboard')}
+            onMouseDown={(e: React.MouseEvent) => e.preventDefault()}
+            className="flex-1 h-10 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center justify-center text-slate-500 transition-colors shadow-sm"
+            title="고급 수식 키보드 열기"
+          >
+            <Keyboard size={20} />
           </button>
           <button 
             onClick={closeKeypad}

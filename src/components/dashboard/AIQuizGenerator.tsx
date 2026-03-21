@@ -38,12 +38,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
     }
     return ["SHORT_ANSWER", "MULTIPLE_CHOICE"];
   });
-  const [mathMode, setMathMode] = useState(() => {
-    if (typeof window !== "undefined") {
-      return sessionStorage.getItem("ai_gen_math_mode") === "true";
-    }
-    return false;
-  });
+  const [mathMode] = useState(true);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<any[] | null>(() => {
     if (typeof window !== "undefined") {
@@ -67,9 +62,6 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
     sessionStorage.setItem("ai_gen_types", JSON.stringify(types));
   }, [types]);
 
-  useEffect(() => {
-    sessionStorage.setItem("ai_gen_math_mode", mathMode.toString());
-  }, [mathMode]);
 
   useEffect(() => {
     if (preview) {
@@ -326,15 +318,6 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                   문제 유형 (중복 선택 가능)
                 </label>
                 <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setMathMode(!mathMode)}
-                      className={`px-4 py-2 rounded-2xl border-2 font-black transition-all flex items-center gap-2 ${mathMode ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'}`}
-                    >
-                      <span className="text-lg">∑</span> 수식 모드
-                    </button>
-                    <p className="text-[10px] text-slate-400 font-bold leading-tight">분수, 루트 등 복잡한 수식이 포함된 경우<br/>수식 전용 모드를 활성화하세요.</p>
-                  </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[

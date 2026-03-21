@@ -312,14 +312,7 @@ export default function QuizEditor() {
                     <span className="bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full text-sm font-black">
                       Problem #{index + 1}
                     </span>
-                    <button
-                      onClick={() => updateQuestion(index, "math_mode", !q.math_mode)}
-                      className={`text-xs font-black px-3 py-1.5 rounded-full border transition-all flex items-center gap-1 ${q.math_mode ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-transparent text-slate-400 border-slate-200 hover:bg-slate-50'}`}
-                      title="수식 입력 도우미를 활성화합니다."
-                    >
-                      <Sparkles size={12} className={q.math_mode ? 'animate-pulse' : ''} /> 수식 편집 도우미
-                    </button>
-                        <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2">
                           <button
                             onClick={() => updateQuestion(index, "type", "SHORT_ANSWER")}
                             className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-all ${q.type === "SHORT_ANSWER" ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-transparent border-transparent text-slate-400 hover:bg-slate-50'}`}

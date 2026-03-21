@@ -211,7 +211,7 @@ export function MathInput({
     };
 
     const handleFocus = () => {
-      if (!isTeacher) {
+      if (true) {
         if (typeof el.executeCommand === 'function') {
           openKeypad(el, level);
         } else {
@@ -363,21 +363,6 @@ export function MathInput({
         {toMathLiveValue(value)}
       </math-field>
       
-      <div className="absolute right-3 top-3 flex gap-2 opacity-0 group-hover/math:opacity-100 transition-opacity">
-         <button 
-          type="button"
-          onClick={handleToggleKeyboard}
-          className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-500 hover:border-indigo-200 shadow-sm transition-all"
-          title="가상 키보드"
-        >
-          <Keyboard size={16} />
-        </button>
-      </div>
-
-      <div className="absolute right-3 bottom-3 flex items-center gap-1 opacity-40 group-hover/math:opacity-100 transition-all pointer-events-none">
-        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-        <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">수식 모드</span>
-      </div>
     </div>
   );
 }
