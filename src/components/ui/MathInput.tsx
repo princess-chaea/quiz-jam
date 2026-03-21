@@ -229,6 +229,7 @@ export function MathInput({
       // We also clean up any accidental double backslashes that might have leaked.
       const normalizedValue = liveValue
         .replace(/~/g, ' ')
+        .replace(/\\displaylines/g, '')
         .replace(/\\ /g, ' ');
       
       if (lastValueRef.current === normalizedValue) return;
@@ -356,7 +357,8 @@ export function MathInput({
           width: 100% !important;
           display: block !important;
           padding: 1rem !important; /* Move padding here */
-          overflow-x: ${multiline ? 'visible' : 'auto'} !important;
+          overflow-x: auto !important;
+          overflow-y: hidden !important;
         }
         math-field::part(content) {
           white-space: ${multiline ? 'pre-wrap' : 'nowrap'} !important;

@@ -934,7 +934,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         </div>
 
         <div className={cn(
-          "font-black text-slate-800 mb-10 break-keep w-full whitespace-pre-wrap transition-all duration-300 overflow-x-auto custom-scrollbar",
+          "font-black text-slate-800 mb-10 break-keep w-full whitespace-pre-wrap transition-all duration-300",
           (currentQuestion?.q?.length || 0) > 200 ? "text-lg md:text-xl leading-relaxed" :
           (currentQuestion?.q?.length || 0) > 120 ? "text-xl md:text-2xl leading-relaxed" : 
           (currentQuestion?.q?.length || 0) > 60 ? "text-2xl md:text-3xl leading-snug" : 
