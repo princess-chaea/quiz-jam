@@ -259,13 +259,20 @@ export function MathInput({
       if (typeof mathFieldEl.focus === 'function') {
         mathFieldEl.focus();
       }
-      // Extremely aggressive hack to ensure the invisible textarea for IME gets focus.
       if (mathFieldEl.shadowRoot) {
         const sink = mathFieldEl.shadowRoot.querySelector('textarea, input[type="text"], .ML__keyboard-sink');
         if (sink && typeof sink.focus === 'function') {
           sink.focus();
         }
       }
+    };
+
+    const handleCompositionStart = (e: Event) => {
+      // CRITICAL: When clicking the gap, MathLive cursor is at top-level math mode.
+      // Top-level math mode rejects IME composition (Korean). 
+      // We must forcefully switch to text mode to accept it!
+      try { el.executeCommand(['switchMode', 'text']); } catch (err) {}
+      try { el.executeCommand(['setMode', 'text']); } catch (err) {}
     };
 
     const handlePointerUp = (e: Event) => {
@@ -280,6 +287,12 @@ export function MathInput({
     };
 
     const handleKeyDown = (e: any) => {
+      // Force text mode if a Korean key is pressed (sometimes IME masks this as Process, but we check just in case)
+      if (/^[가-힣ㄱ-ㅎㅏ-ㅣ]$/.test(e.key) || e.key === 'Process') {
+        try { el.executeCommand(['switchMode', 'text']); } catch (err) {}
+        try { el.executeCommand(['setMode', 'text']); } catch (err) {}
+      }
+
       if (e.key === 'Enter') {
         if (onEnterRef.current) {
           e.preventDefault();
@@ -319,6 +332,7 @@ export function MathInput({
     el.addEventListener("input", handleUpdate);
     el.addEventListener("change", handleUpdate);
     el.addEventListener("keydown", handleKeyDown);
+    el.addEventListener("compositionstart", handleCompositionStart);
     el.addEventListener("focus", handleFocus);
     el.addEventListener("pointerup", handlePointerUp);
     el.addEventListener("blur", handleUpdate);
@@ -330,6 +344,7 @@ export function MathInput({
       el.removeEventListener("input", handleUpdate);
       el.removeEventListener("change", handleUpdate);
       el.removeEventListener("keydown", handleKeyDown);
+      el.removeEventListener("compositionstart", handleCompositionStart);
       el.removeEventListener("focus", handleFocus);
       el.removeEventListener("pointerup", handlePointerUp);
       el.removeEventListener("blur", handleUpdate);
@@ -372,25 +387,37 @@ export function MathInput({
       style={{ minHeight: "80px" }}
       onClick={(e: React.MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
-        if (mfRef.current) {
-          // Because math-field is now tight-fitting, clicking the 80px gap hits this div NOT math-field!
-          // We bypass MathLive's buggy gap hit-testing and just purely focus it.
+        if (mfRef.current && e.target === containerRef.current) {
+          // The user clicked the empty wrapper gap (padding). 
+          // Manually calling .focus() permanently corrupts MathLive's IME sync in 0.98.
+          // Instead, we fake a flawless native click exactly on the last character!
           const el = mfRef.current;
-          if (typeof el.focus === 'function') el.focus();
-          
           if (el.shadowRoot) {
-            const sink = el.shadowRoot.querySelector('textarea, input');
-            if (sink && typeof sink.focus === 'function') sink.focus();
-          }
-
-          // Delay execution to guarantee focus sets in after any immediate React re-renders
-          setTimeout(() => {
-            if (typeof el.focus === 'function') el.focus();
-            if (el.shadowRoot) {
-              const sink = el.shadowRoot.querySelector('textarea, input');
-              if (sink && typeof sink.focus === 'function') sink.focus();
+            const atoms = el.shadowRoot.querySelectorAll('.ML__mathlive span');
+            let lastAtom = atoms[atoms.length - 1] as HTMLElement;
+            
+            // If the field is empty or no valid atom, just fallback to standard focus
+            if (!lastAtom) {
+              if (typeof el.focus === 'function') el.focus();
+              return;
             }
-          }, 50);
+
+            const rect = lastAtom.getBoundingClientRect();
+            // Create synthetic pointer events targeting the center of the last atom
+            const clickX = rect.left + (rect.width / 2);
+            const clickY = rect.top + (rect.height / 2);
+
+            const pointerDown = new PointerEvent('pointerdown', {
+              bubbles: true, cancelable: true, clientX: clickX, clientY: clickY, pointerType: 'mouse'
+            });
+            const pointerUp = new PointerEvent('pointerup', {
+              bubbles: true, cancelable: true, clientX: clickX, clientY: clickY, pointerType: 'mouse'
+            });
+
+            // Dispatch on the atom so MathLive's native router flawlessly accepts it
+            lastAtom.dispatchEvent(pointerDown);
+            lastAtom.dispatchEvent(pointerUp);
+          }
         }
       }}
     >
