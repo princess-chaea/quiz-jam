@@ -938,7 +938,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           (currentQuestion?.q?.length || 0) > 200 ? "text-lg md:text-xl leading-relaxed" :
           (currentQuestion?.q?.length || 0) > 120 ? "text-xl md:text-2xl leading-relaxed" : 
           (currentQuestion?.q?.length || 0) > 60 ? "text-2xl md:text-3xl leading-snug" : 
-          "text-3xl md:text-5xl leading-tight"
+          "text-3xl md:text-4xl leading-tight"
         )}>
           {currentQuestion?.type === "BLANK" ? (
             "다음 빈칸에 들어갈 알맞은 글자를 넣으세요." 

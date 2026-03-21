@@ -79,7 +79,7 @@ export function MathInput({
           smartFraction: false,
           smartMode: true,
           smartSubsup: true,
-          defaultMode: 'text', // START IN TEXT MODE for natural typing
+          defaultMode: 'math', // Set to math by default to ensure symbols work immediately
           virtualKeyboardToggle: 'hidden',
           virtualKeyboardMode: 'manual',
           menuIcon: 'none'
@@ -335,13 +335,20 @@ export function MathInput({
     <div 
       ref={containerRef}
       className={cn("relative w-full rounded-2xl overflow-hidden group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text", containerClassName)}
-      onClick={() => {
-        // Use a slight delay to ensure browser focus transitions don't conflict
-        setTimeout(() => {
-          if (mfRef.current && document.activeElement !== mfRef.current) {
-            mfRef.current.focus();
-          }
-        }, 10);
+      onClick={(e) => {
+        // Stop propagation to prevent accidental blurs from parent click handlers
+        e.stopPropagation();
+        
+        const mf = mfRef.current;
+        if (!mf) return;
+
+        // Force focus directly
+        mf.focus();
+        
+        // Also ensure keypad is triggered immediately
+        if (typeof mf.executeCommand === 'function') {
+          openKeypad(mf, level);
+        }
       }}
     >
       <style dangerouslySetInnerHTML={{ __html: `

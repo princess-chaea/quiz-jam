@@ -1032,9 +1032,9 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               <div className="flex flex-col items-center gap-6 mb-8 w-full px-4">
                 <div className={cn(
                   "font-black text-gray-800 break-keep leading-tight text-center w-full [&_p]:m-0 transition-all duration-300 whitespace-pre-wrap",
-                  (currentQuestion?.q?.length || 0) > 150 ? "text-2xl md:text-3xl" : 
-                  (currentQuestion?.q?.length || 0) > 80 ? "text-3xl md:text-5xl" : 
-                  "text-5xl md:text-7xl"
+                  (currentQuestion?.q?.length || 0) > 150 ? "text-xl md:text-2xl" : 
+                  (currentQuestion?.q?.length || 0) > 80 ? "text-2xl md:text-3xl" : 
+                  "text-3xl md:text-5xl"
                 )}>
                   <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(currentQuestion?.q || "")}</ReactMarkdown>
                 </div>
