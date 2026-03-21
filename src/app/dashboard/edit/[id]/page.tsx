@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
@@ -35,18 +35,15 @@ export default function QuizEditor() {
   const { id } = useParams();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [quiz, setQuiz] = useState<any>(null);
+   const [quiz, setQuiz] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAI, setShowAI] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const { showAlert } = useDialog();
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [mathHelperState, setMathHelperState] = useState<{ isOpen: boolean; qIndex: number; currentVal: string }>({
-    isOpen: false,
-    qIndex: -1,
-    currentVal: ""
-  });
+  
 
   useEffect(() => {
     if (!authLoading && !user) router.push("/");
@@ -77,7 +74,7 @@ export default function QuizEditor() {
   };
 
   const handleAddQuestion = useCallback(() => {
-    const newQuestion = { q: "", a: "", type: "SHORT_ANSWER", options: ["", ""], blanks: [], correct_idx: -1, points: 10, timeLimit: 20, math_mode: false };
+    const newQuestion = { q: "", a: "", type: "SHORT_ANSWER", options: ["", ""], blanks: [], correct_idx: -1, points: 10, timeLimit: 20 };
     setQuiz((prev: any) => ({ ...prev, questions: [...prev.questions, newQuestion] }));
   }, []);
 
@@ -175,7 +172,6 @@ export default function QuizEditor() {
           onClose={() => setShowAI(false)} 
         />
       )}
-
       {/* Top Navbar */}
       <nav className="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-4">
@@ -359,50 +355,18 @@ export default function QuizEditor() {
                         </label>
                       </div>
                       
-                      <div className="space-y-4">
+                       <div className="space-y-4">
                         <div className="relative group">
-                          <textarea 
+                          <MathInput
                             value={q.q}
-                            onChange={(e) => updateQuestion(index, "q", e.target.value)}
-                            className="w-full p-5 text-lg font-bold border-2 border-slate-100 bg-slate-50/50 rounded-2xl focus:border-indigo-400 focus:bg-white outline-none transition-all placeholder:text-slate-300 min-h-[120px] resize-none pb-12"
-                            placeholder="질문을 입력하세요. 수식은 $...$ 사이에 넣어주세요."
-                            rows={3}
+                            onChange={(val) => updateQuestion(index, "q", val)}
+                            placeholder="질문을 입력하세요..."
+                            className="text-xl md:text-2xl font-bold bg-transparent"
+                            containerClassName="min-h-[120px] bg-slate-50/30 border-slate-200"
+                            isTeacher={true}
+                            level={quiz?.level || 'elementary'}
                           />
-                          
-                          {/* Math Helper Trigger (only if "Hybrid Mode" is "on" - using it as a toggle for the helper UI) */}
-                          {q.math_mode && (
-                            <div className="absolute bottom-3 right-3 flex gap-2">
-                               <Button 
-                                 variant="ghost" 
-                                 size="sm" 
-                                 className="bg-white border border-slate-200 shadow-sm rounded-xl py-1 px-3 text-xs font-black text-indigo-600 hover:bg-indigo-50"
-                                 onClick={() => {
-                                   setMathHelperState({
-                                     isOpen: true,
-                                     qIndex: index,
-                                     currentVal: ""
-                                   });
-                                 }}
-                               >
-                                 <Plus size={14} className="mr-1" /> 수식 기호 넣기
-                               </Button>
-                            </div>
-                          )}
                         </div>
-
-                        {/* Real-time Math Preview - ALWAYS visible if there's content */}
-                        {q.q && (
-                          <div className="p-6 bg-indigo-50/30 rounded-2xl border-2 border-indigo-100/50 animate-in fade-in slide-in-from-top-2 duration-300">
-                             <div className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                               <Sparkles size={12} /> 실시간 미리보기 (학생 화면)
-                             </div>
-                             <div className="text-xl md:text-2xl font-bold text-slate-800 break-words prose prose-indigo max-w-none">
-                               <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                                 {processMathText(q.q)}
-                               </ReactMarkdown>
-                             </div>
-                          </div>
-                        )}
                       </div>
                     </div>
 
@@ -654,56 +618,6 @@ export default function QuizEditor() {
       </div>
       
       <Footer />
-
-      {/* Math Helper Modal */}
-      <Modal
-        isOpen={mathHelperState.isOpen}
-        onClose={() => setMathHelperState({ ...mathHelperState, isOpen: false })}
-        title="수식 입력 도우미"
-        className="max-w-2xl"
-      >
-        <div className="space-y-6">
-          <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 italic text-sm text-center text-indigo-600 font-bold">
-            아래 칸에 수식을 입력하세요. 마우스나 터치로 기호를 선택할 수 있습니다.
-          </div>
-          
-          <div className="min-h-[120px] bg-slate-50 rounded-2xl p-4 border-2 border-slate-100 focus-within:border-indigo-400 transition-all">
-            <MathInput
-              value={mathHelperState.currentVal}
-              onChange={(val) => setMathHelperState({ ...mathHelperState, currentVal: val })}
-              className="w-full text-2xl font-bold bg-transparent"
-              placeholder="여기에 수식을 입력하세요..."
-              isTeacher={true}
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <Button 
-              variant="ghost" 
-              className="px-6 rounded-2xl font-bold text-slate-400"
-              onClick={() => setMathHelperState({ ...mathHelperState, isOpen: false })}
-            >
-              취소
-            </Button>
-            <Button 
-              className="px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black shadow-lg shadow-indigo-100"
-              onClick={() => {
-                if (mathHelperState.currentVal && mathHelperState.qIndex !== -1) {
-                  const formula = mathHelperState.currentVal;
-                  const index = mathHelperState.qIndex;
-                  const currentText = quiz.questions[index].q;
-                  // Insert at the end with spacing
-                  const newText = currentText + (currentText.endsWith(' ') ? '' : ' ') + `$${formula}$ `;
-                  updateQuestion(index, "q", newText);
-                }
-                setMathHelperState({ ...mathHelperState, isOpen: false, currentVal: "" });
-              }}
-            >
-              상큼하게 수식 삽입
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

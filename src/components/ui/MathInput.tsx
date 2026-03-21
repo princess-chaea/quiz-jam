@@ -76,6 +76,7 @@ export function MathInput({
           smartFraction: false,
           smartMode: true,
           smartSubsup: true,
+          defaultMode: 'text', // START IN TEXT MODE for natural typing
           virtualKeyboardToggle: 'hidden',
           virtualKeyboardMode: 'manual',
           menuIcon: 'none'
@@ -83,23 +84,24 @@ export function MathInput({
         // Explicitly set the toggle policy
         mfRef.current.mathVirtualKeyboardPolicy = "manual";
 
-        // Inject styles into shadow root as a last resort for icon hiding
+        // Inject styles into shadow root to force multiline wrapping
         if (mfRef.current.shadowRoot) {
           const style = document.createElement('style');
           style.textContent = `
             .ML__virtual-keyboard-toggle, .ML__menu-toggle, [part="virtual-keyboard-toggle"], [part="menu-toggle"] {
               display: none !important;
               visibility: hidden !important;
-              width: 0 !important;
-              height: 0 !important;
-              pointer-events: none !important;
             }
-            /* Attempt to force wrapping on the internal base element */
             .ML__base {
               display: flex !important;
               flex-wrap: wrap !important;
               width: 100% !important;
-              white-space: pre-wrap !important;
+              line-height: 1.6 !important;
+              padding: 4px 0 !important;
+            }
+            .ML__content {
+              display: block !important;
+              width: 100% !important;
             }
           `;
           mfRef.current.shadowRoot.appendChild(style);
