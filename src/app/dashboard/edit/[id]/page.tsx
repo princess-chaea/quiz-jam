@@ -358,14 +358,15 @@ export default function QuizEditor() {
                             containerClassName="min-h-[120px] bg-slate-50/30 border-slate-200"
                             isTeacher={true}
                             level={quiz?.school_level === '초등' ? 'elementary' : quiz?.school_level === '중' ? 'middle' : quiz?.school_level === '고등' ? 'high' : 'elementary'}
+                            multiline={true}
                           />
                         </div>
                       </div>
                     </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0 max-w-full overflow-hidden">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0 max-w-full">
                     {/* Answer Section based on type */}
-                    <div className="space-y-4 min-w-0 max-w-full overflow-hidden">
+                    <div className="space-y-4 min-w-0 max-w-full">
                       <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
                         <HelpCircle size={14} /> 
                         {q.type === "MULTIPLE_CHOICE" ? "Options & Answer" : 
@@ -388,7 +389,7 @@ export default function QuizEditor() {
                                 }
                               }
                               return (
-                                <div key={optIdx} className={`flex items-center gap-3 p-2 rounded-xl border-2 transition-all min-w-0 max-w-full overflow-hidden ${isCorrect ? 'border-emerald-400 bg-emerald-50' : 'border-slate-100 bg-slate-50'}`}>
+                                <div key={optIdx} className={`flex items-center gap-3 p-2 rounded-xl border-2 transition-all min-w-0 max-w-full ${isCorrect ? 'border-emerald-400 bg-emerald-50' : 'border-slate-100 bg-slate-50'}`}>
                                   <input 
                                     type="radio" 
                                     name={`correct-${index}`}
@@ -399,7 +400,7 @@ export default function QuizEditor() {
                                       updateQuestion(index, "correct_idx", optIdx);
                                     }}
                                   />
-                                    <div className="flex-1 min-w-0 max-w-full overflow-hidden p-1">
+                                    <div className="flex-1 min-w-0 max-w-full p-1">
                                       <MathInput
                                         value={opt}
                                         onChange={(val) => {

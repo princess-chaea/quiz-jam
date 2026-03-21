@@ -39,6 +39,7 @@ interface MathInputProps {
   level?: 'elementary' | 'middle' | 'high';
   isTeacher?: boolean;
   containerClassName?: string;
+  multiline?: boolean;
 }
 
 export function MathInput({ 
@@ -51,7 +52,8 @@ export function MathInput({
   level = 'elementary',
   isTeacher = false,
   containerClassName = "",
-  focusOnMount = false
+  focusOnMount = false,
+  multiline = false
 }: MathInputProps) {
   const mfRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -95,14 +97,15 @@ export function MathInput({
             }
             .ML__base {
               display: flex !important;
-              flex-wrap: wrap !important;
+              flex-wrap: ${multiline ? 'wrap' : 'nowrap'} !important;
               width: 100% !important;
+              ${!multiline ? 'overflow-x: auto !important;' : ''}
               line-height: 1.6 !important;
               padding: 4px 0 !important;
             }
             .ML__content {
-              display: block !important;
-              width: 100% !important;
+              display: ${multiline ? 'block' : 'inline-block'} !important;
+              ${multiline ? 'width: 100% !important;' : 'min-width: 100% !important;'}
             }
           `;
           mfRef.current.shadowRoot.appendChild(style);
@@ -353,14 +356,16 @@ export function MathInput({
           width: 100% !important;
           display: block !important;
           padding: 1rem !important; /* Move padding here */
+          overflow-x: ${multiline ? 'visible' : 'auto'} !important;
         }
         math-field::part(content) {
-          white-space: pre-wrap !important;
-          overflow-wrap: break-word !important;
-          word-break: break-all !important;
+          white-space: ${multiline ? 'pre-wrap' : 'nowrap'} !important;
+          overflow-wrap: ${multiline ? 'break-word' : 'normal'} !important;
+          word-break: ${multiline ? 'break-all' : 'normal'} !important;
           text-align: left !important;
-          display: block !important;
-          width: 100% !important;
+          display: ${multiline ? 'block' : 'inline-block'} !important;
+          width: ${multiline ? '100%' : 'auto'} !important;
+          min-width: 100% !important;
           padding: 0 !important;
         }
         /* Hide MathLive internal virtual keyboard toggle and menu toggles */
@@ -388,7 +393,7 @@ export function MathInput({
           fontSize: "1.125rem",
           display: 'block'
         }}
-        multiline="true"
+        multiline={multiline ? "true" : "false"}
         math-virtual-keyboard-policy="manual"
         virtual-keyboard-toggle="hidden"
         menu-icon="none"

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import confetti from "canvas-confetti";
-import { cn, getChoseong, processMathText } from "@/lib/utils";
+import { cn, getChoseong, processMathText, normalizeMath } from "@/lib/utils";
 import { useDialog } from "@/components/ui/DialogProvider";
 import { PlayerBar } from "@/components/game/PlayerBar";
 import ReactMarkdown from 'react-markdown';
@@ -79,7 +79,20 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       // 2. Calculate base results
       const calculatedResults = currentPlayers.map(player => {
         const answer = currentAnswers.find(a => a.player_id === player.id);
-        const isCorrect = answer?.is_correct || false;
+        
+        // Calculate correctness locally based on question type
+        let isCorrect = false;
+        if (answer?.answer) {
+          if (question.type === "OX") {
+            isCorrect = answer.answer.toUpperCase() === question.a.toUpperCase();
+          } else if (question.type === "MULTIPLE_CHOICE") {
+            // Compare normalized strings for multiple choice
+            isCorrect = normalizeMath(answer.answer) === normalizeMath(question.a);
+          } else {
+            // Short answer or Blank: normalize both and compare
+            isCorrect = normalizeMath(answer.answer) === normalizeMath(question.a);
+          }
+        }
         let basePoints = question.points || 10;
         let points = 0;
         let event = 'none';
@@ -1016,9 +1029,11 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-6 mb-8 w-full px-4">
+              <div className="flex flex-col items-center gap-6 mb-8 w-full px-4 overflow-x-auto custom-scrollbar">
                 <div className={cn(
-                  "font-black text-gray-800 break-keep leading-tight text-center w-full [&_p]:m-0",
+                  "font-black text-gray-800 break-keep leading-tight text-center w-full [&_p]:m-0 transition-all duration-300",
+                  (currentQuestion?.q?.length || 0) > 150 ? "text-2xl md:text-3xl" : 
+                  (currentQuestion?.q?.length || 0) > 80 ? "text-3xl md:text-5xl" : 
                   "text-5xl md:text-7xl"
                 )}>
                   <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(currentQuestion?.q || "")}</ReactMarkdown>

@@ -934,10 +934,11 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         </div>
 
         <div className={cn(
-          "font-black text-slate-800 mb-10 break-keep w-full whitespace-pre-wrap",
-          (currentQuestion?.q?.length || 0) > 150 ? "text-xl md:text-2xl leading-relaxed" : 
-          (currentQuestion?.q?.length || 0) > 80 ? "text-2xl md:text-3xl leading-snug" : 
-          "text-3xl md:text-4xl leading-tight"
+          "font-black text-slate-800 mb-10 break-keep w-full whitespace-pre-wrap transition-all duration-300 overflow-x-auto custom-scrollbar",
+          (currentQuestion?.q?.length || 0) > 200 ? "text-lg md:text-xl leading-relaxed" :
+          (currentQuestion?.q?.length || 0) > 120 ? "text-xl md:text-2xl leading-relaxed" : 
+          (currentQuestion?.q?.length || 0) > 60 ? "text-2xl md:text-3xl leading-snug" : 
+          "text-3xl md:text-5xl leading-tight"
         )}>
           {currentQuestion?.type === "BLANK" ? (
             "다음 빈칸에 들어갈 알맞은 글자를 넣으세요." 
