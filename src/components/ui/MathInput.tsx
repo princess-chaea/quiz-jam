@@ -341,20 +341,16 @@ export function MathInput({
         (!multiline || showScrollbar) ? "overflow-x-auto overflow-y-hidden custom-scrollbar" : "overflow-hidden",
         containerClassName
       )}
+      onPointerDown={(e) => {
+        const mf = mfRef.current;
+        if (mf && e.target === containerRef.current) {
+          e.preventDefault();
+          mf.focus();
+        }
+      }}
       onClick={(e) => {
         // Stop propagation to prevent accidental blurs from parent click handlers
         e.stopPropagation();
-        
-        const mf = mfRef.current;
-        if (!mf) return;
-
-        // Force focus directly
-        mf.focus();
-        
-        // Also ensure keypad is triggered immediately
-        if (typeof mf.executeCommand === 'function') {
-          openKeypad(mf, level);
-        }
       }}
     >
       <style dangerouslySetInnerHTML={{ __html: `
