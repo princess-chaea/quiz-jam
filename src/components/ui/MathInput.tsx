@@ -354,7 +354,7 @@ export function MathInput({
 
   if (!isReady || !mounted) {
     return (
-      <div className={cn("relative w-full rounded-2xl bg-slate-50 border-2 border-slate-100 flex items-center justify-center min-h-[100px]", containerClassName)}>
+      <div className={cn("relative w-full rounded-2xl bg-slate-50 border-2 border-slate-100 flex items-center justify-center min-h-[40px]", containerClassName)}>
          <div className="flex flex-col items-center gap-2">
            <div className="w-6 h-6 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
            <p className="text-[10px] font-bold text-slate-400 italic">수식 편집기 로드 중...</p>
@@ -367,8 +367,8 @@ export function MathInput({
     <div 
       ref={containerRef}
       className={cn(
-        "relative flex flex-col justify-center w-full rounded-2xl group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text", 
-        (!multiline || showScrollbar) ? "overflow-x-auto overflow-y-hidden custom-scrollbar" : "overflow-hidden",
+        "relative flex flex-col justify-center w-full h-fit rounded-2xl group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text", 
+        (!multiline || showScrollbar) ? "overflow-x-auto overflow-y-hidden custom-scrollbar" : "overflow-hidden h-fit",
         containerClassName
       )}
       onClick={(e: React.MouseEvent<HTMLDivElement>) => {
@@ -393,11 +393,10 @@ export function MathInput({
           width: 100% !important;
           display: flex !important;
           align-items: center !important;
+          min-height: 40px !important;
           padding: 0 1rem !important; 
           overflow: visible !important;
-          min-height: 40px !important;
-          border: 1px solid #3b82f6 !important; /* Temporary blue border for verification */
-          padding: 0 1rem !important;
+          cursor: text !important;
         }
         math-field .ML__base {
           display: flex !important;
