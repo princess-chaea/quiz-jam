@@ -271,6 +271,7 @@ export function MathInput({
         style={{ 
           width: "100%", 
           minHeight: "100px",
+          overflowX: 'auto',
           background: "transparent",
           border: "none",
           fontSize: "1.25rem"

@@ -376,9 +376,9 @@ export default function QuizEditor() {
                       </div>
                     </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
                     {/* Answer Section based on type */}
-                    <div className="space-y-4">
+                    <div className="space-y-4 min-w-0">
                       <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
                         <HelpCircle size={14} /> 
                         {q.type === "MULTIPLE_CHOICE" ? "Options & Answer" : 
@@ -390,8 +390,16 @@ export default function QuizEditor() {
                         <div className="space-y-2">
                           <div className="flex flex-col gap-2">
                             {(q.options || ["", ""]).map((opt: string, optIdx: number) => {
-                              // If correct_idx exists, use it. Otherwise fallback to value match for legacy data.
-                              const isCorrect = q.correct_idx !== undefined ? q.correct_idx === optIdx : (q.a === opt && opt !== "");
+                              // Robust check for Correct Answer: handle both text match and index match
+                              let isCorrect = q.correct_idx !== undefined ? q.correct_idx === optIdx : false;
+                              if (!isCorrect && q.a) {
+                                const aVal = q.a.toString().trim();
+                                if (aVal === opt && opt !== "") {
+                                  isCorrect = true;
+                                } else if (parseInt(aVal) === optIdx + 1) {
+                                  isCorrect = true;
+                                }
+                              }
                               return (
                                 <div key={optIdx} className={`flex items-center gap-3 p-2 rounded-xl border-2 transition-all ${isCorrect ? 'border-emerald-400 bg-emerald-50' : 'border-slate-100 bg-slate-50'}`}>
                                   <input 
@@ -536,7 +544,7 @@ export default function QuizEditor() {
                       )}
                     </div>
 
-                    <div className="flex flex-col gap-6">
+                    <div className="flex flex-col gap-6 min-w-0">
                       {/* Points Slider */}
                       <div className="space-y-4">
                          <div className="flex justify-between items-center">

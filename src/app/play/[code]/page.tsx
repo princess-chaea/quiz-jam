@@ -39,7 +39,24 @@ function StudentPlayContent() {
       const currentQuestion = questions[game.current_q_index];
       if (!currentQuestion) return;
 
-      const isCorrect = normalizeMath(answer) === normalizeMath(currentQuestion.a);
+      let isCorrect = normalizeMath(answer) === normalizeMath(currentQuestion.a);
+
+      // Robust check for Multiple Choice: handle both text and index (1-based stringlike "1")
+      if (!isCorrect && currentQuestion.type === "MULTIPLE_CHOICE") {
+        const aVal = currentQuestion.a.toString().trim();
+        const options = currentQuestion.options || [];
+        
+        // 1. Check if 'a' is a number string like "1"
+        const aIdx = parseInt(aVal) - 1;
+        if (!isNaN(aIdx) && options[aIdx]) {
+          isCorrect = normalizeMath(answer) === normalizeMath(options[aIdx]);
+        }
+        
+        // 2. Fallback: Check if 'answer' matches an index string "1" (unlikely but safe)
+        if (!isCorrect && (normalizeMath(answer) === normalizeMath(aVal))) {
+          isCorrect = true;
+        }
+      }
       
       // Robust Manual Upsert: check if answer exists by natural key
       const { data: existing } = await supabase
