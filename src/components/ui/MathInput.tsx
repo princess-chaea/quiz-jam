@@ -15,6 +15,9 @@ const toMathLiveValue = (text: string) => {
   // Turn any sequence of backslashes followed by a space into a single regular space
   let result = text.replace(/\\+ /g, ' ');
   
+  // Normalize multiplication dots to times symbols
+  result = result.replace(/\\cdot/g, '\\times');
+  
   // Normalize remaining double backslashes for commands
   result = result.replace(/\\\\/g, '\\');
   
@@ -66,16 +69,20 @@ export function MathInput({
         // Use manual keyboard policy to allow hardware keyboard focus and avoid auto-popups
         mfRef.current.mathVirtualKeyboardPolicy = "manual";
         
+        // Disable smart fraction conversion and other auto-conversions if desired
+        mfRef.current.setOptions({
+          smartFraction: false,
+          smartMode: true,
+          smartSubsup: true
+        });
+        
         // Add shortcuts for arithmetic symbols and SPACES
         mfRef.current.inlineShortcuts = {
           ...mfRef.current.inlineShortcuts,
           '*': { mode: 'math', value: '\\times' },
           '/': { mode: 'math', value: '\\div' },
-          ' ': { mode: 'math', value: '\\ ' }
+          ' ': { mode: 'math', value: '~' }
         };
-
-        // Enable smart mode to better handle mixed text/math
-        mfRef.current.smartMode = true;
       }
     });
   }, []);
