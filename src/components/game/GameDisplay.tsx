@@ -104,6 +104,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
   const [answer, setAnswer] = useState("");
   const [blankAnswers, setBlankAnswers] = useState<Record<number, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [internalSubmitted, setInternalSubmitted] = useState(false); // Local flag for immediate UI feedback
+
   const [timeLeft, setTimeLeft] = useState<number>(30);
   const [shieldBlock, setShieldBlock] = useState<{nickname: string, type: string} | null>(null);
   const isComposing = useRef(false);
@@ -340,14 +342,32 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
     setAnswer("");
     setBlankAnswers({});
     setSubmitted(false);
+    setInternalSubmitted(false);
     setIsMyTurnToSwap(false);
     setSwapCommitted(false);
     setIsSwapExecuting(false);
     setActiveSwapperName(null);
     setSwapResultText(null);
     setPendingSwapTarget(null);
-    // Sync timer with new question
     setTimeLeft(currentQuestion?.timeLimit || 20);
+
+    // Sync state with existing result if available (for refreshes)
+    if (result && result.q_index === game.current_q_index) {
+      setAnswer(result.answer || "");
+      setSubmitted(true);
+      setInternalSubmitted(true);
+      
+      // Also sync blankAnswers for BLANK type
+      if (currentQuestion?.type === "BLANK" && result.answer) {
+        const parts = result.answer.split(", ");
+        const newBlanks: Record<number, string> = {};
+        const blanks = currentQuestion.blanks || [];
+        blanks.sort((a: number, b: number) => a - b).forEach((idx: number, i: number) => {
+          if (parts[i]) newBlanks[idx] = parts[i];
+        });
+        setBlankAnswers(newBlanks);
+      }
+    }
 
     // Aggressive auto-focus for the first blank
     if (game.status === 'PLAYING' && currentQuestion?.type === "BLANK") {
@@ -407,6 +427,17 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
       window.removeEventListener('touchstart', maintainFocus);
     };
   }, [game.status, currentQuestion?.type, submitted]);
+
+  // Update local state when remote result arrives
+  useEffect(() => {
+    if (result && result.q_index === game.current_q_index) {
+      setSubmitted(true);
+      if (!internalSubmitted) {
+        setAnswer(result.answer || "");
+        setInternalSubmitted(true);
+      }
+    }
+  }, [result, game.current_q_index]);
 
   useEffect(() => {
     // Round-specific unique key to prevent double trigger when 'result' updates (e.g., points calculation)
@@ -958,7 +989,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
           </div>
         )}
 
-        {(!submitted && timeLeft > 0) ? (
+        {(timeLeft > 0) ? (
           <div className="space-y-6">
             {currentQuestion?.type === "MULTIPLE_CHOICE" && currentQuestion.options ? (
                <div className="grid grid-cols-2 gap-4">
@@ -1042,12 +1073,18 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                       return <span key={wordIdx} className="text-2xl font-black text-slate-400 px-1">{word}</span>;
                     })}
                  </div>
-                 <Button 
+                  <Button 
                     size="xl" 
-                    className="w-full py-8 text-3xl shadow-indigo-200 shadow-lg"
-                    onClick={() => handleSubmit()}
+                    className={cn(
+                      "w-full py-8 text-3xl shadow-lg",
+                      internalSubmitted ? "bg-indigo-400 hover:bg-indigo-500 shadow-indigo-100" : "shadow-indigo-200"
+                    )}
+                    onClick={() => {
+                      setInternalSubmitted(true);
+                      handleSubmit();
+                    }}
                   >
-                    제출하기!
+                    {internalSubmitted ? "다시 제출하기!" : "제출하기!"}
                   </Button>
                </div>
             ) : (
@@ -1076,10 +1113,16 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                   </div>
                   <Button 
                     size="xl" 
-                    className="w-full py-8 text-3xl shadow-indigo-200 shadow-lg"
-                    onClick={() => handleSubmit()}
+                    className={cn(
+                      "w-full py-8 text-3xl shadow-lg",
+                      internalSubmitted ? "bg-indigo-400 hover:bg-indigo-500 shadow-indigo-100" : "shadow-indigo-200"
+                    )}
+                    onClick={() => {
+                      setInternalSubmitted(true);
+                      handleSubmit();
+                    }}
                   >
-                    제출하기!
+                    {internalSubmitted ? "다시 제출하기!" : "제출하기!"}
                   </Button>
                </>
             )}
@@ -1087,12 +1130,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
         ) : (
           <div className="py-12 flex flex-col items-center gap-4 text-indigo-400 animate-pulse">
             <div className="text-8xl">
-              {timeLeft === 0 && !submitted ? "⏰" : 
-               timeLeft === 0 && submitted ? "⌛" : "🤔"}
+              {timeLeft === 0 && !internalSubmitted ? "⏰" : 
+               timeLeft === 0 && internalSubmitted ? "⌛" : "🤔"}
             </div>
             <p className="text-2xl font-black">
-              {timeLeft === 0 && !submitted ? "시간이 종료되었습니다!" : 
-               timeLeft === 0 && submitted ? "시간 종료! 결과를 기다려주세요..." : "선생님이 정답을 확인 중입니다..."}
+              {timeLeft === 0 && !internalSubmitted ? "시간이 종료되었습니다!" : 
+               timeLeft === 0 && internalSubmitted ? "시간 종료! 결과를 기다려주세요..." : "선생님이 정답을 확인 중입니다..."}
             </p>
           </div>
         )}

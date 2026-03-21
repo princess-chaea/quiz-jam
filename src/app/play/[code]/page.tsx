@@ -41,19 +41,38 @@ function StudentPlayContent() {
 
       const isCorrect = normalizeMath(answer) === normalizeMath(currentQuestion.a);
       
-      const { error: insertErr } = await supabase
+      // Robust Manual Upsert: check if answer exists by natural key
+      const { data: existing } = await supabase
         .from("answers")
-        .insert([{
-          game_id: game.id,
-          player_id: me.id,
-          q_index: game.current_q_index,
-          answer: answer.trim(),
-          is_correct: isCorrect,
-          event: 'none',
-          points_awarded: 0
-        }]);
+        .select("id")
+        .eq("game_id", game.id)
+        .eq("player_id", me.id)
+        .eq("q_index", game.current_q_index)
+        .maybeSingle();
 
-      if (insertErr) throw insertErr;
+      const answerData = {
+        game_id: game.id,
+        player_id: me.id,
+        q_index: game.current_q_index,
+        answer: answer.trim(),
+        is_correct: isCorrect,
+        event: 'none',
+        points_awarded: 0,
+        created_at: new Date().toISOString() // Force update timestamp for swap logic
+      };
+
+      if (existing) {
+        const { error: updateErr } = await supabase
+          .from("answers")
+          .update(answerData)
+          .eq("id", existing.id);
+        if (updateErr) throw updateErr;
+      } else {
+        const { error: insertErr } = await supabase
+          .from("answers")
+          .insert([answerData]);
+        if (insertErr) throw insertErr;
+      }
     } catch (err: any) {
       showAlert("정답 제출 실패: " + err.message);
     }

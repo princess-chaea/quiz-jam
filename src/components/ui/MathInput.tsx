@@ -128,16 +128,22 @@ export function MathInput({
     return () => document.removeEventListener("mousedown", handleClickOutside, true);
   }, []);
 
+  // Use a state-tracked element to ensure listeners are attached when the DOM is ready
+  const [mfElement, setMfElement] = useState<any>(null);
+
   useEffect(() => {
-    const el = mfRef.current;
-    if (!el) return;
+    const el = mfElement || mfRef.current;
+    if (!el || !isReady) return;
 
     const handleUpdate = (e: Event) => {
-      // Use getValue() for more reliability 
       const liveValue = el.getValue?.() || el.value || "";
       
-      // CRITICAL: Convert LaTeX non-breaking spaces (~) back to regular spaces for the parent state.
-      const normalizedValue = liveValue.replace(/~/g, ' ');
+      // CRITICAL: Convert LaTeX space markers (~ and \ ) back to regular spaces.
+      // We also clean up any accidental double backslashes that might have leaked.
+      const normalizedValue = liveValue
+        .replace(/~/g, ' ')
+        .replace(/\\ /g, ' ')
+        .replace(/\\\\ /g, ' ');
       
       lastValueRef.current = normalizedValue; 
       onChange(normalizedValue);
@@ -158,33 +164,31 @@ export function MathInput({
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Explicitly handle space to insert a LaTeX non-breaking space (~)
+      // This is the most reliable way to ensure spaces are preserved in MathLive
       if (e.key === " ") {
-        // Explicitly handle space to insert a LaTeX non-breaking space (~)
-        e.preventDefault();
         if (typeof el.executeCommand === 'function') {
-            el.executeCommand(["insert", "~"]);
-            // Manually trigger update
-            handleUpdate(e);
+          e.preventDefault();
+          el.executeCommand(["insert", "~"]);
+          handleUpdate(e);
         }
         return;
       }
 
       if (e.key === "/") {
-        // Force division symbol instead of fraction
-        e.preventDefault();
         if (typeof el.executeCommand === 'function') {
-            el.executeCommand(["insert", "\\div"]);
-            handleUpdate(e);
+          e.preventDefault();
+          el.executeCommand(["insert", "\\div "]);
+          handleUpdate(e);
         }
         return;
       }
 
       if (e.key === "*") {
-        // Force times symbol instead of dot
-        e.preventDefault();
         if (typeof el.executeCommand === 'function') {
-            el.executeCommand(["insert", "\\times"]);
-            handleUpdate(e);
+          e.preventDefault();
+          el.executeCommand(["insert", "\\times "]);
+          handleUpdate(e);
         }
         return;
       }
@@ -202,6 +206,9 @@ export function MathInput({
     el.addEventListener("focus", handleFocus);
     el.addEventListener("blur", handleUpdate);
     
+    // Initial sync
+    handleUpdate(new Event('init'));
+    
     return () => {
       el.removeEventListener("input", handleUpdate);
       el.removeEventListener("change", handleUpdate);
@@ -209,7 +216,7 @@ export function MathInput({
       el.removeEventListener("focus", handleFocus);
       el.removeEventListener("blur", handleUpdate);
     };
-  }, [isReady, onChange, onEnter, openKeypad, level, isTeacher]);
+  }, [mfElement, isReady, onChange, onEnter, openKeypad, level, isTeacher]);
 
   const handleToggleKeyboard = () => {
     // @ts-ignore
@@ -239,7 +246,10 @@ export function MathInput({
   return (
     <div className={cn("relative w-full rounded-2xl overflow-hidden group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all", containerClassName)}>
       <math-field
-        ref={mfRef}
+        ref={(el: any) => {
+          mfRef.current = el;
+          if (el !== mfElement) setMfElement(el);
+        }}
         className={cn("w-full p-4 text-lg font-bold outline-none", className)}
         style={{ 
           width: "100%", 
