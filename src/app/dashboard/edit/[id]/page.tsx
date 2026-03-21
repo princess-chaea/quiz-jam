@@ -29,6 +29,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { processMathText } from "@/lib/utils";
+import { Modal } from "@/components/ui/Modal";
 
 export default function QuizEditor() {
   const { id } = useParams();
@@ -41,6 +42,11 @@ export default function QuizEditor() {
   const { showAlert } = useDialog();
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [mathHelperState, setMathHelperState] = useState<{ isOpen: boolean; qIndex: number; currentVal: string }>({
+    isOpen: false,
+    qIndex: -1,
+    currentVal: ""
+  });
 
   useEffect(() => {
     if (!authLoading && !user) router.push("/");
@@ -313,8 +319,9 @@ export default function QuizEditor() {
                     <button
                       onClick={() => updateQuestion(index, "math_mode", !q.math_mode)}
                       className={`text-xs font-black px-3 py-1.5 rounded-full border transition-all flex items-center gap-1 ${q.math_mode ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-transparent text-slate-400 border-slate-200 hover:bg-slate-50'}`}
+                      title="수식 입력 도우미를 활성화합니다."
                     >
-                      <span>∑</span> 수식 모드
+                      <Sparkles size={12} className={q.math_mode ? 'animate-pulse' : ''} /> 수식 편집 도우미
                     </button>
                         <div className="flex flex-wrap gap-2">
                           <button
@@ -352,26 +359,49 @@ export default function QuizEditor() {
                         </label>
                       </div>
                       
-                      <div className="space-y-3">
-                        {q.math_mode ? (
-                          <MathInput
-                            key={`math-input-${index}-${q.math_mode}`}
-                            value={q.q}
-                            onChange={(value) => updateQuestion(index, "q", value)}
-                            className="w-full text-lg font-bold"
-                            containerClassName="min-h-[140px] flex flex-col"
-                            placeholder="질문을 입력하세요."
-                            isTeacher={true}
-                          />
-                        ) : (
+                      <div className="space-y-4">
+                        <div className="relative group">
                           <textarea 
-                            key={`text-input-${index}-${q.math_mode}`}
                             value={q.q}
                             onChange={(e) => updateQuestion(index, "q", e.target.value)}
-                            className="w-full p-4 text-lg font-bold border-2 border-slate-100 bg-slate-50/50 rounded-2xl focus:border-indigo-400 focus:bg-white outline-none transition-all placeholder:text-slate-300 min-h-[100px] resize-none"
-                            placeholder="질문을 입력하세요."
+                            className="w-full p-5 text-lg font-bold border-2 border-slate-100 bg-slate-50/50 rounded-2xl focus:border-indigo-400 focus:bg-white outline-none transition-all placeholder:text-slate-300 min-h-[120px] resize-none pb-12"
+                            placeholder="질문을 입력하세요. 수식은 $...$ 사이에 넣어주세요."
                             rows={3}
                           />
+                          
+                          {/* Math Helper Trigger (only if "Hybrid Mode" is "on" - using it as a toggle for the helper UI) */}
+                          {q.math_mode && (
+                            <div className="absolute bottom-3 right-3 flex gap-2">
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm" 
+                                 className="bg-white border border-slate-200 shadow-sm rounded-xl py-1 px-3 text-xs font-black text-indigo-600 hover:bg-indigo-50"
+                                 onClick={() => {
+                                   setMathHelperState({
+                                     isOpen: true,
+                                     qIndex: index,
+                                     currentVal: ""
+                                   });
+                                 }}
+                               >
+                                 <Plus size={14} className="mr-1" /> 수식 기호 넣기
+                               </Button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Real-time Math Preview - ALWAYS visible if there's content */}
+                        {q.q && (
+                          <div className="p-6 bg-indigo-50/30 rounded-2xl border-2 border-indigo-100/50 animate-in fade-in slide-in-from-top-2 duration-300">
+                             <div className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                               <Sparkles size={12} /> 실시간 미리보기 (학생 화면)
+                             </div>
+                             <div className="text-xl md:text-2xl font-bold text-slate-800 break-words prose prose-indigo max-w-none">
+                               <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                 {processMathText(q.q)}
+                               </ReactMarkdown>
+                             </div>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -413,34 +443,28 @@ export default function QuizEditor() {
                                     }}
                                   />
                                   <div className="flex-1 min-w-0 max-w-full overflow-hidden">
-                                    {q.math_mode ? (
-                                      <MathInput
+                                    <div className="flex-1 space-y-1">
+                                      <input 
+                                        type="text"
                                         value={opt}
-                                        onChange={(val) => {
-                                          const newOpts = [...(q.options || [])];
-                                          newOpts[optIdx] = val;
+                                        onChange={(e) => {
+                                          const newOpts = [...(q.options || ["", ""])];
+                                          newOpts[optIdx] = e.target.value;
                                           updateQuestion(index, "options", newOpts);
+                                          if (isCorrect) updateQuestion(index, "a", e.target.value);
                                         }}
-                                        className="w-full font-bold text-slate-700 text-base"
-                                        placeholder={`수식 보기 ${optIdx + 1}`}
-                                        isTeacher={true}
+                                        className="w-full bg-transparent outline-none font-bold text-slate-700 text-sm placeholder:text-slate-300 placeholder:font-medium py-2"
+                                        placeholder={`보기 ${optIdx + 1} (수식은 $...$ 사용)`}
                                       />
-                                    ) : (
-                                      <div className="flex-1 space-y-1">
-                                        <input 
-                                          type="text"
-                                          value={opt}
-                                          onChange={(e) => {
-                                            const newOpts = [...(q.options || ["", ""])];
-                                            newOpts[optIdx] = e.target.value;
-                                            updateQuestion(index, "options", newOpts);
-                                            if (isCorrect) updateQuestion(index, "a", e.target.value);
-                                          }}
-                                          className="w-full bg-transparent outline-none font-bold text-slate-700 text-sm placeholder:text-slate-300 placeholder:font-medium py-2"
-                                          placeholder={`보기 ${optIdx + 1}`}
-                                        />
-                                      </div>
-                                    )}
+                                      {/* Mini preview for math in options */}
+                                      {opt && opt.includes('$') && (
+                                        <div className="text-xs text-indigo-500 font-bold border-t border-indigo-100 pt-1">
+                                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                                            {processMathText(opt)}
+                                          </ReactMarkdown>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                   {(q.options || []).length > 2 && (
                                     <button 
@@ -521,25 +545,22 @@ export default function QuizEditor() {
                             <p className="text-[10px] text-slate-400 font-bold px-1 mt-1">질문의 단어를 클릭하여 빈칸으로 만드세요. 번호 순서대로 학생이 입력하게 됩니다.</p>
                          </div>
                       ) : (
-                        q.math_mode ? (
-                          <div className="w-full min-w-0 border-2 border-gray-50 bg-gray-50 rounded-2xl focus-within:border-indigo-400 focus-within:bg-white transition-all overflow-hidden flex items-center min-h-[64px]">
-                            <MathInput 
+                          <div className="space-y-4">
+                            <input 
+                              type="text"
                               value={q.a}
-                              onChange={(value) => updateQuestion(index, "a", value)}
-                              className="w-full font-bold bg-transparent px-4 text-base"
-                              placeholder="수식 정답을 입력하세요"
-                              isTeacher={true}
+                              onChange={(e) => updateQuestion(index, "a", e.target.value)}
+                              className="w-full p-4 font-bold border-2 border-gray-50 bg-gray-50 rounded-2xl focus:border-indigo-400 focus:bg-white outline-none transition-all placeholder:text-gray-300"
+                              placeholder="정답을 입력하세요. 수식은 $...$ (학생은 수식 키보드 사용)"
                             />
+                            {q.a && q.a.includes('$') && (
+                              <div className="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 text-indigo-700 font-black text-center">
+                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                                  {processMathText(q.a)}
+                                </ReactMarkdown>
+                              </div>
+                            )}
                           </div>
-                        ) : (
-                          <input 
-                            type="text"
-                            value={q.a}
-                            onChange={(e) => updateQuestion(index, "a", e.target.value)}
-                            className="w-full p-4 font-bold border-2 border-gray-50 bg-gray-50 rounded-2xl focus:border-indigo-400 focus:bg-white outline-none transition-all placeholder:text-gray-300"
-                            placeholder="일반 텍스트 정답을 입력하세요"
-                          />
-                        )
                       )}
                     </div>
 
@@ -633,6 +654,56 @@ export default function QuizEditor() {
       </div>
       
       <Footer />
+
+      {/* Math Helper Modal */}
+      <Modal
+        isOpen={mathHelperState.isOpen}
+        onClose={() => setMathHelperState({ ...mathHelperState, isOpen: false })}
+        title="수식 입력 도우미"
+        className="max-w-2xl"
+      >
+        <div className="space-y-6">
+          <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 italic text-sm text-center text-indigo-600 font-bold">
+            아래 칸에 수식을 입력하세요. 마우스나 터치로 기호를 선택할 수 있습니다.
+          </div>
+          
+          <div className="min-h-[120px] bg-slate-50 rounded-2xl p-4 border-2 border-slate-100 focus-within:border-indigo-400 transition-all">
+            <MathInput
+              value={mathHelperState.currentVal}
+              onChange={(val) => setMathHelperState({ ...mathHelperState, currentVal: val })}
+              className="w-full text-2xl font-bold bg-transparent"
+              placeholder="여기에 수식을 입력하세요..."
+              isTeacher={true}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button 
+              variant="ghost" 
+              className="px-6 rounded-2xl font-bold text-slate-400"
+              onClick={() => setMathHelperState({ ...mathHelperState, isOpen: false })}
+            >
+              취소
+            </Button>
+            <Button 
+              className="px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black shadow-lg shadow-indigo-100"
+              onClick={() => {
+                if (mathHelperState.currentVal && mathHelperState.qIndex !== -1) {
+                  const formula = mathHelperState.currentVal;
+                  const index = mathHelperState.qIndex;
+                  const currentText = quiz.questions[index].q;
+                  // Insert at the end with spacing
+                  const newText = currentText + (currentText.endsWith(' ') ? '' : ' ') + `$${formula}$ `;
+                  updateQuestion(index, "q", newText);
+                }
+                setMathHelperState({ ...mathHelperState, isOpen: false, currentVal: "" });
+              }}
+            >
+              상큼하게 수식 삽입
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
