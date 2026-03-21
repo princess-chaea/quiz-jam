@@ -84,7 +84,9 @@ export function MathInput({
           defaultMode: 'math', // Set to math by default to ensure symbols work immediately
           virtualKeyboardToggle: 'hidden',
           virtualKeyboardMode: 'manual',
-          menuIcon: 'none'
+          menuIcon: 'none',
+          keypressSound: 'none',
+          plonkSound: 'none'
         });
         // Explicitly set the toggle policy
         mfRef.current.mathVirtualKeyboardPolicy = "manual";
