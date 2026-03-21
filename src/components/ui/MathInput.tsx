@@ -377,9 +377,7 @@ export function MathInput({
             const sink = el.shadowRoot.querySelector('textarea, input');
             if (sink && typeof sink.focus === 'function') sink.focus();
           }
-          if (typeof el.executeCommand === 'function') {
-            el.executeCommand(['moveToMathFieldEnd']);
-          }
+          // The native click event already handles cursor placement.
           setTimeout(() => {
             if (typeof el.focus === 'function') el.focus();
             if (el.shadowRoot) {
