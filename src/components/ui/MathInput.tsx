@@ -365,21 +365,25 @@ export function MathInput({
     <div 
       ref={containerRef}
       className={cn(
-        "relative flex flex-col w-full rounded-2xl group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text", 
+        "relative flex flex-col justify-center w-full rounded-2xl group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text", 
         (!multiline || showScrollbar) ? "overflow-x-auto overflow-y-hidden custom-scrollbar" : "overflow-hidden",
         containerClassName
       )}
+      style={{ minHeight: "80px" }}
       onClick={(e: React.MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
         if (mfRef.current) {
-          // If the user clicks the gap (container), ensure cursor goes to end and IME is forcefully focused.
+          // Because math-field is now tight-fitting, clicking the 80px gap hits this div NOT math-field!
+          // We bypass MathLive's buggy gap hit-testing and just purely focus it.
           const el = mfRef.current;
           if (typeof el.focus === 'function') el.focus();
+          
           if (el.shadowRoot) {
             const sink = el.shadowRoot.querySelector('textarea, input');
             if (sink && typeof sink.focus === 'function') sink.focus();
           }
-          // The native click event already handles cursor placement.
+
+          // Delay execution to guarantee focus sets in after any immediate React re-renders
           setTimeout(() => {
             if (typeof el.focus === 'function') el.focus();
             if (el.shadowRoot) {
@@ -395,7 +399,6 @@ export function MathInput({
           display: block !important;
           width: ${(multiline && !showScrollbar) ? '100%' : 'max-content'} !important;
           min-width: 100% !important;
-          min-height: 2.5rem;
           height: auto !important;
           background: transparent !important;
           overflow: visible !important;
@@ -437,7 +440,6 @@ export function MathInput({
         style={{ 
           flex: 1,
           width: "100%", 
-          minHeight: "80px", // Restore 80px min-height natively to the element
           background: "transparent",
           border: "none",
           fontSize: "1.125rem",
