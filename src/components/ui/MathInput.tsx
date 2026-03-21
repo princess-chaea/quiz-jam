@@ -337,17 +337,10 @@ export function MathInput({
     <div 
       ref={containerRef}
       className={cn(
-        "relative w-full rounded-2xl group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text", 
+        "relative flex flex-col w-full rounded-2xl group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text", 
         (!multiline || showScrollbar) ? "overflow-x-auto overflow-y-hidden custom-scrollbar" : "overflow-hidden",
         containerClassName
       )}
-      onPointerDown={(e) => {
-        const mf = mfRef.current;
-        if (mf && e.target === containerRef.current) {
-          e.preventDefault();
-          mf.focus();
-        }
-      }}
       onClick={(e) => {
         // Stop propagation to prevent accidental blurs from parent click handlers
         e.stopPropagation();
@@ -398,6 +391,7 @@ export function MathInput({
         }}
         className={cn("w-full outline-none", className)}
         style={{ 
+          flex: 1,
           width: "100%", 
           minHeight: "80px",
           background: "transparent",
