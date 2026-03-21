@@ -990,143 +990,159 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
         )}
 
         {(timeLeft > 0) ? (
-          <div className="space-y-6">
-            {currentQuestion?.type === "MULTIPLE_CHOICE" && currentQuestion.options ? (
-               <div className="grid grid-cols-2 gap-4">
-                 {currentQuestion.options.map((opt: string, idx: number) => (
-                   <Button
-                     key={idx}
-                     size="xl"
-                     variant="ghost"
-                     className="py-12 whitespace-normal break-keep text-2xl hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 transition-all font-black text-slate-700 border-2 flex items-center gap-3 [&_p]:m-0 [&_p]:inline"
-                     onClick={() => {
-                        setAnswer(opt);
-                        setSubmitted(true);
-                        onSubmit(opt);
-                     }}
-                   >
-                     <span>{idx + 1}.</span>
-                     <div className="flex-1 text-left">
-                       <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
-                         {processMathText(opt)}
-                       </ReactMarkdown>
-                     </div>
-                   </Button>
-                 ))}
+          internalSubmitted ? (
+            <div className="flex flex-col items-center gap-8 py-12 animate-in fade-in zoom-in duration-500">
+               <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-500 text-5xl shadow-inner animate-bounce">
+                 ✅
                </div>
-            ) : currentQuestion?.type === "OX" ? (
-               <div className="grid grid-cols-2 gap-6">
-                 {["O", "X"].map(opt => (
-                   <button
-                     key={opt}
-                     onClick={() => {
-                        setAnswer(opt);
-                        setSubmitted(true);
-                        onSubmit(opt);
-                     }}
-                     className={cn(
-                       "py-16 rounded-[2.5rem] border-4 font-black text-7xl transition-all shadow-xl",
-                       opt === "O" ? "border-emerald-100 bg-emerald-50 text-emerald-500 hover:bg-emerald-100 hover:border-emerald-200" : "border-red-100 bg-red-50 text-red-500 hover:bg-red-100 hover:border-red-200"
-                     )}
-                   >
-                     {opt}
-                   </button>
-                 ))}
+               <div className="text-center space-y-2">
+                 <h3 className="text-4xl font-black text-slate-800">제출 완료!</h3>
+                 <p className="text-slate-500 font-bold text-lg">선생님이 마감할 때까지 기다려주세요.</p>
                </div>
-            ) : currentQuestion?.type === "BLANK" ? (
-               <div className="space-y-6">
-                 <div className="p-8 bg-slate-50 rounded-[2rem] border-2 border-slate-100 flex flex-wrap gap-x-2 gap-y-8 items-center justify-center min-h-[160px]">
-                    {currentQuestion.q.split(/\s+/).filter(Boolean).map((word: string, wordIdx: number) => {
-                      const blanks = currentQuestion.blanks || [];
-                      const blankIndex = blanks.indexOf(wordIdx);
-                      const isBlank = blankIndex !== -1;
-                      
-                      if (isBlank) {
-                        const wordLen = word.length;
-                        return (
-                          <div key={wordIdx} className="relative group w-fit">
-                            <SegmentedInput
-                              value={blankAnswers[wordIdx] || ""}
-                              length={word.length}
-                              onChange={(val) => {
-                                setBlankAnswers(prev => {
-                                  const next = { ...prev, [wordIdx]: val };
-                                  const sortedBlanks = [...blanks].sort((a, b) => a - b);
-                                  const combined = sortedBlanks.map(idx => next[idx] || "").join(", ");
-                                  setAnswer(combined);
-                                  return next;
-                                });
-                              }}
-                              onEnter={() => handleSubmit()}
-                              autoFocus={blankIndex === 0}
-                              firstRef={blankIndex === 0 ? firstBlankRef : null}
-                            />
-
-                            {blanks.length > 1 && (
-                              <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
-                                {blankIndex + 1}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      }
-                      return <span key={wordIdx} className="text-2xl font-black text-slate-400 px-1">{word}</span>;
-                    })}
+               <Button 
+                 variant="outline" 
+                 size="xl"
+                 className="mt-8 px-12 py-6 border-2 border-indigo-200 text-indigo-500 hover:bg-indigo-50 hover:border-indigo-300 rounded-[2rem] font-black text-xl shadow-xl transition-all active:scale-95"
+                 onClick={() => setInternalSubmitted(false)}
+               >
+                 정답 바꾸기
+               </Button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {currentQuestion?.type === "MULTIPLE_CHOICE" && currentQuestion.options ? (
+                 <div className="grid grid-cols-2 gap-4">
+                   {currentQuestion.options.map((opt: string, idx: number) => (
+                     <Button
+                       key={idx}
+                       size="xl"
+                       variant="ghost"
+                       className="py-12 whitespace-normal break-keep text-2xl hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 transition-all font-black text-slate-700 border-2 flex items-center gap-3 [&_p]:m-0 [&_p]:inline"
+                       onClick={() => {
+                          setAnswer(opt);
+                          setSubmitted(true);
+                          setInternalSubmitted(true);
+                          onSubmit(opt);
+                       }}
+                     >
+                       <span>{idx + 1}.</span>
+                       <div className="flex-1 text-left">
+                         <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                           {processMathText(opt)}
+                         </ReactMarkdown>
+                       </div>
+                     </Button>
+                   ))}
                  </div>
-                  <Button 
-                    size="xl" 
-                    className={cn(
-                      "w-full py-8 text-3xl shadow-lg",
-                      internalSubmitted ? "bg-indigo-400 hover:bg-indigo-500 shadow-indigo-100" : "shadow-indigo-200"
-                    )}
-                    onClick={() => {
-                      setInternalSubmitted(true);
-                      handleSubmit();
-                    }}
-                  >
-                    {internalSubmitted ? "다시 제출하기!" : "제출하기!"}
-                  </Button>
-               </div>
-            ) : (
-               <>
-                  <div className="w-full border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all overflow-hidden relative">
-                    {currentQuestion?.math_mode ? (
-                      <MathInput
-                        value={answer}
-                        onChange={(val) => setAnswer(val)}
-                        onEnter={() => handleSubmit(answer)}
-                        className="w-full p-2 text-center text-3xl font-bold bg-transparent"
-                        placeholder="정답을 입력하세요"
-                        template={currentQuestion?.template}
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={answer}
-                        onChange={(e) => setAnswer(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSubmit(answer)}
-                        className="w-full p-6 text-center text-3xl font-bold bg-transparent outline-none"
-                        placeholder="정답을 입력하세요"
-                        autoFocus
-                      />
-                    )}
-                  </div>
-                  <Button 
-                    size="xl" 
-                    className={cn(
-                      "w-full py-8 text-3xl shadow-lg",
-                      internalSubmitted ? "bg-indigo-400 hover:bg-indigo-500 shadow-indigo-100" : "shadow-indigo-200"
-                    )}
-                    onClick={() => {
-                      setInternalSubmitted(true);
-                      handleSubmit();
-                    }}
-                  >
-                    {internalSubmitted ? "다시 제출하기!" : "제출하기!"}
-                  </Button>
-               </>
-            )}
-          </div>
+              ) : currentQuestion?.type === "OX" ? (
+                 <div className="grid grid-cols-2 gap-6">
+                   {["O", "X"].map(opt => (
+                     <button
+                       key={opt}
+                       onClick={() => {
+                          setAnswer(opt);
+                          setSubmitted(true);
+                          setInternalSubmitted(true);
+                          onSubmit(opt);
+                       }}
+                       className={cn(
+                         "py-16 rounded-[2.5rem] border-4 font-black text-7xl transition-all shadow-xl",
+                         opt === "O" ? "border-emerald-100 bg-emerald-50 text-emerald-500 hover:bg-emerald-100 hover:border-emerald-200" : "border-red-100 bg-red-50 text-red-500 hover:bg-red-100 hover:border-red-200"
+                       )}
+                     >
+                       {opt}
+                     </button>
+                   ))}
+                 </div>
+              ) : currentQuestion?.type === "BLANK" ? (
+                 <div className="space-y-6">
+                   <div className="p-8 bg-slate-50 rounded-[2rem] border-2 border-slate-100 flex flex-wrap gap-x-2 gap-y-8 items-center justify-center min-h-[160px]">
+                      {currentQuestion.q.split(/\s+/).filter(Boolean).map((word: string, wordIdx: number) => {
+                        const blanks = currentQuestion.blanks || [];
+                        const blankIndex = blanks.indexOf(wordIdx);
+                        const isBlank = blankIndex !== -1;
+                        
+                        if (isBlank) {
+                          const wordLen = word.length;
+                          return (
+                            <div key={wordIdx} className="relative group w-fit">
+                              <SegmentedInput
+                                value={blankAnswers[wordIdx] || ""}
+                                length={word.length}
+                                onChange={(val) => {
+                                  setBlankAnswers(prev => {
+                                    const next = { ...prev, [wordIdx]: val };
+                                    const sortedBlanks = [...blanks].sort((a, b) => a - b);
+                                    const combined = sortedBlanks.map(idx => next[idx] || "").join(", ");
+                                    setAnswer(combined);
+                                    return next;
+                                  });
+                                }}
+                                onEnter={() => handleSubmit()}
+                                autoFocus={blankIndex === 0}
+                                firstRef={blankIndex === 0 ? firstBlankRef : null}
+                              />
+  
+                              {blanks.length > 1 && (
+                                <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
+                                  {blankIndex + 1}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        }
+                        return <span key={wordIdx} className="text-2xl font-black text-slate-400 px-1">{word}</span>;
+                      })}
+                   </div>
+                    <Button 
+                      size="xl" 
+                      className="w-full py-8 text-3xl shadow-lg shadow-indigo-200"
+                      onClick={() => {
+                        setInternalSubmitted(true);
+                        handleSubmit();
+                      }}
+                    >
+                      제출하기!
+                    </Button>
+                 </div>
+              ) : (
+                 <>
+                    <div className="w-full border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all overflow-hidden relative">
+                      {currentQuestion?.math_mode ? (
+                        <MathInput
+                          value={answer}
+                          onChange={(val) => setAnswer(val)}
+                          onEnter={() => handleSubmit(answer)}
+                          className="w-full p-2 text-center text-3xl font-bold bg-transparent"
+                          placeholder="정답을 입력하세요"
+                          template={currentQuestion?.template}
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          value={answer}
+                          onChange={(e) => setAnswer(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleSubmit(answer)}
+                          className="w-full p-6 text-center text-3xl font-bold bg-transparent outline-none"
+                          placeholder="정답을 입력하세요"
+                          autoFocus
+                        />
+                      )}
+                    </div>
+                    <Button 
+                      size="xl" 
+                      className="w-full py-8 text-3xl shadow-lg shadow-indigo-200"
+                      onClick={() => {
+                        setInternalSubmitted(true);
+                        handleSubmit();
+                      }}
+                    >
+                      제출하기!
+                    </Button>
+                 </>
+              )}
+            </div>
+          )
         ) : (
           <div className="py-12 flex flex-col items-center gap-4 text-indigo-400 animate-pulse">
             <div className="text-8xl">

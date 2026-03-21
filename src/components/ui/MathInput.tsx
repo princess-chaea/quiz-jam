@@ -88,6 +88,15 @@ export function MathInput({
   }, []);
 
   useEffect(() => {
+    if (isReady && mfRef.current) {
+      // Focus the element immediately when it becomes ready
+      setTimeout(() => {
+        mfRef.current?.focus?.();
+      }, 50);
+    }
+  }, [isReady]);
+
+  useEffect(() => {
     if (mfRef.current && template && !value) {
       const prepared = toMathLiveValue(template);
       mfRef.current.value = prepared;
