@@ -103,11 +103,15 @@ export function MathInput({
               width: 100% !important;
               ${!multiline ? 'overflow-x: auto !important;' : ''}
               line-height: 1.6 !important;
-              padding: 4px 0 !important;
+              padding: 16px 0 !important;
+              min-height: 80px !important;
+              align-items: center !important;
             }
             .ML__content {
-              display: ${multiline ? 'block' : 'inline-block'} !important;
+              display: ${multiline ? 'flex' : 'inline-flex'} !important;
+              align-items: center !important;
               ${multiline ? 'width: 100% !important;' : 'min-width: 100% !important;'}
+              min-height: 80px !important;
             }
           `;
           mfRef.current.shadowRoot.appendChild(style);
@@ -253,15 +257,8 @@ export function MathInput({
     };
 
     const handlePointerUp = (e: Event) => {
-      // Browsers often reject focus() calls during pointerdown if preventDefault() is used internally by MathLive.
-      // Calling focus() during pointerup/touchend is the standard way to ensure the system keyboard activates.
-      if (el && typeof el.focus === 'function') {
-        el.focus();
-      }
+      // Just open keypad after a delay so MathLive processes its native click first
       setTimeout(() => {
-        if (el && typeof el.focus === 'function') {
-          el.focus(); 
-        }
         if (typeof el.executeCommand === 'function') {
           openKeypad(el, level);
         }
@@ -360,20 +357,6 @@ export function MathInput({
       )}
       onClick={(e: React.MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
-        // Force DOM focus onto the math-field so physical keyboard works.
-        // We use a slight timeout to ensure MathLive's internal handlers have finished
-        // and doesn't steal or cancel the focus event.
-        if (mfRef.current) {
-          mfRef.current.focus();
-          if (typeof mfRef.current.executeCommand === 'function') {
-            mfRef.current.executeCommand(['moveToMathFieldEnd']);
-          }
-          setTimeout(() => {
-            if (mfRef.current) {
-              mfRef.current.focus();
-            }
-          }, 50);
-        }
       }}
     >
       <style dangerouslySetInnerHTML={{ __html: `
@@ -390,7 +373,7 @@ export function MathInput({
           width: 100% !important;
           display: flex !important;
           align-items: center !important;
-          padding: 1rem !important;
+          padding: 0 !important;
           overflow: visible !important;
         }
         math-field::part(content) {
@@ -398,10 +381,12 @@ export function MathInput({
           overflow-wrap: ${multiline ? 'break-word' : 'normal'} !important;
           word-break: ${multiline ? 'break-all' : 'normal'} !important;
           text-align: left !important;
-          display: ${multiline ? 'block' : 'inline-block'} !important;
+          display: ${multiline ? 'flex' : 'inline-flex'} !important;
+          align-items: center !important;
           width: ${multiline ? '100%' : 'auto'} !important;
           min-width: 100% !important;
           padding: 0 !important;
+          min-height: 80px !important;
         }
         /* Hide MathLive internal virtual keyboard toggle and menu toggles */
         math-field::part(virtual-keyboard-toggle),
@@ -423,7 +408,6 @@ export function MathInput({
         style={{ 
           flex: 1,
           width: "100%", 
-          minHeight: "80px",
           background: "transparent",
           border: "none",
           fontSize: "1.125rem",
