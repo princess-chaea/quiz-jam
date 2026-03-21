@@ -993,8 +993,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                     const displayChar = showChoseong ? getChoseong(char) : (char === ' ' ? ' ' : '');
                     
                     return (
-
-                    return (
                       <div
                         key={i}
                         className={cn(
