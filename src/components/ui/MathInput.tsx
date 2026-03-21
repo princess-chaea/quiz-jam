@@ -164,21 +164,36 @@ export function MathInput({
     }
   }, [value, isReady]);
 
-  // Handle click outside to blur
+  // Handle click outside to blur and hide native keyboard
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (!mfRef.current) return;
       const path = (e.composedPath?.() || []) as HTMLElement[];
       const isInsideMf = path.includes(mfRef.current);
       const isInsideKeypad = path.some(el => el.classList?.contains('math-keypad-container'));
-      const isKeyboardClick = path.some(el => el.classList?.contains('ML__keyboard'));
+      const isKeyboardClick = path.some(el => el.classList?.contains('ML__keyboard') || el.closest?.('.ML__virtual-keyboard'));
       
       if (!isInsideMf && !isInsideKeypad && !isKeyboardClick) {
         mfRef.current?.blur?.();
+        // Force hide the global native keyboard
+        // @ts-ignore
+        if (window.mathVirtualKeyboard && window.mathVirtualKeyboard.visible) {
+           // @ts-ignore
+           window.mathVirtualKeyboard.hide();
+        }
       }
     };
     document.addEventListener("mousedown", handleClickOutside, true);
-    return () => document.removeEventListener("mousedown", handleClickOutside, true);
+    
+    // Cleanup: Hide keyboard when this input unmounts
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside, true);
+      // @ts-ignore
+      if (window.mathVirtualKeyboard && window.mathVirtualKeyboard.visible) {
+          // @ts-ignore
+          window.mathVirtualKeyboard.hide();
+      }
+    };
   }, []);
 
   // Use a ref for onChange to prevent infinite loops if the parent provides a non-memoized function
@@ -224,10 +239,24 @@ export function MathInput({
       }
     };
 
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: any) => {
+      const el = mfRef.current;
+      if (!el) return;
+
+      if (e.key === 'Enter') {
+        if (onEnter) {
+          e.preventDefault();
+          onEnter();
+        } else {
+          // In teacher mode (editor), Enter should try to create a newline
+          // MathLive text mode handles Enter, but in math mode we might need \\
+          // However, for simplicity, let's just let the native behavior happen 
+          // unless we want to force something.
+        }
+      }
+      
       // Explicitly handle space to insert a LaTeX non-breaking space (~)
-      // This is the most reliable way to ensure spaces are preserved in MathLive
-      if (e.key === " ") {
+      if (e.key === ' ' && !e.shiftKey) {
         if (typeof el.executeCommand === 'function') {
           e.preventDefault();
           el.executeCommand(["insert", "~"]);

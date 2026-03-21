@@ -357,7 +357,7 @@ export default function QuizEditor() {
                             className="text-xl md:text-2xl font-bold bg-transparent"
                             containerClassName="min-h-[120px] bg-slate-50/30 border-slate-200"
                             isTeacher={true}
-                            level={quiz?.level || 'elementary'}
+                            level={quiz?.school_level === '초등' ? 'elementary' : quiz?.school_level === '중' ? 'middle' : quiz?.school_level === '고등' ? 'high' : 'elementary'}
                           />
                         </div>
                       </div>
@@ -399,42 +399,34 @@ export default function QuizEditor() {
                                       updateQuestion(index, "correct_idx", optIdx);
                                     }}
                                   />
-                                  <div className="flex-1 min-w-0 max-w-full overflow-hidden">
-                                    <div className="flex-1 space-y-1">
-                                      <input 
-                                        type="text"
+                                    <div className="flex-1 min-w-0 max-w-full overflow-hidden p-1">
+                                      <MathInput
                                         value={opt}
-                                        onChange={(e) => {
+                                        onChange={(val) => {
                                           const newOpts = [...(q.options || ["", ""])];
-                                          newOpts[optIdx] = e.target.value;
+                                          newOpts[optIdx] = val;
                                           updateQuestion(index, "options", newOpts);
-                                          if (isCorrect) updateQuestion(index, "a", e.target.value);
+                                          if (isCorrect) updateQuestion(index, "a", val);
                                         }}
-                                        className="w-full bg-transparent outline-none font-bold text-slate-700 text-sm placeholder:text-slate-300 placeholder:font-medium py-2"
-                                        placeholder={`보기 ${optIdx + 1} (수식은 $...$ 사용)`}
+                                        className="text-sm font-bold bg-transparent"
+                                        containerClassName="min-h-[40px] bg-transparent border-transparent focus-within:border-transparent p-0"
+                                        placeholder={`보기 ${optIdx + 1}`}
+                                        isTeacher={true}
+                                        level={quiz?.school_level === '초등' ? 'elementary' : quiz?.school_level === '중' ? 'middle' : quiz?.school_level === '고등' ? 'high' : 'elementary'}
                                       />
-                                      {/* Mini preview for math in options */}
-                                      {opt && opt.includes('$') && (
-                                        <div className="text-xs text-indigo-500 font-bold border-t border-indigo-100 pt-1">
-                                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
-                                            {processMathText(opt)}
-                                          </ReactMarkdown>
-                                        </div>
-                                      )}
                                     </div>
-                                  </div>
-                                  {(q.options || []).length > 2 && (
-                                    <button 
-                                      onClick={() => {
-                                        const newOpts = (q.options || []).filter((_: any, i: number) => i !== optIdx);
-                                        updateQuestion(index, "options", newOpts);
-                                        if (q.a === opt) updateQuestion(index, "a", "");
-                                      }}
-                                      className="p-1 text-slate-300 hover:text-red-500"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  )}
+                                    {(q.options || []).length > 2 && (
+                                      <button 
+                                        onClick={() => {
+                                          const newOpts = (q.options || []).filter((_: any, i: number) => i !== optIdx);
+                                          updateQuestion(index, "options", newOpts);
+                                          if (q.a === opt) updateQuestion(index, "a", "");
+                                        }}
+                                        className="p-1 text-slate-300 hover:text-red-500 shrink-0"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    )}
                                 </div>
                               );
                             })}
@@ -503,20 +495,15 @@ export default function QuizEditor() {
                          </div>
                       ) : (
                           <div className="space-y-4">
-                            <input 
-                              type="text"
+                            <MathInput
                               value={q.a}
-                              onChange={(e) => updateQuestion(index, "a", e.target.value)}
-                              className="w-full p-4 font-bold border-2 border-gray-50 bg-gray-50 rounded-2xl focus:border-indigo-400 focus:bg-white outline-none transition-all placeholder:text-gray-300"
-                              placeholder="정답을 입력하세요. 수식은 $...$ (학생은 수식 키보드 사용)"
+                              onChange={(val) => updateQuestion(index, "a", val)}
+                              placeholder="정답을 입력하세요..."
+                              className="text-lg font-bold bg-transparent"
+                              containerClassName="min-h-[60px] bg-slate-50/50 border-slate-100"
+                              isTeacher={true}
+                              level={quiz?.school_level === '초등' ? 'elementary' : quiz?.school_level === '중' ? 'middle' : quiz?.school_level === '고등' ? 'high' : 'elementary'}
                             />
-                            {q.a && q.a.includes('$') && (
-                              <div className="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 text-indigo-700 font-black text-center">
-                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
-                                  {processMathText(q.a)}
-                                </ReactMarkdown>
-                              </div>
-                            )}
                           </div>
                       )}
                     </div>

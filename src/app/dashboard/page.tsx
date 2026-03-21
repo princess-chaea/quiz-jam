@@ -185,7 +185,8 @@ export default function Dashboard() {
           options: { 
             ...gameOptions,
             probabilities,
-            questions: selectedQuiz.questions 
+            questions: selectedQuiz.questions,
+            level: selectedQuiz.school_level === '초등' ? 'elementary' : selectedQuiz.school_level === '중' ? 'middle' : selectedQuiz.school_level === '고등' ? 'high' : 'elementary'
           } 
         }])
         .select()

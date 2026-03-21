@@ -1122,40 +1122,28 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                  </div>
               ) : (
                  <>
-                    <div className="w-full border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all overflow-hidden relative">
-                      {currentQuestion?.math_mode ? (
+                     <div className="w-full border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all overflow-hidden relative">
                         <MathInput
                           value={answer}
-                           onChange={handleAnswerChange}
+                          onChange={handleAnswerChange}
                           onEnter={() => handleSubmit(answer)}
-                           className="w-full p-2 text-center text-xl md:text-2xl font-bold bg-transparent"
+                          className="w-full p-2 text-xl md:text-2xl font-bold bg-transparent"
                           placeholder="정답을 입력하세요"
                           template={currentQuestion?.template}
                           focusOnMount={true}
                           level={game.options?.level || 'elementary'}
                         />
-                      ) : (
-                        <input
-                          type="text"
-                          value={answer}
-                           onChange={(e) => handleAnswerChange(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && handleSubmit(answer)}
-                          className="w-full p-6 text-center text-3xl font-bold bg-transparent outline-none"
-                          placeholder="정답을 입력하세요"
-                          autoFocus
-                        />
-                      )}
-                    </div>
-                    <Button 
-                      size="xl" 
-                      className="w-full py-8 text-3xl shadow-lg shadow-indigo-200"
-                      onClick={() => {
-                        setInternalSubmitted(true);
-                        handleSubmit();
-                      }}
-                    >
-                      제출하기!
-                    </Button>
+                     </div>
+                     <Button 
+                       size="xl" 
+                       className="w-full py-8 text-3xl shadow-lg shadow-indigo-200"
+                       onClick={() => {
+                         setInternalSubmitted(true);
+                         handleSubmit();
+                       }}
+                     >
+                       제출하기!
+                     </Button>
                  </>
               )}
             </div>
