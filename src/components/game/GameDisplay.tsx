@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { Clock, Zap, Shield, Scissors, Gift, RefreshCw, Check, X } from "lucide-react";
@@ -98,9 +97,10 @@ interface GameDisplayProps {
   onSubmit: (answer: string) => void;
   refresh: () => void;
   result: any;
+  onRetract?: () => void;
 }
 
-export function GameDisplay({ game, player, players, onSubmit, refresh, result }: GameDisplayProps) {
+export function GameDisplay({ game, player, players, onSubmit, refresh, result, onRetract }: GameDisplayProps) {
   const [answer, setAnswer] = useState("");
   const [blankAnswers, setBlankAnswers] = useState<Record<number, string>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -933,22 +933,28 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
           </div>
         </div>
 
-        <h2 className={cn(
-          "font-black text-gray-800 mb-10 break-keep w-full [&_p]:m-0 [&_p]:inline-block",
-          (currentQuestion?.q?.length || 0) > 150 ? "text-2xl md:text-3xl leading-relaxed" : 
-          (currentQuestion?.q?.length || 0) > 80 ? "text-3xl md:text-4xl leading-snug" : 
-          "text-4xl md:text-5xl leading-tight"
+        <div className={cn(
+          "font-black text-slate-800 mb-10 break-keep w-full whitespace-pre-wrap",
+          (currentQuestion?.q?.length || 0) > 150 ? "text-xl md:text-2xl leading-relaxed" : 
+          (currentQuestion?.q?.length || 0) > 80 ? "text-2xl md:text-3xl leading-snug" : 
+          "text-3xl md:text-4xl leading-tight"
         )}>
           {currentQuestion?.type === "BLANK" ? (
             "다음 빈칸에 들어갈 알맞은 글자를 넣으세요." 
           ) : currentQuestion?.q ? (
-            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+            <ReactMarkdown 
+              remarkPlugins={[remarkMath]} 
+              rehypePlugins={[rehypeKatex]}
+              components={{
+                p: ({node, ...props}) => <span className="whitespace-pre-wrap block" {...props} />,
+              }}
+            >
               {processMathText(currentQuestion.q)}
             </ReactMarkdown>
           ) : (
             "문제를 불러오는 중..."
           )}
-        </h2>
+        </div>
 
         {game.current_hint_stage > 0 && !submitted && timeLeft > 0 && currentQuestion?.type !== "OX" && currentQuestion?.type !== "MULTIPLE_CHOICE" && (!currentQuestion?.math_mode || currentQuestion?.type === "BLANK") && (
           <div className="mb-10 p-6 bg-indigo-50 rounded-[2rem] border-2 border-indigo-100 flex flex-col items-center animate-in slide-in-from-top-2 duration-300 shadow-inner">
@@ -1026,7 +1032,11 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                  variant="outline" 
                  size="xl"
                  className="mt-8 px-12 py-6 border-2 border-indigo-200 text-indigo-500 hover:bg-indigo-50 hover:border-indigo-300 rounded-[2rem] font-black text-xl shadow-xl transition-all active:scale-95"
-                 onClick={() => setInternalSubmitted(false)}
+                 onClick={() => {
+                    setInternalSubmitted(false);
+                    setSubmitted(false);
+                    onRetract?.();
+                 }}
                >
                  정답 바꾸기
                </Button>

@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 
 import { useGame } from "@/hooks/useGame";
 import { useSearchParams, useParams, useRouter } from "next/navigation";
@@ -31,69 +32,49 @@ function StudentPlayContent() {
   const [isExiting, setIsExiting] = useState(false);
 
   // 1. Memoized Answer Submission to avoid re-renders or closures inside conditional blocks
-  const handleSubmitAnswer = useCallback(async (answer: string) => {
-    const me = players.find(p => p.nickname === name);
-    if (!me || !game || !game.options?.questions) return;
+  const handleSubmitAnswer = useCallback(async (val: string) => {
+    const me = players.find((p: any) => p.nickname === name);
+    if (!me || !game) return;
     try {
-      const questions = game.options.questions;
-      const currentQuestion = questions[game.current_q_index];
-      if (!currentQuestion) return;
-
-      let isCorrect = normalizeMath(answer) === normalizeMath(currentQuestion.a);
-
-      // Robust check for Multiple Choice: handle both text and index (1-based stringlike "1")
-      if (!isCorrect && currentQuestion.type === "MULTIPLE_CHOICE") {
-        const aVal = currentQuestion.a.toString().trim();
-        const options = currentQuestion.options || [];
-        
-        // 1. Check if 'a' is a number string like "1"
-        const aIdx = parseInt(aVal) - 1;
-        if (!isNaN(aIdx) && options[aIdx]) {
-          isCorrect = normalizeMath(answer) === normalizeMath(options[aIdx]);
-        }
-        
-        // 2. Fallback: Check if 'answer' matches an index string "1" (unlikely but safe)
-        if (!isCorrect && (normalizeMath(answer) === normalizeMath(aVal))) {
-          isCorrect = true;
-        }
-      }
-      
-      // Robust Manual Upsert: check if answer exists by natural key
-      const { data: existing } = await supabase
+      const normalized = normalizeMath(val);
+      const { data, error } = await supabase
         .from("answers")
-        .select("id")
-        .eq("game_id", game.id)
-        .eq("player_id", me.id)
-        .eq("q_index", game.current_q_index)
-        .maybeSingle();
-
-      const answerData = {
-        game_id: game.id,
-        player_id: me.id,
-        q_index: game.current_q_index,
-        answer: answer.trim(),
-        is_correct: isCorrect,
-        event: 'none',
-        points_awarded: 0,
-        created_at: new Date().toISOString() // Force update timestamp for swap logic
-      };
-
-      if (existing) {
-        const { error: updateErr } = await supabase
-          .from("answers")
-          .update(answerData)
-          .eq("id", existing.id);
-        if (updateErr) throw updateErr;
-      } else {
-        const { error: insertErr } = await supabase
-          .from("answers")
-          .insert([answerData]);
-        if (insertErr) throw insertErr;
-      }
+        .upsert({
+          game_id: game.id,
+          player_id: me.id,
+          q_index: game.current_q_index,
+          answer: normalized
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      setPlayerResult(data);
+      console.log("[Submit] Answer successfully submitted/updated:", data);
     } catch (err: any) {
-      showAlert("정답 제출 실패: " + err.message);
+      console.error("Submit failed:", err);
+      showAlert("정답 제출 중 오류가 발생했습니다.");
     }
   }, [game, players, name, showAlert]);
+
+  const handleRetractAnswer = useCallback(async () => {
+    const me = players.find((p: any) => p.nickname === name);
+    if (!me || !game) return;
+    try {
+      console.log(`[Retraction] Deleting answer for player ${me.id}, q_index ${game.current_q_index}`);
+      const { error } = await supabase
+        .from("answers")
+        .delete()
+        .eq("game_id", game.id)
+        .eq("player_id", me.id)
+        .eq("q_index", game.current_q_index);
+      
+      if (error) throw error;
+      setPlayerResult(null); // Clear local result state
+    } catch (err: any) {
+      console.error("Retract failed:", err);
+    }
+  }, [game, players, name]);
 
   // 1. Game result redirection
   useEffect(() => {
@@ -296,7 +277,7 @@ function StudentPlayContent() {
     );
   }
 
-  const me = players.find(p => p.nickname === name);
+  const me = players.find((p: any) => p.nickname === name);
   
   if (!me && !loading) {
      // If we are not loading anymore but 'me' isn't found, 
@@ -335,7 +316,7 @@ function StudentPlayContent() {
                     <div className="text-sm font-black uppercase tracking-widest mb-1">My Team</div>
                     <h3 className="text-3xl font-jua mb-4">{me.team === 'RED' ? '빨강팀' : me.team === 'BLUE' ? '파랑팀' : me.team === 'GREEN' ? '초록팀' : '노랑팀'}</h3>
                     <div className="flex justify-center gap-3">
-                      {players.filter(p => p.team === me.team && p.nickname !== name).map(p => (
+                      {players.filter((p: any) => p.team === me.team && p.nickname !== name).map((p: any) => (
                         <div key={p.id} className="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center font-bold shadow-sm overflow-hidden" title={p.nickname}>
                           {p.avatar_id ? (
                             <img 
@@ -390,6 +371,7 @@ function StudentPlayContent() {
                 player={me} 
                 players={players} 
                 onSubmit={handleSubmitAnswer} 
+                onRetract={handleRetractAnswer}
                 refresh={refresh}
                 result={playerResult}
               />
