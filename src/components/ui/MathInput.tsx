@@ -252,6 +252,21 @@ export function MathInput({
       }
     };
 
+    const handlePointerDown = (e: Event) => {
+      // If the field is clicked/tapped, ensure we force DOM focus so physical typing works!
+      // MathLive sometimes draws a cursor but misses the actual native DOM focus when clicking empty bounds.
+      if (el && typeof el.focus === 'function') {
+        el.focus();
+      }
+      setTimeout(() => {
+        if (typeof el.executeCommand === 'function') {
+          // If we clicked far away, move cursor to the end to be safe
+          el.executeCommand(['moveToMathFieldEnd']);
+          openKeypad(el, level);
+        }
+      }, 50);
+    };
+
     const handleKeyDown = (e: any) => {
       if (e.key === 'Enter') {
         if (onEnterRef.current) {
@@ -289,11 +304,11 @@ export function MathInput({
       }
     };
 
-    // Use 'input' for real-time updates and 'change' for finality
     el.addEventListener("input", handleUpdate);
     el.addEventListener("change", handleUpdate);
     el.addEventListener("keydown", handleKeyDown);
     el.addEventListener("focus", handleFocus);
+    el.addEventListener("pointerdown", handlePointerDown);
     el.addEventListener("blur", handleUpdate);
     
     // Initial sync
@@ -304,6 +319,7 @@ export function MathInput({
       el.removeEventListener("change", handleUpdate);
       el.removeEventListener("keydown", handleKeyDown);
       el.removeEventListener("focus", handleFocus);
+      el.removeEventListener("pointerdown", handlePointerDown);
       el.removeEventListener("blur", handleUpdate);
     };
   }, [mfElement, isReady, openKeypad, level]);
@@ -341,9 +357,21 @@ export function MathInput({
         (!multiline || showScrollbar) ? "overflow-x-auto overflow-y-hidden custom-scrollbar" : "overflow-hidden",
         containerClassName
       )}
-      onClick={(e) => {
-        // Stop propagation to prevent accidental blurs from parent click handlers
+      onClick={(e: React.MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
+      }}
+      onPointerDown={(e: React.PointerEvent<HTMLDivElement>) => {
+        // If clicking the container padding, prevent default to stop focus from going to body/div
+        // and forcefully focus the math field so keyboard input works.
+        if (mfRef.current) {
+          if (e.target !== mfRef.current) {
+            e.preventDefault();
+          }
+          mfRef.current.focus();
+          if (typeof mfRef.current.executeCommand === 'function') {
+            mfRef.current.executeCommand(['moveToMathFieldEnd']);
+          }
+        }
       }}
     >
       <style dangerouslySetInnerHTML={{ __html: `
