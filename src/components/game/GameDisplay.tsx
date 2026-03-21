@@ -1121,7 +1121,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                       {currentQuestion?.math_mode ? (
                         <MathInput
                           value={answer}
-                          onChange={(val) => setAnswer(val)}
+                           onChange={handleAnswerChange}
                           onEnter={() => handleSubmit(answer)}
                           className="w-full p-2 text-center text-3xl font-bold bg-transparent"
                           placeholder="정답을 입력하세요"
@@ -1131,7 +1131,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                         <input
                           type="text"
                           value={answer}
-                          onChange={(e) => setAnswer(e.target.value)}
+                           onChange={(e) => handleAnswerChange(e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && handleSubmit(answer)}
                           className="w-full p-6 text-center text-3xl font-bold bg-transparent outline-none"
                           placeholder="정답을 입력하세요"

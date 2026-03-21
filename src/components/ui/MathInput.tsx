@@ -160,6 +160,8 @@ export function MathInput({
         .replace(/\\ /g, ' ')
         .replace(/\\\\ /g, ' ');
       
+      if (lastValueRef.current === normalizedValue) return;
+      
       lastValueRef.current = normalizedValue; 
       onChangeRef.current(normalizedValue);
     };
