@@ -168,6 +168,26 @@ export function MathInput({
         }
         return;
       }
+
+      if (e.key === "/") {
+        // Force division symbol instead of fraction
+        e.preventDefault();
+        if (typeof el.executeCommand === 'function') {
+            el.executeCommand(["insert", "\\div"]);
+            handleUpdate(e);
+        }
+        return;
+      }
+
+      if (e.key === "*") {
+        // Force times symbol instead of dot
+        e.preventDefault();
+        if (typeof el.executeCommand === 'function') {
+            el.executeCommand(["insert", "\\times"]);
+            handleUpdate(e);
+        }
+        return;
+      }
       
       if (e.key === "Enter" && onEnter) {
         e.preventDefault();
