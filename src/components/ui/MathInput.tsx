@@ -388,36 +388,27 @@ export function MathInput({
       onClick={(e: React.MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
         if (mfRef.current && e.target === containerRef.current) {
-          // The user clicked the empty wrapper gap (padding). 
-          // Manually calling .focus() permanently corrupts MathLive's IME sync in 0.98.
-          // Instead, we fake a flawless native click exactly on the last character!
+          // The native click (pointerdown) activated MathLive's visual cursor, 
+          // but due to MathLive 0.98's bug, the internal textarea failed to receive focus natively.
+          // Since this React onClick is a Trusted User Gesture, we can forcefully focus the textarea here!
           const el = mfRef.current;
-          if (el.shadowRoot) {
-            const atoms = el.shadowRoot.querySelectorAll('.ML__mathlive span');
-            let lastAtom = atoms[atoms.length - 1] as HTMLElement;
-            
-            // If the field is empty or no valid atom, just fallback to standard focus
-            if (!lastAtom) {
-              if (typeof el.focus === 'function') el.focus();
-              return;
+          
+          const forceSink = () => {
+            if (typeof el.focus === 'function') el.focus();
+            if (el.shadowRoot) {
+              const sink = el.shadowRoot.querySelector('textarea, input[type="text"], .ML__keyboard-sink');
+              if (sink && typeof sink.focus === 'function') {
+                sink.focus();
+              }
             }
+          };
 
-            const rect = lastAtom.getBoundingClientRect();
-            // Create synthetic pointer events targeting the center of the last atom
-            const clickX = rect.left + (rect.width / 2);
-            const clickY = rect.top + (rect.height / 2);
+          // Try immediately (synchronously during the trusted event)
+          forceSink();
 
-            const pointerDown = new PointerEvent('pointerdown', {
-              bubbles: true, cancelable: true, clientX: clickX, clientY: clickY, pointerType: 'mouse'
-            });
-            const pointerUp = new PointerEvent('pointerup', {
-              bubbles: true, cancelable: true, clientX: clickX, clientY: clickY, pointerType: 'mouse'
-            });
-
-            // Dispatch on the atom so MathLive's native router flawlessly accepts it
-            lastAtom.dispatchEvent(pointerDown);
-            lastAtom.dispatchEvent(pointerUp);
-          }
+          // And reinforce it after internal MathLive routines complete (usually <100ms)
+          setTimeout(forceSink, 150);
+          setTimeout(forceSink, 300); // 300ms fail-safe
         }
       }}
     >
