@@ -37,20 +37,40 @@ function StudentPlayContent() {
     if (!me || !game) return;
     try {
       const normalized = normalizeMath(val);
-      const { data, error } = await supabase
-        .from("answers")
-        .upsert({
-          game_id: game.id,
-          player_id: me.id,
-          q_index: game.current_q_index,
-          answer: normalized
-        })
-        .select()
-        .single();
       
-      if (error) throw error;
-      setPlayerResult(data);
-      console.log("[Submit] Answer successfully submitted/updated:", data);
+      // Explicitly check for existing answer to avoid duplicate row insertions
+      const { data: existing } = await supabase
+        .from("answers")
+        .select("id")
+        .eq("game_id", game.id)
+        .eq("player_id", me.id)
+        .eq("q_index", game.current_q_index)
+        .maybeSingle();
+
+      let res;
+      if (existing) {
+        res = await supabase
+          .from("answers")
+          .update({ answer: normalized })
+          .eq("id", existing.id)
+          .select()
+          .single();
+      } else {
+        res = await supabase
+          .from("answers")
+          .insert({
+            game_id: game.id,
+            player_id: me.id,
+            q_index: game.current_q_index,
+            answer: normalized
+          })
+          .select()
+          .single();
+      }
+      
+      if (res.error) throw res.error;
+      setPlayerResult(res.data);
+      console.log("[Submit] Answer successfully submitted/updated:", res.data);
     } catch (err: any) {
       console.error("Submit failed:", err);
       showAlert("정답 제출 중 오류가 발생했습니다.");
@@ -61,7 +81,17 @@ function StudentPlayContent() {
     const me = players.find((p: any) => p.nickname === name);
     if (!me || !game) return;
     try {
-      console.log(`[Retraction] Deleting answer for player ${me.id}, q_index ${game.current_q_index}`);
+      console.log(`[Retraction] Retracting answer for player ${me.id}, q_index ${game.current_q_index}`);
+      
+      // Update to '(retracted)' first to ensure the Host UI immediately filters it out
+      await supabase
+        .from("answers")
+        .update({ answer: "(retracted)" })
+        .eq("game_id", game.id)
+        .eq("player_id", me.id)
+        .eq("q_index", game.current_q_index);
+
+      // Attempt to delete the row to keep the database clean
       const { error } = await supabase
         .from("answers")
         .delete()
@@ -69,10 +99,11 @@ function StudentPlayContent() {
         .eq("player_id", me.id)
         .eq("q_index", game.current_q_index);
       
-      if (error) throw error;
+      if (error) console.warn("Retract delete failed (potentially blocked by RLS):", error);
+      
       setPlayerResult(null); // Clear local result state
     } catch (err: any) {
-      console.error("Retract failed:", err);
+      console.error("Retract logic failed:", err);
     }
   }, [game, players, name]);
 

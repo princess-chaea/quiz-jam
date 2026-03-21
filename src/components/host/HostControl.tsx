@@ -25,6 +25,12 @@ interface HostControlProps {
   refreshPlayers?: () => Promise<void>;
 }
 
+const processAnswers = (data: any[]) => {
+  const map = new Map();
+  data.forEach((a) => map.set(a.player_id, a));
+  return Array.from(map.values()).filter((a: any) => a.answer !== '(retracted)');
+};
+
 export function HostControl({ game, players, refreshPlayers }: HostControlProps) {
   const [answers, setAnswers] = useState<any[]>([]);
   const [calculating, setCalculating] = useState(false);
@@ -73,7 +79,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         .eq("q_index", qIndex);
 
       if (freshErr) throw freshErr;
-      const currentAnswers = freshAnswers || [];
+      const currentAnswers = processAnswers(freshAnswers || []);
       const currentPlayers = playersRef.current;
 
       // 2. Calculate base results
@@ -629,7 +635,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           .select("*")
           .eq("game_id", game.id)
           .eq("q_index", gameRef.current.current_q_index);
-        if (updatedAns) setAnswers(updatedAns);
+        if (updatedAns) setAnswers(processAnswers(updatedAns));
         
         console.log("[Swap Engine] Step finished.");
       })
@@ -688,7 +694,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         // We calculate locally to ensure immediate icons/points; DB sync is for late-comers or refreshes.
         if (gameRef.current.status !== 'RESULT' && !calculating) {
           const { data } = await supabase.from("answers").select("*").eq("game_id", game.id).eq("q_index", gameRef.current.current_q_index);
-          if (data) setAnswers(data);
+          if (data) setAnswers(processAnswers(data));
         }
       }).subscribe();
 
@@ -696,7 +702,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       // If we're entering a new question in PLAYING mode, start fresh
       if (gameRef.current.status === 'PLAYING' && !calculating) {
         const { data } = await supabase.from("answers").select("*").eq("game_id", game.id).eq("q_index", gameRef.current.current_q_index);
-        if (data) setAnswers(data);
+        if (data) setAnswers(processAnswers(data));
       }
       // Note: We DO NOT poll during RESULT mode anymore because HostControl has already 
       // computed the final results locally. Polling risks overwriting them with stale
@@ -1094,7 +1100,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             )}
 
             <div className="flex flex-wrap justify-center gap-6 mt-6 items-center">
-              {currentQuestion?.type !== "MULTIPLE_CHOICE" && currentQuestion?.type !== "OX" && !currentQuestion?.math_mode && (
+              {currentQuestion?.type !== "MULTIPLE_CHOICE" && currentQuestion?.type !== "OX" && (!currentQuestion?.math_mode || currentQuestion?.type === "BLANK") && (
                 <div className="flex bg-slate-100 p-2 rounded-2xl gap-2">
                   {currentQuestion?.type === "BLANK" ? (
                     <button
