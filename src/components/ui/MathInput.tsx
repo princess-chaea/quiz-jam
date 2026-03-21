@@ -252,16 +252,17 @@ export function MathInput({
       }
     };
 
-    const handlePointerDown = (e: Event) => {
-      // If the field is clicked/tapped, ensure we force DOM focus so physical typing works!
-      // MathLive sometimes draws a cursor but misses the actual native DOM focus when clicking empty bounds.
+    const handlePointerUp = (e: Event) => {
+      // Browsers often reject focus() calls during pointerdown if preventDefault() is used internally by MathLive.
+      // Calling focus() during pointerup/touchend is the standard way to ensure the system keyboard activates.
       if (el && typeof el.focus === 'function') {
         el.focus();
       }
       setTimeout(() => {
+        if (el && typeof el.focus === 'function') {
+          el.focus(); 
+        }
         if (typeof el.executeCommand === 'function') {
-          // If we clicked far away, move cursor to the end to be safe
-          el.executeCommand(['moveToMathFieldEnd']);
           openKeypad(el, level);
         }
       }, 50);
@@ -308,7 +309,7 @@ export function MathInput({
     el.addEventListener("change", handleUpdate);
     el.addEventListener("keydown", handleKeyDown);
     el.addEventListener("focus", handleFocus);
-    el.addEventListener("pointerdown", handlePointerDown);
+    el.addEventListener("pointerup", handlePointerUp);
     el.addEventListener("blur", handleUpdate);
     
     // Initial sync
@@ -319,7 +320,7 @@ export function MathInput({
       el.removeEventListener("change", handleUpdate);
       el.removeEventListener("keydown", handleKeyDown);
       el.removeEventListener("focus", handleFocus);
-      el.removeEventListener("pointerdown", handlePointerDown);
+      el.removeEventListener("pointerup", handlePointerUp);
       el.removeEventListener("blur", handleUpdate);
     };
   }, [mfElement, isReady, openKeypad, level]);
@@ -359,18 +360,19 @@ export function MathInput({
       )}
       onClick={(e: React.MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
-      }}
-      onPointerDown={(e: React.PointerEvent<HTMLDivElement>) => {
-        // If clicking the container padding, prevent default to stop focus from going to body/div
-        // and forcefully focus the math field so keyboard input works.
+        // Force DOM focus onto the math-field so physical keyboard works.
+        // We use a slight timeout to ensure MathLive's internal handlers have finished
+        // and doesn't steal or cancel the focus event.
         if (mfRef.current) {
-          if (e.target !== mfRef.current) {
-            e.preventDefault();
-          }
           mfRef.current.focus();
           if (typeof mfRef.current.executeCommand === 'function') {
             mfRef.current.executeCommand(['moveToMathFieldEnd']);
           }
+          setTimeout(() => {
+            if (mfRef.current) {
+              mfRef.current.focus();
+            }
+          }, 50);
         }
       }}
     >
