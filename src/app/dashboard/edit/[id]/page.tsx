@@ -376,9 +376,9 @@ export default function QuizEditor() {
                       </div>
                     </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0 max-w-full overflow-hidden">
                     {/* Answer Section based on type */}
-                    <div className="space-y-4 min-w-0">
+                    <div className="space-y-4 min-w-0 max-w-full overflow-hidden">
                       <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
                         <HelpCircle size={14} /> 
                         {q.type === "MULTIPLE_CHOICE" ? "Options & Answer" : 
@@ -401,26 +401,25 @@ export default function QuizEditor() {
                                 }
                               }
                               return (
-                                <div key={optIdx} className={`flex items-center gap-3 p-2 rounded-xl border-2 transition-all ${isCorrect ? 'border-emerald-400 bg-emerald-50' : 'border-slate-100 bg-slate-50'}`}>
+                                <div key={optIdx} className={`flex items-center gap-3 p-2 rounded-xl border-2 transition-all min-w-0 max-w-full overflow-hidden ${isCorrect ? 'border-emerald-400 bg-emerald-50' : 'border-slate-100 bg-slate-50'}`}>
                                   <input 
                                     type="radio" 
                                     name={`correct-${index}`}
-                                    className="w-4 h-4 accent-emerald-500 cursor-pointer"
                                     checked={isCorrect}
+                                    className="w-5 h-5 text-indigo-600 rounded-full border-gray-300 focus:ring-indigo-500 shrink-0"
                                     onChange={() => {
                                       updateQuestion(index, "a", opt);
                                       updateQuestion(index, "correct_idx", optIdx);
                                     }}
                                   />
-                                  <div className="flex-1 bg-transparent">
+                                  <div className="flex-1 min-w-0 max-w-full overflow-hidden">
                                     {q.math_mode ? (
                                       <MathInput
                                         value={opt}
-                                        onChange={(value) => {
-                                          const newOpts = [...(q.options || ["", ""])];
-                                          newOpts[optIdx] = value;
+                                        onChange={(val) => {
+                                          const newOpts = [...(q.options || [])];
+                                          newOpts[optIdx] = val;
                                           updateQuestion(index, "options", newOpts);
-                                          if (isCorrect) updateQuestion(index, "a", value);
                                         }}
                                         className="w-full font-bold text-slate-700 text-sm"
                                         placeholder={`수식 보기 ${optIdx + 1}`}
@@ -523,7 +522,7 @@ export default function QuizEditor() {
                          </div>
                       ) : (
                         q.math_mode ? (
-                          <div className="w-full border-2 border-gray-50 bg-gray-50 rounded-2xl focus-within:border-indigo-400 focus-within:bg-white transition-all overflow-hidden flex items-center min-h-[64px]">
+                          <div className="w-full min-w-0 border-2 border-gray-50 bg-gray-50 rounded-2xl focus-within:border-indigo-400 focus-within:bg-white transition-all overflow-hidden flex items-center min-h-[64px]">
                             <MathInput 
                               value={q.a}
                               onChange={(value) => updateQuestion(index, "a", value)}
@@ -544,7 +543,7 @@ export default function QuizEditor() {
                       )}
                     </div>
 
-                    <div className="flex flex-col gap-6 min-w-0">
+                    <div className="flex flex-col gap-6 min-w-[200px] md:w-[240px] shrink-0">
                       {/* Points Slider */}
                       <div className="space-y-4">
                          <div className="flex justify-between items-center">

@@ -933,7 +933,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
           </div>
         </div>
 
-        <h2 className="text-4xl md:text-5xl font-black text-gray-800 mb-10 break-keep leading-tight [&_p]:m-0 [&_p]:inline-block w-full">
+        <h2 className={cn(
+          "font-black text-gray-800 mb-10 break-keep w-full [&_p]:m-0 [&_p]:inline-block",
+          (currentQuestion?.q?.length || 0) > 150 ? "text-2xl md:text-3xl leading-relaxed" : 
+          (currentQuestion?.q?.length || 0) > 80 ? "text-3xl md:text-4xl leading-snug" : 
+          "text-4xl md:text-5xl leading-tight"
+        )}>
           {currentQuestion?.type === "BLANK" ? (
             "다음 빈칸에 들어갈 알맞은 글자를 넣으세요." 
           ) : currentQuestion?.q ? (
@@ -945,7 +950,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
           )}
         </h2>
 
-        {game.current_hint_stage > 0 && !submitted && timeLeft > 0 && currentQuestion?.type !== "OX" && currentQuestion?.type !== "MULTIPLE_CHOICE" && !currentQuestion?.math_mode && (
+        {game.current_hint_stage > 0 && !submitted && timeLeft > 0 && currentQuestion?.type !== "OX" && currentQuestion?.type !== "MULTIPLE_CHOICE" && (!currentQuestion?.math_mode || currentQuestion?.type === "BLANK") && (
           <div className="mb-10 p-6 bg-indigo-50 rounded-[2rem] border-2 border-indigo-100 flex flex-col items-center animate-in slide-in-from-top-2 duration-300 shadow-inner">
             <span className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
               <Zap size={14} className="fill-indigo-400" /> 
@@ -988,12 +993,14 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                     const displayChar = showChoseong ? getChoseong(char) : (char === ' ' ? ' ' : '');
                     
                     return (
-                      <div 
+
+                    return (
+                      <div
                         key={i}
                         className={cn(
                           "w-10 h-12 md:w-12 md:h-14 rounded-2xl flex items-center justify-center text-2xl font-black transition-all shadow-sm",
                           showChoseong && char !== ' '
-                            ? "bg-indigo-600 text-white shadow-indigo-200 scale-110" 
+                            ? "bg-indigo-600 text-white shadow-indigo-200 scale-110"
                             : char === ' ' ? "bg-transparent border-none" : "bg-white text-indigo-200 border-2 border-indigo-100"
                         )}
                       >
@@ -1126,6 +1133,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                           className="w-full p-2 text-center text-3xl font-bold bg-transparent"
                           placeholder="정답을 입력하세요"
                           template={currentQuestion?.template}
+                          focusOnMount={true}
+                          level={game.options?.level || 'elementary'}
                         />
                       ) : (
                         <input

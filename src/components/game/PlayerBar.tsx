@@ -53,12 +53,12 @@ export function PlayerBar({ players, currentNickname, submissions, className }: 
                 ) : (
                   player.nickname[0]
                 )}
-                {hasSubmitted && (
-                  <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-0.5 border-2 border-white">
-                    <CheckCircle2 size={10} />
-                  </div>
-                )}
               </div>
+              {hasSubmitted && (
+                <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-0.5 border-2 border-white z-20">
+                  <CheckCircle2 size={10} />
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col min-w-0 pr-1">

@@ -35,6 +35,7 @@ interface MathInputProps {
   className?: string;
   placeholder?: string;
   template?: string;
+  focusOnMount?: boolean;
   level?: 'elementary' | 'middle' | 'high';
   isTeacher?: boolean;
   containerClassName?: string;
@@ -49,7 +50,8 @@ export function MathInput({
   template, 
   level = 'elementary',
   isTeacher = false,
-  containerClassName = ""
+  containerClassName = "",
+  focusOnMount = false
 }: MathInputProps) {
   const mfRef = useRef<any>(null);
   const lastValueRef = useRef<string | undefined>(undefined);
@@ -104,6 +106,19 @@ export function MathInput({
       onChangeRef.current(template);
     }
   }, [template, value]);
+
+  // Handling focus on mount
+  useEffect(() => {
+    if (focusOnMount && isReady && mfRef.current) {
+      setTimeout(() => {
+        mfRef.current?.focus();
+        // Also ensure it's at the end
+        const val = mfRef.current.value;
+        mfRef.current.value = "";
+        mfRef.current.value = val;
+      }, 100);
+    }
+  }, [focusOnMount, isReady]);
 
   // Sync value changes after initialization
   useEffect(() => {
@@ -262,6 +277,14 @@ export function MathInput({
 
   return (
     <div className={cn("relative w-full rounded-2xl overflow-hidden group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all", containerClassName)}>
+      <style dangerouslySetInnerHTML={{ __html: `
+        math-field::part(content) {
+          white-space: pre-wrap !important;
+          overflow-wrap: break-word !important;
+          word-break: break-all !important;
+          text-align: left !important;
+        }
+      `}} />
       <math-field
         ref={(el: any) => {
           mfRef.current = el;
@@ -271,13 +294,17 @@ export function MathInput({
         style={{ 
           width: "100%", 
           minHeight: "100px",
-          overflowX: 'auto',
           background: "transparent",
           border: "none",
-          fontSize: "1.25rem"
+          fontSize: "1.25rem",
+          display: 'block',
+          overflowWrap: 'break-word',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-all'
         }}
         multiline="true"
         math-virtual-keyboard-policy="manual"
+        menu-icon="none"
         placeholder={placeholder}
       >
         {toMathLiveValue(value)}
