@@ -114,39 +114,6 @@ export function MathInput({
           plonkSound: 'none',
           soundsDirectory: null
         });
-        // Explicitly set the toggle policy
-        mfRef.current.mathVirtualKeyboardPolicy = "manual";
-
-        // Inject styles into shadow root to force multiline wrapping
-        if (mfRef.current.shadowRoot) {
-          const style = document.createElement('style');
-          style.textContent = `
-            .ML__virtual-keyboard-toggle, .ML__menu-toggle, [part="virtual-keyboard-toggle"], [part="menu-toggle"] {
-              display: none !important;
-              visibility: hidden !important;
-            }
-            .ML__container {
-              display: flex !important;
-              align-items: center !important;
-              min-height: 80px !important;
-              padding: 0 1rem !important;
-              cursor: text !important;
-            }
-            .ML__base {
-              display: flex !important;
-              flex-wrap: ${multiline ? 'wrap' : 'nowrap'} !important;
-              width: 100% !important;
-              ${!multiline ? 'overflow-x: auto !important;' : ''}
-              line-height: 1.6 !important;
-              padding: 4px 0 !important;
-            }
-            .ML__content {
-              display: ${multiline ? 'block' : 'inline-block'} !important;
-              ${multiline ? 'width: 100% !important;' : 'min-width: 100% !important;'}
-            }
-          `;
-          mfRef.current.shadowRoot.appendChild(style);
-        }
         
         // Add shortcuts for arithmetic symbols and SPACES
         mfRef.current.inlineShortcuts = {
@@ -426,19 +393,28 @@ export function MathInput({
           width: 100% !important;
           display: flex !important;
           align-items: center !important;
-          padding: 0 !important; /* Managed by .ML__container in shadow DOM */
+          padding: 0 1rem !important; 
           overflow: visible !important;
-          min-height: 80px !important;
+          min-height: 48px !important;
+          cursor: text !important;
         }
-        math-field::part(content) {
-          white-space: ${multiline ? 'pre-wrap' : 'nowrap'} !important;
-          overflow-wrap: ${multiline ? 'break-word' : 'normal'} !important;
-          word-break: ${multiline ? 'break-all' : 'normal'} !important;
-          text-align: left !important;
+        /* Fallback for components that don't support ::part fully or need direct targeting */
+        math-field .ML__container {
+          display: flex !important;
+          align-items: center !important;
+          min-height: 48px !important;
+          padding: 0 1rem !important;
+        }
+        math-field .ML__base {
+          display: flex !important;
+          flex-wrap: ${multiline ? 'wrap' : 'nowrap'} !important;
+          width: 100% !important;
+          line-height: 1.2 !important;
+          padding: 2px 0 !important;
+        }
+        math-field .ML__content {
           display: ${multiline ? 'block' : 'inline-block'} !important;
-          width: ${multiline ? '100%' : 'auto'} !important;
-          min-width: 100% !important;
-          padding: 0 !important;
+          width: 100% !important;
         }
         /* Hide MathLive internal virtual keyboard toggle and menu toggles */
         math-field::part(virtual-keyboard-toggle),
@@ -460,7 +436,7 @@ export function MathInput({
         style={{ 
           flex: 1,
           width: "100%", 
-          minHeight: "80px",
+          minHeight: "48px",
           background: "transparent",
           border: "none",
           fontSize: "1.125rem",
