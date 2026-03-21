@@ -358,7 +358,7 @@ export default function QuizEditor() {
                             key={`math-input-${index}-${q.math_mode}`}
                             value={q.q}
                             onChange={(value) => updateQuestion(index, "q", value)}
-                            className="w-full"
+                            className="w-full text-lg font-bold"
                             containerClassName="min-h-[140px] flex flex-col"
                             placeholder="질문을 입력하세요."
                             isTeacher={true}
@@ -421,7 +421,7 @@ export default function QuizEditor() {
                                           newOpts[optIdx] = val;
                                           updateQuestion(index, "options", newOpts);
                                         }}
-                                        className="w-full font-bold text-slate-700 text-sm"
+                                        className="w-full font-bold text-slate-700 text-base"
                                         placeholder={`수식 보기 ${optIdx + 1}`}
                                         isTeacher={true}
                                       />
@@ -526,7 +526,7 @@ export default function QuizEditor() {
                             <MathInput 
                               value={q.a}
                               onChange={(value) => updateQuestion(index, "a", value)}
-                              className="w-full font-bold bg-transparent px-4"
+                              className="w-full font-bold bg-transparent px-4 text-base"
                               placeholder="수식 정답을 입력하세요"
                               isTeacher={true}
                             />

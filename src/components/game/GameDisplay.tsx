@@ -1128,7 +1128,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                           value={answer}
                            onChange={handleAnswerChange}
                           onEnter={() => handleSubmit(answer)}
-                          className="w-full p-2 text-center text-3xl font-bold bg-transparent"
+                           className="w-full p-2 text-center text-xl md:text-2xl font-bold bg-transparent"
                           placeholder="정답을 입력하세요"
                           template={currentQuestion?.template}
                           focusOnMount={true}

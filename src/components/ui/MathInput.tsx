@@ -278,11 +278,26 @@ export function MathInput({
   return (
     <div className={cn("relative w-full rounded-2xl overflow-hidden group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all", containerClassName)}>
       <style dangerouslySetInnerHTML={{ __html: `
+        math-field {
+          display: block !important;
+          width: 100% !important;
+          min-height: 2.5rem;
+          height: auto !important;
+          overflow: visible !important;
+          background: transparent !important;
+        }
+        math-field::part(container) {
+          width: 100% !important;
+          display: block !important;
+        }
         math-field::part(content) {
           white-space: pre-wrap !important;
           overflow-wrap: break-word !important;
           word-break: break-all !important;
           text-align: left !important;
+          display: block !important;
+          width: 100% !important;
+          padding: 0 !important;
         }
       `}} />
       <math-field
@@ -290,17 +305,14 @@ export function MathInput({
           mfRef.current = el;
           if (el !== mfElement) setMfElement(el);
         }}
-        className={cn("w-full p-4 text-lg font-bold outline-none", className)}
+        className={cn("w-full p-4 outline-none", className)}
         style={{ 
           width: "100%", 
-          minHeight: "100px",
+          minHeight: "80px",
           background: "transparent",
           border: "none",
-          fontSize: "1.25rem",
-          display: 'block',
-          overflowWrap: 'break-word',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-all'
+          fontSize: "1.125rem",
+          display: 'block'
         }}
         multiline="true"
         math-virtual-keyboard-policy="manual"
