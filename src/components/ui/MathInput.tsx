@@ -354,7 +354,7 @@ export function MathInput({
 
   if (!isReady || !mounted) {
     return (
-      <div className={cn("relative w-full rounded-2xl bg-slate-50 border-2 border-slate-100 flex items-center justify-center min-h-[40px]", containerClassName)}>
+      <div className={cn("relative w-full rounded-2xl bg-slate-50 border-2 border-slate-100 flex items-center justify-center py-2", containerClassName)}>
          <div className="flex flex-col items-center gap-2">
            <div className="w-6 h-6 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
            <p className="text-[10px] font-bold text-slate-400 italic">수식 편집기 로드 중...</p>
@@ -390,11 +390,7 @@ export function MathInput({
           overflow: visible !important;
         }
         math-field::part(container) {
-          width: 100% !important;
-          display: flex !important;
-          align-items: center !important;
-          min-height: 40px !important;
-          padding: 0 1rem !important; 
+          padding: 8px 1rem !important; 
           overflow: visible !important;
           cursor: text !important;
         }
@@ -429,7 +425,6 @@ export function MathInput({
         style={{ 
           flex: 1,
           width: "100%", 
-          minHeight: "40px",
           background: "transparent",
           border: "none",
           fontSize: "1.125rem",

@@ -411,7 +411,7 @@ export default function QuizEditor() {
                                           if (isCorrect) updateQuestion(index, "a", val);
                                         }}
                                         className="text-sm font-bold bg-transparent"
-                                        containerClassName="min-h-[40px] bg-transparent border-transparent focus-within:border-transparent p-0"
+                                        containerClassName="bg-transparent border-transparent focus-within:border-transparent p-0"
                                         placeholder={`보기 ${optIdx + 1}`}
                                         isTeacher={true}
                                         level={quiz?.school_level === '초등' ? 'elementary' : quiz?.school_level === '중' ? 'middle' : quiz?.school_level === '고등' ? 'high' : 'elementary'}
