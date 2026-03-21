@@ -103,15 +103,11 @@ export function MathInput({
               width: 100% !important;
               ${!multiline ? 'overflow-x: auto !important;' : ''}
               line-height: 1.6 !important;
-              padding: 16px 0 !important;
-              min-height: 80px !important;
-              align-items: center !important;
+              padding: 4px 0 !important;
             }
             .ML__content {
-              display: ${multiline ? 'flex' : 'inline-flex'} !important;
-              align-items: center !important;
+              display: ${multiline ? 'block' : 'inline-block'} !important;
               ${multiline ? 'width: 100% !important;' : 'min-width: 100% !important;'}
-              min-height: 80px !important;
             }
           `;
           mfRef.current.shadowRoot.appendChild(style);
@@ -256,9 +252,25 @@ export function MathInput({
       }
     };
 
+    const forceFocus = (mathFieldEl: any) => {
+      if (!mathFieldEl) return;
+      if (typeof mathFieldEl.focus === 'function') {
+        mathFieldEl.focus();
+      }
+      // Extremely aggressive hack to ensure the invisible textarea for IME gets focus.
+      if (mathFieldEl.shadowRoot) {
+        const sink = mathFieldEl.shadowRoot.querySelector('textarea, input[type="text"], .ML__keyboard-sink');
+        if (sink && typeof sink.focus === 'function') {
+          sink.focus();
+        }
+      }
+    };
+
     const handlePointerUp = (e: Event) => {
-      // Just open keypad after a delay so MathLive processes its native click first
+      // MathLive sometimes updates its internal cursor on gap click, but fails to focus the actual IME textarea.
+      forceFocus(el);
       setTimeout(() => {
+        forceFocus(el);
         if (typeof el.executeCommand === 'function') {
           openKeypad(el, level);
         }
@@ -357,6 +369,25 @@ export function MathInput({
       )}
       onClick={(e: React.MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
+        if (mfRef.current) {
+          // If the user clicks the gap (container), ensure cursor goes to end and IME is forcefully focused.
+          const el = mfRef.current;
+          if (typeof el.focus === 'function') el.focus();
+          if (el.shadowRoot) {
+            const sink = el.shadowRoot.querySelector('textarea, input');
+            if (sink && typeof sink.focus === 'function') sink.focus();
+          }
+          if (typeof el.executeCommand === 'function') {
+            el.executeCommand(['moveToMathFieldEnd']);
+          }
+          setTimeout(() => {
+            if (typeof el.focus === 'function') el.focus();
+            if (el.shadowRoot) {
+              const sink = el.shadowRoot.querySelector('textarea, input');
+              if (sink && typeof sink.focus === 'function') sink.focus();
+            }
+          }, 50);
+        }
       }}
     >
       <style dangerouslySetInnerHTML={{ __html: `
@@ -373,7 +404,7 @@ export function MathInput({
           width: 100% !important;
           display: flex !important;
           align-items: center !important;
-          padding: 0 !important;
+          padding: 0 1rem !important; /* Restore left/right padding to fix visual bug */
           overflow: visible !important;
         }
         math-field::part(content) {
@@ -381,12 +412,10 @@ export function MathInput({
           overflow-wrap: ${multiline ? 'break-word' : 'normal'} !important;
           word-break: ${multiline ? 'break-all' : 'normal'} !important;
           text-align: left !important;
-          display: ${multiline ? 'flex' : 'inline-flex'} !important;
-          align-items: center !important;
+          display: ${multiline ? 'block' : 'inline-block'} !important;
           width: ${multiline ? '100%' : 'auto'} !important;
           min-width: 100% !important;
           padding: 0 !important;
-          min-height: 80px !important;
         }
         /* Hide MathLive internal virtual keyboard toggle and menu toggles */
         math-field::part(virtual-keyboard-toggle),
@@ -408,6 +437,7 @@ export function MathInput({
         style={{ 
           flex: 1,
           width: "100%", 
+          minHeight: "80px", // Restore 80px min-height natively to the element
           background: "transparent",
           border: "none",
           fontSize: "1.125rem",
