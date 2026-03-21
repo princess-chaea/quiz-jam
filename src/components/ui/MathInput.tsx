@@ -21,8 +21,10 @@ const toMathLiveValue = (text: string) => {
   // Normalize remaining double backslashes for commands
   result = result.replace(/\\\\/g, '\\');
   
-  // 2. We NO LONGER convert spaces to ~ because it prevents line wrapping.
-  // Instead, we just return the cleaned text.
+  // 2. Convert spaces to backslash-space (\ ) for MathLive.
+  // This preserves spaces while allowing potential wrapping better than ~ (non-breaking space).
+  result = result.replace(/ /g, '\\ ');
+  
   return result;
 };
 
@@ -82,7 +84,8 @@ export function MathInput({
         mfRef.current.inlineShortcuts = {
           ...mfRef.current.inlineShortcuts,
           '*': { mode: 'math', value: '\\times' },
-          '/': { mode: 'math', value: '\\div' }
+          '/': { mode: 'math', value: '\\div' },
+          ' ': { mode: 'math', value: '\\ ' }
         };
       }
     });
@@ -198,7 +201,12 @@ export function MathInput({
       // Explicitly handle space to insert a LaTeX non-breaking space (~)
       // This is the most reliable way to ensure spaces are preserved in MathLive
       if (e.key === " ") {
-        return; // Allow default space behavior for wrapping
+        if (typeof el.executeCommand === 'function') {
+          e.preventDefault();
+          el.executeCommand(["insert", "\\ "]);
+          handleUpdate(e);
+        }
+        return;
       }
 
       if (e.key === "/") {
@@ -284,11 +292,10 @@ export function MathInput({
           width: 100% !important;
           display: block !important;
         }
-        math-field::part(content) {
           white-space: pre-wrap !important;
           overflow-wrap: break-word !important;
           word-break: break-all !important;
-          text-align: center !important;
+          text-align: left !important;
           display: block !important;
           width: 100% !important;
           padding: 0 !important;
