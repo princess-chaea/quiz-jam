@@ -331,12 +331,30 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
   const teamNames: Record<string, string> = { RED: '빨강팀', BLUE: '파랑팀', GREEN: '초록팀', YELLOW: '노랑팀' };
   const teamBgColors: Record<string, string> = { RED: 'bg-red-500', BLUE: 'bg-blue-500', GREEN: 'bg-green-500', YELLOW: 'bg-yellow-400' };
 
-  const handleSubmit = (overrideAnswer?: string) => {
+  const handleSubmit = React.useCallback((overrideAnswer?: string) => {
     const finalAnswer = (overrideAnswer || answer).trim();
     if (!finalAnswer) return;
     setSubmitted(true);
+    setInternalSubmitted(true);
     onSubmit(finalAnswer);
-  };
+  }, [answer, onSubmit]);
+
+  const handleAnswerChange = React.useCallback((val: string) => {
+    setAnswer(val);
+  }, []);
+
+  const handleBlankChange = React.useCallback((wordIdx: number, val: string, blanks: number[]) => {
+    setBlankAnswers(prev => {
+      const next = { ...prev, [wordIdx]: val };
+      // Move setAnswer out of the updater logic to prevent nested update warnings
+      setTimeout(() => {
+        const sortedBlanks = [...blanks].sort((a: number, b: number) => a - b);
+        const combined = sortedBlanks.map(idx => next[idx] || "").join(", ");
+        setAnswer(combined);
+      }, 0);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     setAnswer("");
@@ -1069,15 +1087,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result }
                               <SegmentedInput
                                 value={blankAnswers[wordIdx] || ""}
                                 length={word.length}
-                                onChange={(val) => {
-                                  setBlankAnswers(prev => {
-                                    const next = { ...prev, [wordIdx]: val };
-                                    const sortedBlanks = [...blanks].sort((a, b) => a - b);
-                                    const combined = sortedBlanks.map(idx => next[idx] || "").join(", ");
-                                    setAnswer(combined);
-                                    return next;
-                                  });
-                                }}
+                                onChange={(val) => handleBlankChange(wordIdx, val, blanks)}
                                 onEnter={() => handleSubmit()}
                                 autoFocus={blankIndex === 0}
                                 firstRef={blankIndex === 0 ? firstBlankRef : null}

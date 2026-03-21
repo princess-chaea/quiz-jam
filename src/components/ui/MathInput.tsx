@@ -101,9 +101,9 @@ export function MathInput({
       const prepared = toMathLiveValue(template);
       mfRef.current.value = prepared;
       lastValueRef.current = template;
-      onChange(template);
+      onChangeRef.current(template);
     }
-  }, [template, value, onChange]);
+  }, [template, value]);
 
   // Sync value changes after initialization
   useEffect(() => {
@@ -137,6 +137,12 @@ export function MathInput({
     return () => document.removeEventListener("mousedown", handleClickOutside, true);
   }, []);
 
+  // Use a ref for onChange to prevent infinite loops if the parent provides a non-memoized function
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
   // Use a state-tracked element to ensure listeners are attached when the DOM is ready
   const [mfElement, setMfElement] = useState<any>(null);
 
@@ -155,7 +161,7 @@ export function MathInput({
         .replace(/\\\\ /g, ' ');
       
       lastValueRef.current = normalizedValue; 
-      onChange(normalizedValue);
+      onChangeRef.current(normalizedValue);
     };
 
     const handleFocus = () => {
