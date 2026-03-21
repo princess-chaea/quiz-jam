@@ -21,9 +21,9 @@ const toMathLiveValue = (text: string) => {
   // Normalize remaining double backslashes for commands
   result = result.replace(/\\\\/g, '\\');
   
-  // 2. Convert spaces to backslash-space (\ ) for MathLive.
-  // This preserves spaces while allowing potential wrapping better than ~ (non-breaking space).
-  result = result.replace(/ /g, '\\ ');
+  // 2. Convert spaces to ~ (non-breaking space) for MathLive.
+  // This is the most stable way to ensure spaces are visible in math mode.
+  result = result.replace(/ /g, '~');
   
   return result;
 };
@@ -77,15 +77,40 @@ export function MathInput({
           smartMode: true,
           smartSubsup: true,
           virtualKeyboardToggle: 'hidden',
+          virtualKeyboardMode: 'manual',
           menuIcon: 'none'
         });
+        // Explicitly set the toggle policy
+        mfRef.current.mathVirtualKeyboardPolicy = "manual";
+
+        // Inject styles into shadow root as a last resort for icon hiding
+        if (mfRef.current.shadowRoot) {
+          const style = document.createElement('style');
+          style.textContent = `
+            .ML__virtual-keyboard-toggle, .ML__menu-toggle, [part="virtual-keyboard-toggle"], [part="menu-toggle"] {
+              display: none !important;
+              visibility: hidden !important;
+              width: 0 !important;
+              height: 0 !important;
+              pointer-events: none !important;
+            }
+            /* Attempt to force wrapping on the internal base element */
+            .ML__base {
+              display: flex !important;
+              flex-wrap: wrap !important;
+              width: 100% !important;
+              white-space: pre-wrap !important;
+            }
+          `;
+          mfRef.current.shadowRoot.appendChild(style);
+        }
         
         // Add shortcuts for arithmetic symbols and SPACES
         mfRef.current.inlineShortcuts = {
           ...mfRef.current.inlineShortcuts,
           '*': { mode: 'math', value: '\\times' },
           '/': { mode: 'math', value: '\\div' },
-          ' ': { mode: 'math', value: '\\ ' }
+          ' ': { mode: 'math', value: '~' }
         };
       }
     });
@@ -203,7 +228,7 @@ export function MathInput({
       if (e.key === " ") {
         if (typeof el.executeCommand === 'function') {
           e.preventDefault();
-          el.executeCommand(["insert", "\\ "]);
+          el.executeCommand(["insert", "~"]);
           handleUpdate(e);
         }
         return;
@@ -291,7 +316,9 @@ export function MathInput({
         math-field::part(container) {
           width: 100% !important;
           display: block !important;
+          padding: 1rem !important; /* Move padding here */
         }
+        math-field::part(content) {
           white-space: pre-wrap !important;
           overflow-wrap: break-word !important;
           word-break: break-all !important;
@@ -300,13 +327,15 @@ export function MathInput({
           width: 100% !important;
           padding: 0 !important;
         }
-        /* Hide MathLive internal virtual keyboard toggle */
-        math-field::part(virtual-keyboard-toggle) {
-          display: none !important;
-        }
-        /* Hide menu icon toggle if it still appears */
+        /* Hide MathLive internal virtual keyboard toggle and menu toggles */
+        math-field::part(virtual-keyboard-toggle),
         math-field::part(menu-toggle) {
           display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          width: 0 !important;
+          height: 0 !important;
+          pointer-events: none !important;
         }
       `}} />
       <math-field
@@ -314,7 +343,7 @@ export function MathInput({
           mfRef.current = el;
           if (el !== mfElement) setMfElement(el);
         }}
-        className={cn("w-full p-4 outline-none", className)}
+        className={cn("w-full outline-none", className)}
         style={{ 
           width: "100%", 
           minHeight: "80px",
