@@ -21,10 +21,8 @@ const toMathLiveValue = (text: string) => {
   // Normalize remaining double backslashes for commands
   result = result.replace(/\\\\/g, '\\');
   
-  // 2. Convert regular spaces to ~ (non-breaking space) for MathLive.
-  // This avoids backslash issues entirely as ~ is a single character.
-  result = result.replace(/ /g, '~');
-  
+  // 2. We NO LONGER convert spaces to ~ because it prevents line wrapping.
+  // Instead, we just return the cleaned text.
   return result;
 };
 
@@ -75,15 +73,16 @@ export function MathInput({
         mfRef.current.setOptions({
           smartFraction: false,
           smartMode: true,
-          smartSubsup: true
+          smartSubsup: true,
+          virtualKeyboardToggle: 'hidden',
+          menuIcon: 'none'
         });
         
         // Add shortcuts for arithmetic symbols and SPACES
         mfRef.current.inlineShortcuts = {
           ...mfRef.current.inlineShortcuts,
           '*': { mode: 'math', value: '\\times' },
-          '/': { mode: 'math', value: '\\div' },
-          ' ': { mode: 'math', value: '~' }
+          '/': { mode: 'math', value: '\\div' }
         };
       }
     });
@@ -199,12 +198,7 @@ export function MathInput({
       // Explicitly handle space to insert a LaTeX non-breaking space (~)
       // This is the most reliable way to ensure spaces are preserved in MathLive
       if (e.key === " ") {
-        if (typeof el.executeCommand === 'function') {
-          e.preventDefault();
-          el.executeCommand(["insert", "~"]);
-          handleUpdate(e);
-        }
-        return;
+        return; // Allow default space behavior for wrapping
       }
 
       if (e.key === "/") {
@@ -294,10 +288,18 @@ export function MathInput({
           white-space: pre-wrap !important;
           overflow-wrap: break-word !important;
           word-break: break-all !important;
-          text-align: left !important;
+          text-align: center !important;
           display: block !important;
           width: 100% !important;
           padding: 0 !important;
+        }
+        /* Hide MathLive internal virtual keyboard toggle */
+        math-field::part(virtual-keyboard-toggle) {
+          display: none !important;
+        }
+        /* Hide menu icon toggle if it still appears */
+        math-field::part(menu-toggle) {
+          display: none !important;
         }
       `}} />
       <math-field
@@ -316,6 +318,7 @@ export function MathInput({
         }}
         multiline="true"
         math-virtual-keyboard-policy="manual"
+        virtual-keyboard-toggle="hidden"
         menu-icon="none"
         placeholder={placeholder}
       >
