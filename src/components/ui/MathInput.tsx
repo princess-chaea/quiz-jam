@@ -395,14 +395,8 @@ export function MathInput({
           align-items: center !important;
           padding: 0 1rem !important; 
           overflow: visible !important;
-          min-height: 48px !important;
-          cursor: text !important;
-        }
-        /* Fallback for components that don't support ::part fully or need direct targeting */
-        math-field .ML__container {
-          display: flex !important;
-          align-items: center !important;
-          min-height: 48px !important;
+          min-height: 40px !important;
+          border: 1px solid #3b82f6 !important; /* Temporary blue border for verification */
           padding: 0 1rem !important;
         }
         math-field .ML__base {
@@ -436,7 +430,7 @@ export function MathInput({
         style={{ 
           flex: 1,
           width: "100%", 
-          minHeight: "48px",
+          minHeight: "40px",
           background: "transparent",
           border: "none",
           fontSize: "1.125rem",

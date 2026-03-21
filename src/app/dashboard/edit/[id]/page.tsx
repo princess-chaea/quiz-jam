@@ -355,7 +355,7 @@ export default function QuizEditor() {
                             onChange={(val) => updateQuestion(index, "q", val)}
                             placeholder="질문을 입력하세요..."
                             className="text-xl md:text-2xl font-bold bg-transparent"
-                            containerClassName="min-h-[120px] bg-slate-50/30 border-slate-200"
+                            containerClassName="bg-slate-50/30 border-slate-200"
                             isTeacher={true}
                             level={quiz?.school_level === '초등' ? 'elementary' : quiz?.school_level === '중' ? 'middle' : quiz?.school_level === '고등' ? 'high' : 'elementary'}
                             multiline={true}
@@ -503,7 +503,7 @@ export default function QuizEditor() {
                               onChange={(val) => updateQuestion(index, "a", val)}
                               placeholder="정답을 입력하세요..."
                               className="text-lg font-bold bg-transparent"
-                              containerClassName="min-h-[60px] bg-slate-50/50 border-slate-100"
+                              containerClassName="bg-slate-50/50 border-slate-100"
                               isTeacher={true}
                               level={quiz?.school_level === '초등' ? 'elementary' : quiz?.school_level === '중' ? 'middle' : quiz?.school_level === '고등' ? 'high' : 'elementary'}
                               showScrollbar={true}
