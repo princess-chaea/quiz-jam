@@ -64,6 +64,23 @@ export function MathInput({
   const [mounted, setMounted] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
+  const forceFocus = (mathFieldEl: any) => {
+    if (!mathFieldEl) return;
+    if (typeof mathFieldEl.focus === 'function') {
+      mathFieldEl.focus();
+    }
+    // Extremely aggressive search across the entire shadow DOM (and its sub-trees if any)
+    if (mathFieldEl.shadowRoot) {
+      // Find ANY element that acts as a text sink (textarea or input or specialized div)
+      const sinks = mathFieldEl.shadowRoot.querySelectorAll('textarea, input, [contenteditable="true"], .ML__keyboard-sink, .ML__textarea');
+      sinks.forEach((sink: any) => {
+        if (typeof sink.focus === 'function') {
+          sink.focus({ preventScroll: true });
+        }
+      });
+    }
+  };
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -76,6 +93,14 @@ export function MathInput({
         // Use manual keyboard policy to allow hardware keyboard focus and avoid auto-popups
         mfRef.current.mathVirtualKeyboardPolicy = "manual";
         
+        // Global sound disabling for ALL mathfields to prevent 404s
+        const mfElementClass = (mathlive as any).MathfieldElement;
+        if (mfElementClass) {
+          mfElementClass.keypressSound = 'none';
+          mfElementClass.plonkSound = 'none';
+          mfElementClass.soundsDirectory = null;
+        }
+
         // Disable smart fraction conversion and other auto-conversions if desired
         mfRef.current.setOptions({
           smartFraction: false,
@@ -86,7 +111,8 @@ export function MathInput({
           virtualKeyboardMode: 'manual',
           menuIcon: 'none',
           keypressSound: 'none',
-          plonkSound: 'none'
+          plonkSound: 'none',
+          soundsDirectory: null
         });
         // Explicitly set the toggle policy
         mfRef.current.mathVirtualKeyboardPolicy = "manual";
@@ -98,6 +124,13 @@ export function MathInput({
             .ML__virtual-keyboard-toggle, .ML__menu-toggle, [part="virtual-keyboard-toggle"], [part="menu-toggle"] {
               display: none !important;
               visibility: hidden !important;
+            }
+            .ML__container {
+              display: flex !important;
+              align-items: center !important;
+              min-height: 80px !important;
+              padding: 0 1rem !important;
+              cursor: text !important;
             }
             .ML__base {
               display: flex !important;
@@ -254,19 +287,6 @@ export function MathInput({
       }
     };
 
-    const forceFocus = (mathFieldEl: any) => {
-      if (!mathFieldEl) return;
-      if (typeof mathFieldEl.focus === 'function') {
-        mathFieldEl.focus();
-      }
-      if (mathFieldEl.shadowRoot) {
-        const sink = mathFieldEl.shadowRoot.querySelector('textarea, input[type="text"], .ML__keyboard-sink');
-        if (sink && typeof sink.focus === 'function') {
-          sink.focus();
-        }
-      }
-    };
-
     const handleCompositionStart = (e: Event) => {
       // CRITICAL: When clicking the gap, MathLive cursor is at top-level math mode.
       // Top-level math mode rejects IME composition (Korean). 
@@ -384,31 +404,12 @@ export function MathInput({
         (!multiline || showScrollbar) ? "overflow-x-auto overflow-y-hidden custom-scrollbar" : "overflow-hidden",
         containerClassName
       )}
-      style={{ minHeight: "80px" }}
       onClick={(e: React.MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
-        if (mfRef.current && e.target === containerRef.current) {
-          // The native click (pointerdown) activated MathLive's visual cursor, 
-          // but due to MathLive 0.98's bug, the internal textarea failed to receive focus natively.
-          // Since this React onClick is a Trusted User Gesture, we can forcefully focus the textarea here!
-          const el = mfRef.current;
-          
-          const forceSink = () => {
-            if (typeof el.focus === 'function') el.focus();
-            if (el.shadowRoot) {
-              const sink = el.shadowRoot.querySelector('textarea, input[type="text"], .ML__keyboard-sink');
-              if (sink && typeof sink.focus === 'function') {
-                sink.focus();
-              }
-            }
-          };
-
-          // Try immediately (synchronously during the trusted event)
-          forceSink();
-
-          // And reinforce it after internal MathLive routines complete (usually <100ms)
-          setTimeout(forceSink, 150);
-          setTimeout(forceSink, 300); // 300ms fail-safe
+        if (mfRef.current) {
+          // Fallback focus for the container area, 
+          // but Shadow DOM CSS makes math-field fill the gap anyway.
+          mfRef.current.focus();
         }
       }}
     >
@@ -425,8 +426,9 @@ export function MathInput({
           width: 100% !important;
           display: flex !important;
           align-items: center !important;
-          padding: 0 1rem !important; /* Restore left/right padding to fix visual bug */
+          padding: 0 !important; /* Managed by .ML__container in shadow DOM */
           overflow: visible !important;
+          min-height: 80px !important;
         }
         math-field::part(content) {
           white-space: ${multiline ? 'pre-wrap' : 'nowrap'} !important;
@@ -458,6 +460,7 @@ export function MathInput({
         style={{ 
           flex: 1,
           width: "100%", 
+          minHeight: "80px",
           background: "transparent",
           border: "none",
           fontSize: "1.125rem",
