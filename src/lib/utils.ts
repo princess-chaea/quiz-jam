@@ -30,14 +30,24 @@ export function getChoseong(str: string) {
 export function processMathText(text: string | null | undefined): string {
   if (!text) return "";
   
-  // If it already has $, assume it's correctly formatted
+  // 1. If it already has $, assume it's correctly formatted
   if (text.includes("$")) return text;
 
-  // Split by blocks of Korean characters to isolate potential math segments
+  // 2. Detect if this is likely a single LaTeX block from MathLive (e.g. multi-line or complex formatting)
+  // Hallmarks: starts with \displaylines, contains \frac, \begin, etc. and lacks clear Korean delimiters outside commands
+  const isBlockMath = text.includes("\\displaylines") || 
+                     text.includes("\\begin{") || 
+                     (text.includes("\\frac") && text.length > 50);
+
+  if (isBlockMath) {
+    // For block math, we wrap the entire string once to avoid breaking internal commands
+    return `$${text.trim()}$`;
+  }
+
+  // 3. Standard split by Korean characters for mixed inline text
   const parts = text.split(/([ㄱ-ㅎ|ㅏ-ㅣ|가-힣]+)/);
   
   return parts.map(part => {
-    // If it's a Korean segment, return as is
     if (/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(part)) return part;
     
     // Markers: \ (backslash), ^ (sup), _ (sub), = (equals), \u25A1 (square), or ~ (space)
@@ -45,14 +55,11 @@ export function processMathText(text: string | null | undefined): string {
       // Normalize double backslashes (often from JSON escaping)
       let clean = part.replace(/\\\\(?=[a-zA-Z{}])/g, '\\');
       
-      // If the segment consists only of whitespace/punctuation, don't wrap
       if (!/[a-zA-Z0-9\\^_{}=□]/.test(clean)) return part;
 
-      // Check for leading and trailing whitespace to preserve it
       const leadingSpace = part.match(/^\s*/)?.[0] || "";
       const trailingSpace = part.match(/\s*$/)?.[0] || "";
       
-      // Check for trailing punctuation (.,?!) to keep it outside the math block
       const match = clean.trim().match(/^(.*?)(\s*[.,?!]*)$/);
       if (match) {
         let mathPart = match[1].trim();
@@ -68,7 +75,6 @@ export function processMathText(text: string | null | undefined): string {
       return `${leadingSpace}$${escapedClean}$${trailingSpace}`;
     }
     
-    // No math markers found in this non-Korean segment
     return part;
   }).join('');
 }

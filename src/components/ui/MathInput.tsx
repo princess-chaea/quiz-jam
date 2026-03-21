@@ -54,8 +54,9 @@ export function MathInput({
   focusOnMount = false
 }: MathInputProps) {
   const mfRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const lastValueRef = useRef<string | undefined>(undefined);
-  const { openKeypad } = useMathKeypad();
+  const { activeField, openKeypad } = useMathKeypad();
   const [mounted, setMounted] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
@@ -118,14 +119,7 @@ export function MathInput({
     });
   }, []);
 
-  useEffect(() => {
-    if (isReady && mfRef.current) {
-      // Focus the element immediately when it becomes ready
-      setTimeout(() => {
-        mfRef.current?.focus?.();
-      }, 50);
-    }
-  }, [isReady]);
+  // EFFECT REMOVED: No more auto-focusing on isReady to prevent multiple cursors
 
   useEffect(() => {
     if (mfRef.current && template && !value) {
@@ -167,13 +161,14 @@ export function MathInput({
   // Handle click outside to blur and hide native keyboard
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (!mfRef.current) return;
+      if (!mfRef.current || !containerRef.current) return;
       const path = (e.composedPath?.() || []) as HTMLElement[];
       const isInsideMf = path.includes(mfRef.current);
+      const isInsideContainer = path.includes(containerRef.current);
       const isInsideKeypad = path.some(el => el.classList?.contains('math-keypad-container'));
       const isKeyboardClick = path.some(el => el.classList?.contains('ML__keyboard') || el.closest?.('.ML__virtual-keyboard'));
       
-      if (!isInsideMf && !isInsideKeypad && !isKeyboardClick) {
+      if (!isInsideMf && !isInsideContainer && !isInsideKeypad && !isKeyboardClick) {
         mfRef.current?.blur?.();
         // Force hide the global native keyboard
         // @ts-ignore
@@ -196,11 +191,26 @@ export function MathInput({
     };
   }, []);
 
-  // Use a ref for onChange to prevent infinite loops if the parent provides a non-memoized function
+  // Use refs to prevent listener re-binding on prop updates
   const onChangeRef = useRef(onChange);
+  const onEnterRef = useRef(onEnter);
+  
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+  
+  useEffect(() => {
+    onEnterRef.current = onEnter;
+  }, [onEnter]);
+
+  // Focus Synchronization: Blur if another field becomes active in the context
+  useEffect(() => {
+    if (activeField && activeField !== mfRef.current) {
+      if (mfRef.current && document.activeElement === mfRef.current) {
+        mfRef.current.blur();
+      }
+    }
+  }, [activeField]);
 
   // Use a state-tracked element to ensure listeners are attached when the DOM is ready
   const [mfElement, setMfElement] = useState<any>(null);
@@ -216,8 +226,7 @@ export function MathInput({
       // We also clean up any accidental double backslashes that might have leaked.
       const normalizedValue = liveValue
         .replace(/~/g, ' ')
-        .replace(/\\ /g, ' ')
-        .replace(/\\\\ /g, ' ');
+        .replace(/\\ /g, ' ');
       
       if (lastValueRef.current === normalizedValue) return;
       
@@ -226,32 +235,22 @@ export function MathInput({
     };
 
     const handleFocus = () => {
-      if (true) {
-        if (typeof el.executeCommand === 'function') {
-          openKeypad(el, level);
-        } else {
-          setTimeout(() => {
-            if (typeof el.executeCommand === 'function') {
-              openKeypad(el, level);
-            }
-          }, 100);
-        }
+      if (typeof el.executeCommand === 'function') {
+        openKeypad(el, level);
+      } else {
+        setTimeout(() => {
+          if (typeof el.executeCommand === 'function') {
+            openKeypad(el, level);
+          }
+        }, 100);
       }
     };
 
     const handleKeyDown = (e: any) => {
-      const el = mfRef.current;
-      if (!el) return;
-
       if (e.key === 'Enter') {
-        if (onEnter) {
+        if (onEnterRef.current) {
           e.preventDefault();
-          onEnter();
-        } else {
-          // In teacher mode (editor), Enter should try to create a newline
-          // MathLive text mode handles Enter, but in math mode we might need \\
-          // However, for simplicity, let's just let the native behavior happen 
-          // unless we want to force something.
+          onEnterRef.current();
         }
       }
       
@@ -282,11 +281,6 @@ export function MathInput({
         }
         return;
       }
-      
-      if (e.key === "Enter" && onEnter) {
-        e.preventDefault();
-        onEnter();
-      }
     };
 
     // Use 'input' for real-time updates and 'change' for finality
@@ -306,7 +300,7 @@ export function MathInput({
       el.removeEventListener("focus", handleFocus);
       el.removeEventListener("blur", handleUpdate);
     };
-  }, [mfElement, isReady, onChange, onEnter, openKeypad, level, isTeacher]);
+  }, [mfElement, isReady, openKeypad, level]);
 
   const handleToggleKeyboard = () => {
     // @ts-ignore
@@ -334,7 +328,18 @@ export function MathInput({
   }
 
   return (
-    <div className={cn("relative w-full rounded-2xl overflow-hidden group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all", containerClassName)}>
+    <div 
+      ref={containerRef}
+      className={cn("relative w-full rounded-2xl overflow-hidden group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text", containerClassName)}
+      onClick={() => {
+        // Use a slight delay to ensure browser focus transitions don't conflict
+        setTimeout(() => {
+          if (mfRef.current && document.activeElement !== mfRef.current) {
+            mfRef.current.focus();
+          }
+        }, 10);
+      }}
+    >
       <style dangerouslySetInnerHTML={{ __html: `
         math-field {
           display: block !important;
