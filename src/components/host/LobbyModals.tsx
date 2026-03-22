@@ -121,13 +121,12 @@ export function EventSettingsModal({ probabilities, onSave, onCancel }: EventSet
   
   const descriptions = {
     double: '정답 시 획득 점수 2배',
-    swap: '무작위로 다른 친구와 점수 교체',
-    strike: '다음 정답 시 보너스 점수 획득',
-    shield: '상대방의 공격(점수 깎기) 방어',
-    cut: '상대방의 점수를 깎고 내 점수 향상',
-    donate: '내 점수를 다른 친구들에게 골고루 기부',
+    swap: '원하는 학생과 점수 바꾸기',
+    strike: '다음 정답 시 x2',
+    shield: '교체, 삭감, 기부 1회 방어',
+    cut: '오답일 경우 배점만큼 삭감',
+    donate: '오답일 경우 정답자(최대 5명)에게 10점씩 기부',
   };
-
   const colors = {
     double: 'bg-yellow-50 border-yellow-200',
     swap: 'bg-indigo-50 border-indigo-200',
@@ -164,7 +163,7 @@ export function EventSettingsModal({ probabilities, onSave, onCancel }: EventSet
                        {icons[k]}
                        <div className="flex flex-col">
                          <span className="font-black text-gray-700">{labels[k]}</span>
-                         <span className="text-[10px] text-gray-400 font-bold leading-tight">{descriptions[k]}</span>
+                         <span className="text-[10px] text-gray-400 mt-1">{descriptions[k as keyof typeof descriptions]}</span>
                        </div>
                     </div>
                     <div className="bg-white px-3 py-1 rounded-full font-black text-indigo-600 shadow-sm border border-indigo-100">

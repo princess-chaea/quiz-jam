@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="py-20 border-t border-slate-100 bg-white">
+    <footer className="py-6 border-t border-slate-100 bg-white">
       <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
         <div className="flex items-center">
           <img src="/logo.png" alt="클래스 퀴즈 잼!" className="h-10 object-contain" />

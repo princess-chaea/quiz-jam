@@ -108,10 +108,16 @@ export default function QuizEditor() {
 
   // Drag and Drop Logic
   const handleDragStart = (e: React.DragEvent, index: number) => {
+    const target = e.target as HTMLElement;
+    const isHandle = target.closest('.drag-handle');
+    if (!isHandle) {
+      e.preventDefault();
+      return;
+    }
+
     setDraggedIndex(index);
-    // Add a slight transparency to the dragged item
     setTimeout(() => {
-      (e.target as HTMLElement).style.opacity = "0.5";
+      (e.currentTarget as HTMLElement).style.opacity = "0.5";
     }, 0);
   };
 
@@ -297,12 +303,14 @@ export default function QuizEditor() {
           {quiz.questions.map((q: any, index: number) => (
             <div 
               key={index} 
+              draggable={true}
+              onDragStart={(e) => handleDragStart(e, index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
               className={`group bg-white rounded-3xl p-8 shadow-sm border border-gray-200 relative animate-pop hover:shadow-xl hover:shadow-indigo-50 transition-all ${draggedIndex === index ? 'opacity-50 ring-4 ring-indigo-200' : ''}`}
             >
               {/* Drag Handle */}
-              <div className="absolute -left-4 top-1/2 -translate-y-1/2 bg-white border border-gray-100 shadow-md p-2 rounded-xl text-gray-300 hidden md:flex items-center justify-center cursor-move hover:text-indigo-500 hover:bg-indigo-50 transition-colors">
+              <div className="drag-handle absolute -left-4 top-1/2 -translate-y-1/2 bg-white border border-gray-100 shadow-md p-2 rounded-xl text-gray-300 hidden md:flex items-center justify-center cursor-move hover:text-indigo-500 hover:bg-indigo-50 transition-colors">
                 <GripVertical size={20} />
               </div>
               
@@ -512,7 +520,7 @@ export default function QuizEditor() {
                       )}
                     </div>
 
-                    <div className="flex flex-col gap-6 min-w-[200px] md:w-[240px] shrink-0">
+                    <div className="flex flex-col gap-6">
                       {/* Points Slider */}
                       <div className="space-y-4">
                          <div className="flex justify-between items-center">
