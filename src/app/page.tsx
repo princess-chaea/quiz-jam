@@ -3,11 +3,11 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { 
-  GraduationCap, 
-  Sparkles, 
-  Zap, 
-  Users, 
+import {
+  GraduationCap,
+  Sparkles,
+  Zap,
+  Users,
   ArrowRight,
   ShieldCheck
 } from "lucide-react";
@@ -36,14 +36,13 @@ function TeacherPreviewSlider() {
       {PREVIEW_IMAGES.map((img, index) => (
         <div
           key={img}
-          className={`absolute inset-0 transition-opacity duration-1000 flex items-center justify-center p-8 ${
-            index === currentIndex ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
-          }`}
+          className={`absolute inset-0 transition-opacity duration-1000 flex items-center justify-center p-8 ${index === currentIndex ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+            }`}
         >
-          <img 
-            src={img} 
-            alt={`Preview ${index + 1}`} 
-            className="w-full h-full object-contain drop-shadow-2xl rounded-2xl border border-white/50" 
+          <img
+            src={img}
+            alt={`Preview ${index + 1}`}
+            className="w-full h-full object-contain drop-shadow-2xl rounded-2xl border border-white/50"
           />
         </div>
       ))}
@@ -52,13 +51,12 @@ function TeacherPreviewSlider() {
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}
-            className={`h-2 rounded-full transition-all duration-500 ${
-              index === currentIndex ? "bg-indigo-600 w-10" : "bg-indigo-100 w-2 hover:bg-indigo-200"
-            }`}
+            className={`h-2 rounded-full transition-all duration-500 ${index === currentIndex ? "bg-indigo-600 w-10" : "bg-indigo-100 w-2 hover:bg-indigo-200"
+              }`}
           />
         ))}
       </div>
-      
+
       {/* Decorative Badge */}
       <div className="absolute top-8 right-8 bg-white/80 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm border border-slate-100 z-20 animate-bounce">
         <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Teacher View</span>
@@ -103,7 +101,7 @@ export default function TeacherLanding() {
           <div className="flex items-center">
             <img src="/logo.png" alt="클래스 퀴즈 잼!" className="h-14 object-contain" />
           </div>
-          <button 
+          <button
             onClick={() => router.push("/join")}
             className="text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors"
           >
@@ -120,22 +118,22 @@ export default function TeacherLanding() {
               <Sparkles size={16} /> 2026년형 차세대 클래스 퀴즈 솔루션
             </div>
             <h1 className="text-6xl md:text-8xl font-black leading-[1.1] tracking-tight text-slate-900 mb-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
-              수업의 활력을 <br/>
-              <span className="text-indigo-600">실시간</span>으로 <br/>
+              수업의 활력을 <br />
+              <span className="text-indigo-600">실시간</span>으로 <br />
               깨우세요
             </h1>
             <p className="text-xl text-slate-500 font-medium max-w-lg mb-12 leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000">
-              더 이상 지루한 수업은 없습니다. 제미나이 AI가 도와주는 스마트한 문항 생성과 
+              더 이상 지루한 수업은 없습니다. AI가 도와주는 스마트한 문항 생성과
               박진감 넘치는 실시간 레이스로 교실을 열정으로 채웁니다.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-bottom-10 duration-1000">
               <Button onClick={handleLogin} size="xl" className="px-10 py-6 rounded-2xl group shadow-2xl shadow-indigo-200">
                 구글로 선생님 로그인 <ArrowRight size={24} className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
-              <Button 
-                onClick={() => router.push("/join")} 
-                size="xl" 
-                variant="ghost" 
+              <Button
+                onClick={() => router.push("/join")}
+                size="xl"
+                variant="ghost"
                 className="px-10 py-6 rounded-2xl border-2 border-slate-100 hover:border-indigo-100 hover:bg-slate-50"
               >
                 학생으로 참여하기
@@ -147,7 +145,7 @@ export default function TeacherLanding() {
             <div className="absolute -top-20 -right-20 w-80 h-80 bg-indigo-200/50 rounded-full blur-[100px]" />
             <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-violet-200/50 rounded-full blur-[100px]" />
             <div className="relative bg-white rounded-[2.5rem] border border-slate-200 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] overflow-hidden aspect-[4/3] group">
-               <TeacherPreviewSlider />
+              <TeacherPreviewSlider />
             </div>
           </div>
         </div>
@@ -161,17 +159,17 @@ export default function TeacherLanding() {
             <p className="text-slate-500 font-bold">수업 준비 시간은 줄이고, 참여도는 극대화하세요.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <FeatureCard 
+            <FeatureCard
               icon={<Zap className="text-amber-500" />}
               title="초고속 AI 문항 생성"
-              description="제미나이 AI가 학습 자료에서 핵심 문항을 자동으로 추출해 드립니다."
+              description="AI가 학습 자료에서 핵심 문항을 자동으로 추출해 드립니다."
             />
-            <FeatureCard 
+            <FeatureCard
               icon={<Users className="text-indigo-500" />}
               title="박진감 넘치는 실시간 레이스"
               description="점수 뺏기, 기부, 쉴드 등 다양한 이벤트가 수업을 게임처럼 만듭니다."
             />
-            <FeatureCard 
+            <FeatureCard
               icon={<ShieldCheck className="text-emerald-500" />}
               title="강력한 보안 및 관리"
               description="구글 로그인을 통한 간편한 퀴즈 라이브러리 관리와 개인정보 보호."

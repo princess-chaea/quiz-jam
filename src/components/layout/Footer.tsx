@@ -9,7 +9,7 @@ export function Footer() {
           <img src="/logo.png" alt="클래스 퀴즈 잼!" className="h-10 object-contain" />
         </div>
         <p className="text-slate-400 text-sm font-bold">
-          © 2026 Class Quiz Jam • Created for Inspired Education
+          © 2026 퀴즈잼 • Created for Inspired Education
         </p>
         <div className="flex gap-6 text-slate-400 font-bold text-sm">
           <Link href="/terms" className="hover:text-indigo-600 transition-colors">이용약관</Link>
