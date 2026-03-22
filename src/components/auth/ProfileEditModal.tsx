@@ -76,31 +76,17 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
     
     setDeleting(true);
     try {
-      // 1. Delete user data from public tables
-      // Cascading deletes in schema should handle games, answers, etc if they refer to auth.users.id
-      // But we must manually delete profiles and quizzes if they are in public schema.
-      
-      const { error: quizError } = await supabase
-        .from("quizzes")
-        .delete()
-        .eq('user_id', user.id);
-        
-      if (quizError) throw quizError;
+      // 1. Call server-side function to delete auth record and cascaded data
+      const { error: deleteError } = await supabase.rpc('delete_user');
+      if (deleteError) throw deleteError;
 
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .delete()
-        .eq('id', user.id);
-
-      if (profileError) throw profileError;
-
-      // 2. Sign out
+      // 2. Sign out locally
       await signOut();
       
       // 3. Close modal and redirect
       onClose();
       router.push("/");
-      router.refresh(); // Ensure landing page state is fresh
+      router.refresh();
     } catch (err: any) {
       await showAlert("탈퇴 처리 중 오류가 발생했습니다: " + err.message);
     } finally {

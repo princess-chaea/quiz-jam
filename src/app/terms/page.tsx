@@ -32,7 +32,7 @@ export default function TermsOfService() {
           <div className="prose prose-slate max-w-none space-y-8 text-slate-600 font-medium leading-relaxed">
             <section>
               <h2 className="text-xl font-black text-slate-800 mb-4 border-l-4 border-indigo-500 pl-4">1. 서비스 정의 및 목적</h2>
-              <p>본 서비스('Class Quiz Jam')는 AI를 활용한 퀴즈 생성 및 교육적 목적의 실시간 퀴즈 진행을 위한 도구입니다. 본 약관은 이용자가 서비스를 이용함에 있어 필요한 권리와 의무를 규정합니다.</p>
+              <p>본 서비스('퀴즈잼')는 AI를 활용한 퀴즈 생성 및 교육적 목적의 실시간 퀴즈 진행을 위한 도구입니다. 본 약관은 이용자가 서비스를 이용함에 있어 필요한 권리와 의무를 규정합니다.</p>
             </section>
 
             <section>

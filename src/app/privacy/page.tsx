@@ -34,7 +34,7 @@ export default function PrivacyPolicy() {
               <h2 className="text-xl font-black text-slate-800 mb-4 border-l-4 border-indigo-500 pl-4">1. 수집하는 개인정보</h2>
               <p>본 서비스는 원활한 서비스 제공을 위해 다음과 같은 개인정보를 수집합니다.</p>
               <ul className="list-disc pl-6 space-y-2 mt-4">
-                <li><strong>구글 로그인을 통해 제공받는 정보:</strong> 구글 이메일 주소, 이름</li>
+                <li><strong>구글 로그인을 통해 제공받는 정보:</strong> 구글 이메일 주소, 이름, 프로필 사진</li>
                 <li><strong>이용자가 직접 입력하는 정보:</strong> 소속 학교, 선생님 이름, 프로필 사진</li>
               </ul>
             </section>
