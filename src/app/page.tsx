@@ -12,6 +12,7 @@ import {
   ShieldCheck
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Footer } from "@/components/layout/Footer";
 
 export default function TeacherLanding() {
   const router = useRouter();
