@@ -30,11 +30,8 @@ export function getChoseong(str: string) {
 export function processMathText(text: string | null | undefined): string {
   if (!text) return "";
   
-  // Strip \displaylines and any double backslashes before processing
+  // Normalize displaylines if present
   text = text.replace(/\\displaylines/g, '').trim();
-  
-  // Clean up excessive curly braces that sometimes get parsed as literal text
-  text = text.replace(/\{{2,}/g, '').replace(/\}{2,}/g, '');
   
   // 1. If it already has $, assume it's correctly formatted
   if (text.includes("$")) return text;

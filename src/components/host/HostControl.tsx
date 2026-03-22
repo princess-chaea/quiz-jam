@@ -232,7 +232,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             // Each target gains 10 points
             t.points += 10;
             if (t.event === 'none') {
-              t.event = `gift:${donorNick}`;
+              t.event = (t.event === 'none') ? `gift:${donorNick}` : t.event + `,gift:${donorNick}`;
             }
           });
         }

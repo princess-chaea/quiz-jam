@@ -108,6 +108,27 @@ export default function JoinPage() {
           assignedTeam = activeTeams.reduce((a, b) => counts[a] <= counts[b] ? a : b);
         }
 
+        // --- UNIQUE AVATAR ASSIGNMENT ---
+        // Fetch all avatar_ids already in use for this game
+        const { data: usedAvatars } = await supabase
+          .from("players")
+          .select("avatar_id")
+          .eq("game_id", game.id);
+        
+        const usedIds = new Set(usedAvatars?.map(p => p.avatar_id).filter(id => id !== null));
+        let assignedAvatarId = 1;
+
+        // Try to find an unused ID from 1 to 30
+        const availableIds = Array.from({ length: 30 }, (_, i) => i + 1).filter(id => !usedIds.has(id));
+        
+        if (availableIds.length > 0) {
+          // Pick a random one from available to avoid sequential predictability
+          assignedAvatarId = availableIds[Math.floor(Math.random() * availableIds.length)];
+        } else {
+          // If all 30 are used, pick a random one (collision unavoidable)
+          assignedAvatarId = Math.floor(Math.random() * 30) + 1;
+        }
+
         const { data: newPlayer, error: playerError } = await supabase
           .from("players")
           .insert([{ 
@@ -115,7 +136,7 @@ export default function JoinPage() {
             nickname: cleanNickname, 
             score: 0,
             team: assignedTeam,
-            avatar_id: Math.floor(Math.random() * 30) + 1
+            avatar_id: assignedAvatarId
           }])
           .select()
           .single();
