@@ -154,7 +154,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       }
 
       // 2. Broadcast to Host to perform the actual point swap
-      // Use persistent channel ref instead of creating temporary ones
       if (swapChannelRef.current) {
         console.log(`[Swap Engine] Broadcasting EXECUTE_SWAP to host for ${player.nickname}...`);
         await swapChannelRef.current.send({
@@ -165,14 +164,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             targetId: targetId // Will be null if skipped
           }
         });
-      } else {
-        console.error("[Swap Engine] Error: Swap channel not initialized!");
       }
 
       if (targetId) {
-        setSwapResultText(`${targetName} ????筌??????節떷????????????낆젵!\n????????β뼯援??????ル꺄椰?????????棺堉?뙴??????..`);
+        setSwapResultText(`${targetName} 학생과 점수를 바꿨습니다!`);
       } else {
-        setSwapResultText(`????????ш끽維뽳쭩????轅붽틓??? ?????썼キ?Β??????節떷????????????낆젵.\n???濚밸Ŧ援???轅붽틓?蹂잛젂?④낮釉????????????棺堉?뙴??????..`);
+        setSwapResultText(`점수 바꾸기를 하지 않고 넘어갔습니다.`);
       }
     } catch (err) {
       console.error("Swap execution failed:", err);
@@ -193,7 +190,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         console.log(`[Swap Engine] Student ${player.nickname} received START_SWAP for ${payload.nickname} (${payload.playerId})`);
         setActiveSwapperName(payload.nickname);
         
-        // Exact string comparison for IDs to avoid any type issues
         const myId = String(player.id || "").trim();
         const swapperId = String(payload.playerId || "").trim();
         const myNick = String(player.nickname || "").trim();
@@ -218,25 +214,23 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         
         if (swapperId === player.id) {
           if (skipped) {
-            setSwapResultText(`?????????????????ш끽維뽳쭩????轅붽틓??? ?????썼キ?Β???????Β?띾쭡?? ???);
+            setSwapResultText("점수 바꾸기를 하지 않고 넘어갔습니다.");
           } else {
-            setSwapResultText(`${targetName} ????筌???????筌뚯슦쨘????쎛 ???????癲??????? ???);
+            setSwapResultText(`${targetName} 학생과 점수를 바꿨습니다!`);
             confetti({ particleCount: 50, spread: 40, origin: { y: 0.8 } });
           }
           setIsMyTurnToSwap(false);
           setSwapCommitted(true);
         } else if (targetId === player.id && !skipped) {
-          setSwapResultText(`${swapperName} ????筌???????筌뚯슦쨘????쎛 ???????癲??????? ???);
-          // Note: We DO NOT set swapCommitted(true) here because this student 
-          // might still have their own swap turn later in the same round.
+          setSwapResultText(`${swapperName} 학생이 당신과 점수를 바꿨습니다!`);
         }
       })
       .on('broadcast', { event: 'SHIELD_BLOCK' }, ({ payload }: { payload: any }) => {
         const { nickname, type } = payload;
         setActiveSwapperName(null);
-        setIsSwapExecuting(false); // Critical: Unlock the Confirm button
+        setIsSwapExecuting(false); 
         if (type === 'swap' && isMyTurnToSwap) {
-          setSwapResultText(`${nickname} ????筌????ш끽維??λ궔????轅붽틓???壤??????? ????釉먮폇??);
+          setSwapResultText(`${nickname} 학생이 방어 아이템을 사용하여 바꾸기를 차단했습니다!`);
           setIsMyTurnToSwap(false);
           setSwapCommitted(true);
         }
@@ -255,7 +249,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     };
   }, [game?.id, player.id]);
 
-  // Auto-close swap result modal after 3 seconds
   useEffect(() => {
     if (swapResultText && !isSwapExecuting) {
       const timer = setTimeout(() => {
@@ -267,11 +260,9 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     }
   }, [swapResultText, isSwapExecuting]);
 
-  // Synchronize local swap state with DB source of truth (Persistent Fallback)
   useEffect(() => {
     const swapState = game?.options?.swapState;
     if (!swapState || game.status !== 'RESULT') {
-       // Reset if no active swap
        setActiveSwapperName(null);
        setIsMyTurnToSwap(false);
        return;
@@ -281,54 +272,39 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     const currentId = String(swapState.currentSwapperId || "").trim();
     const myId = String(player.id || "").trim();
     
-    // 1. Set the global "Who is swapping?" label for everyone
     setActiveSwapperName(currentNick);
-    
-    // 2. Determine if it's MY turn
     const isMe = currentId === myId;
 
     if (isMe) {
-      // --- LOOP PREVENTION GUARD ---
-      // If we don't have our result record yet, wait for it before deciding to open UI.
-      // If we already marked our result as 'swap_done', DO NOT open the UI again.
       const alreadyDone = result?.event?.includes('swap_done');
       
-      if (!result) {
-        console.log("[Swap Engine] DB Sync: It's my turn, but waiting for 'result' data...");
-        return;
-      }
+      if (!result) return;
 
       if (alreadyDone) {
-        console.log("[Swap Engine] DB Sync: It's my turn, but I already finished swapping (swap_done). Skipping UI.");
         setIsMyTurnToSwap(false);
-        setSwapCommitted(true); // Ensure internal state reflects completion
+        setSwapCommitted(true); 
         return;
       }
 
       if (!isMyTurnToSwap && !swapCommitted) {
-        console.log(">>> [Swap Engine] DB Sync: It is MY turn. Opening UI.");
         setIsMyTurnToSwap(true);
         setSwapResultText(null);
       }
     } else {
       if (isMyTurnToSwap) {
-        console.log(">>> [Swap Engine] DB Sync: Not my turn anymore. Closing UI.");
         setIsMyTurnToSwap(false);
       }
-      // If the turn moved away from me, reset my committed state for potential next turn 
-      // (though usually only one swap per person per round, but just in case)
       if (swapCommitted && !isMe) {
          setSwapCommitted(false);
       }
     }
   }, [game?.options?.swapState, game?.status, player.id, swapCommitted, isMyTurnToSwap, result]);
 
-  // Team score calculation
   const teamScore = players
     .filter(p => p.team === player.team)
     .reduce((sum, p) => sum + p.score, 0);
 
-  const teamNames: Record<string, string> = { RED: '??癲ル슢履????', BLUE: '??????', GREEN: '?逆??ш낄?蹂μ땃??', YELLOW: '??꿔꺂??????' };
+  const teamNames: Record<string, string> = { RED: '레드팀', BLUE: '블루팀', GREEN: '그린팀', YELLOW: '옐로우팀' };
   const teamBgColors: Record<string, string> = { RED: 'bg-red-500', BLUE: 'bg-blue-500', GREEN: 'bg-green-500', YELLOW: 'bg-yellow-400' };
 
   const handleSubmit = React.useCallback((overrideAnswer?: string) => {
@@ -346,7 +322,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const handleBlankChange = React.useCallback((wordIdx: number, val: string, blanks: number[]) => {
     setBlankAnswers(prev => {
       const next = { ...prev, [wordIdx]: val };
-      // Move setAnswer out of the updater logic to prevent nested update warnings
       setTimeout(() => {
         const sortedBlanks = [...blanks].sort((a: number, b: number) => a - b);
         const combined = sortedBlanks.map(idx => next[idx] || "").join(", ");
@@ -369,13 +344,11 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     setPendingSwapTarget(null);
     setTimeLeft(currentQuestion?.timeLimit || 20);
 
-    // Sync state with existing result if available (for refreshes)
     if (result && result.q_index === game.current_q_index) {
       setAnswer(result.answer || "");
       setSubmitted(true);
       setInternalSubmitted(true);
       
-      // Also sync blankAnswers for BLANK type
       if (currentQuestion?.type === "BLANK" && result.answer) {
         const parts = result.answer.split(", ");
         const newBlanks: Record<number, string> = {};
@@ -387,7 +360,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       }
     }
 
-    // Aggressive auto-focus for the first blank
     if (game.status === 'PLAYING' && currentQuestion?.type === "BLANK") {
       const focus = () => {
         if (firstBlankRef.current) {
@@ -398,7 +370,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         }
       };
 
-      // Try multiple times to ensure it hits after rendering
       focus();
       const t1 = setTimeout(focus, 50);
       const t2 = setTimeout(focus, 200);
@@ -428,7 +399,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     return () => clearInterval(timer);
   }, [game.current_q_index, submitted, game.status]);
 
-  // Maintain focus for BLANK questions
   useEffect(() => {
     if (game.status !== 'PLAYING' || currentQuestion?.type !== "BLANK" || submitted) return;
     
@@ -446,7 +416,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     };
   }, [game.status, currentQuestion?.type, submitted]);
 
-  // Update local state when remote result arrives
   useEffect(() => {
     if (result && result.q_index === game.current_q_index) {
       setSubmitted(true);
@@ -458,11 +427,9 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   }, [result, game.current_q_index]);
 
   useEffect(() => {
-    // Round-specific unique key to prevent double trigger when 'result' updates (e.g., points calculation)
     const resultKey = `${game.id}_${game.current_q_index}`;
     if (game.status === 'RESULT' && result && result.is_correct && confettiTriggered.current !== resultKey) {
       confettiTriggered.current = resultKey;
-      // USER REQUIREMENT: Delay confetti so result card is visible first
       setTimeout(() => {
         confetti({
           particleCount: 150,
@@ -474,7 +441,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     }
   }, [result, game.id, game.current_q_index, game.status]);
 
-  // Shield Block Broadcast Listener
   useEffect(() => {
     if (!game.id) return;
 
@@ -482,7 +448,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       .channel(`game_events_student_${game.id}`)
       .on('broadcast', { event: 'SHIELD_BLOCK' }, (payload: any) => {
         setShieldBlock(payload.payload);
-        // Auto hide after 4 seconds
         setTimeout(() => setShieldBlock(null), 4000);
       })
       .subscribe();
@@ -494,23 +459,19 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
   if (game.status === "RESULT" && result) {
     const basePoints = currentQuestion?.points || 10;
-    const eventStr = (result.event || 'none').toLowerCase();
-    const isStrikeBonus = eventStr.includes('strike_bonus') || eventStr.includes('strike_double');
-    const isDouble = eventStr.includes('double') || eventStr.includes('strike_double');
     
     return (
       <div className="flex flex-col items-center justify-center min-h-[600px] w-full max-w-2xl mx-auto p-4 md:p-8 animate-in fade-in zoom-in duration-500 relative">
-        {/* Original Style Card: White background with thick colored border */}
         <div className={cn(
           "w-full bg-white rounded-[4rem] border-[16px] shadow-2xl overflow-hidden flex flex-col items-center p-12 mb-10 transition-all duration-500 scale-105",
           result.is_correct ? "border-emerald-500" : "border-red-500"
         )}>
           <img src="/logo.png" className="w-16 h-16 object-contain mb-4 animate-pop" alt="Quiz Jam Logo" />
-          {/* Central Icon Section */}
           <div className="mb-10 animate-pop">
             {result.is_correct ? (
-              <div className="w-32 h-32 rounded-full border-[12px] border-red-500 flex items-center justify-center shadow-lg relative">
+              <div className="w-32 h-32 rounded-full border-[12px] border-emerald-500 flex items-center justify-center shadow-lg relative">
                  <div className="absolute inset-0 rounded-full border-4 border-white/30" />
+                 <Check className="text-emerald-500" size={80} strokeWidth={8} />
               </div>
             ) : (
               <div className="w-32 h-32 flex items-center justify-center relative animate-pop">
@@ -520,10 +481,9 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           </div>
 
           <h2 className="text-5xl md:text-7xl font-black text-slate-800 font-jua tracking-tighter mb-8">
-            {result.is_correct ? "??꿔꺂?????れ쟼??????뽯쨦??" : "?????밸븶筌믡꺂??????"}
+            {result.is_correct ? "정답입니다!" : "아쉬워요!"}
           </h2>
 
-          {/* Inset Point Card Section */}
           <div className="w-full bg-slate-50/50 rounded-[3.5rem] p-12 flex flex-col items-center shadow-inner border border-slate-100/50">
             <div className={cn(
               "text-8xl md:text-9xl font-black mb-2 tabular-nums tracking-tighter drop-shadow-sm",
@@ -539,15 +499,13 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                 const points = (awarded !== null && awarded !== undefined && awarded !== 0) 
                   ? awarded 
                   : (result.is_correct ? basePoints * multiplier : 0);
-                return points >= 0 ? `+${points}?? : `${points}??;
+                return points >= 0 ? `+${points}점` : `${points}점`;
               })()}
             </div>
             
             <div className="flex flex-col items-center gap-2 text-center mt-6">
               {result.is_correct && result.q_index === game.current_q_index && (() => {
                 const eventStr = (result.event || 'none').trim().toLowerCase();
-                const isStrikeBonus = eventStr === 'strike_bonus' || eventStr === 'strike_double';
-                const isDouble = eventStr === 'double' || eventStr === 'strike_double';
                 
                 return (
                   <div className="flex flex-col items-center gap-4">
@@ -555,14 +513,14 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                       const trimmedE = e.trim();
                       if (trimmedE === 'strike_bonus') return (
                         <div key={idx} className="bg-orange-50 border-2 border-orange-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3 animate-bounce">
-                          <span className="text-2xl">??/span>
-                          <span className="text-orange-600 font-black text-xl">??????깅렰??嚥싲갭큔??????鶯ㅺ동????ロ닞??????????筌?????????2??</span>
+                          <span className="text-2xl">🔥</span>
+                          <span className="text-orange-600 font-black text-xl">연속 정답 보너스! 3개 이상의 문제를 연속으로 맞춰서 점수 보너스 X2!</span>
                         </div>
                       );
                       if (trimmedE === 'double') return (
                         <div key={idx} className="bg-yellow-50 border-2 border-yellow-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3 animate-bounce">
                           <span className="bg-yellow-400 text-white px-3 py-1 rounded-xl font-black text-xl shadow-sm italic">X2</span>
-                          <span className="text-yellow-600 font-black text-xl">?????2????影?る븕??????????뽮덫???????2??</span>
+                          <span className="text-yellow-600 font-black text-xl">점수 2배 아이템! 이번 문제에서 얻은 점수가 2배가 됩니다!</span>
                         </div>
                       );
                       if (trimmedE.startsWith('gift')) {
@@ -577,7 +535,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                           <div key={idx} className="bg-pink-50 border-2 border-pink-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3">
                             <Gift className="text-pink-500" size={24} fill="currentColor" />
                             <span className="text-pink-600 font-black text-xl font-jua">
-                               {displayNames ? `${displayNames}??瑜곷턄 ?곌랜?亦???ル뱼? ??? : "??ル뱼??꾩룇猷? ?곌랜????????????? ???}
+                               {displayNames ? `${displayNames}님이 보내신 선물(점수 기부)!` : "선물이 도착했습니다!"}
                             </span>
                           </div>
                         );
@@ -585,19 +543,19 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                       if (trimmedE === 'strike') return (
                         <div key={idx} className="bg-blue-50 border-2 border-blue-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3 animate-pop">
                           <Zap className="text-blue-500" size={24} fill="currentColor" />
-                           <span className="text-blue-600 font-black text-xl font-jua">???덈콦??源녿턄????節뗪땁 ???쒓덫! ??/span>
+                           <span className="text-blue-600 font-black text-xl font-jua">스트라이크 아이템 획득! 다음 문제를 맞히면 점수 보너스!</span>
                         </div>
                       );
                       if (trimmedE === 'swap') return (
                         <div key={idx} className="bg-indigo-50 border-2 border-indigo-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3 animate-pop">
                           <RefreshCw className="text-indigo-600 animate-spin-slow" size={28} />
-                           <span className="text-indigo-700 font-black text-xl font-jua">???????흮????節뗪땁 ???쒓덫! ???/span>
+                           <span className="text-indigo-700 font-black text-xl font-jua">점수 바꾸기 아이템 획득! 다음 문제를 맞히면 점수 바꾸기 기회!</span>
                         </div>
                       );
                       if (trimmedE === 'shield') return (
                         <div key={idx} className="bg-cyan-50 border-2 border-cyan-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3 animate-pop">
                           <Shield className="text-cyan-600" size={24} fill="currentColor" />
-                           <span className="text-cyan-700 font-black text-xl font-jua">?꾩렮維???熬곣뫗逾?????쒓덫! ???붾떬?/span>
+                           <span className="text-cyan-700 font-black text-xl font-jua">방어 아이템 획득! 누군가 내 점수를 앗아가려 할 때 자동으로 방어!</span>
                         </div>
                       );
                       return null;
@@ -608,27 +566,26 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
               {!result.is_correct && result.q_index === game.current_q_index && (
                 <div className="flex flex-col items-center gap-2">
-                  {result.event === 'cut' && <span className="text-red-500 font-black text-lg">?????嶺뚢뼰紐욤??熬곣뫗逾??戮곕꺄 ??ㅻ????怨쀬Ŧ ?띠룆흮???琉????鍮??</span>}
-                  {result.event === 'donate' && <span className="text-indigo-500 font-black text-lg">?곸궡裕?????⑤벡紐???꾩룄?????????????ル뱼?덉낯??곷さ???블맟?? ({result.points_awarded})</span>}
+                  {result.event === 'cut' && <span className="text-red-500 font-black text-lg">점수를 뺏겼습니다! 방어 아이템이 없어서 점수가 차감되었습니다.</span>}
+                  {result.event === 'donate' && <span className="text-indigo-500 font-black text-lg">점수를 나눠주었습니다! 정답을 맞힌 모든 친구들에게 점수를 기부했습니다. ({result.points_awarded})</span>}
                   {result.event?.endsWith('_blocked') && (
                     <span className="text-cyan-600 font-black flex items-center gap-2 bg-cyan-50 px-6 py-2 rounded-2xl border-2 border-cyan-200 shadow-sm">
-                      <Shield size={20} fill="currentColor"/> ?꾩렮維???熬곣뫗逾??戮곕턄 ??ㅻ?????熬곣몿????우벟 嶺뚮씭留⑶뇡???곕????덈펲! ???붾떬?
+                      <Shield size={20} fill="currentColor"/> 방어 아이템을 사용하여 내 점수를 지켰습니다!
                     </span>
                   )}
                 </div>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="text-slate-400 font-black text-2xl animate-pulse mb-12">
-          {game?.status === 'RESULT' ? "??ル∥六??????깅쾳 ??쒖굣?節낆쾸? ??戮곗굚??紐껊퉵?? : "??ル∥六????롪퍓??????戮곗굚??紐껊퉵??}
+        <div className="text-slate-400 font-black text-2xl animate-pulse mb-12 text-center">
+          {game?.status === 'RESULT' ? "잠시 후 다음 라운드가 시작됩니다..." : "선생님이 다음 화면으로 넘겨주실 때까지 잠시만 기다려주세요..."}
         </div>
 
-        {/* --- SEQUENTIAL INTERACTIVE SWAP MODAL --- */}
         {((isMyTurnToSwap || activeSwapperName || swapCommitted) && game.status === 'RESULT') && (
           <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-xl z-[900] flex items-center justify-center p-6 animate-in fade-in duration-500">
             {!isMyTurnToSwap && !swapResultText ? (
-              /* Waiting State (Full Screen Popup) */
               <div className="flex flex-col items-center justify-center text-center max-w-lg w-full animate-pop">
                 <div className="relative mb-12">
                    <div className="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full animate-pulse" />
@@ -659,14 +616,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                 
                 <p className="mt-10 text-indigo-200/60 font-medium text-lg max-w-md">
                    {activeSwapperName 
-                      ? `${activeSwapperName} ???뉖Ц????????곸궡裕??? ???????꾩룆??嶺뚯솘? ??μ쪚????겶????곗꽑?? ?롪퍒???좊ご???ル∥六사춯??リ옇?????쏀룖?筌뤾쑴??` 
-                      : "?熬곥룗?득뤆?쎛?띠럾? ?獄????????????꾩룆?? ????⑤챷諭???ルㅎ臾???겶????곕????덈펲. ????????????蹂?뜟??怨룻뱺??"}
+                      ? `${activeSwapperName} 학생이 누구와 점수를 바꿀지 고민하고 있어요. 당신의 점수를 노리고 있을지도 몰라요!` 
+                      : "긴장되는 순간입니다! 점수가 높은 학생일수록 목표가 되기 쉽습니다. 잠시만 결과를 기다려주세요..."}
                 </p>
               </div>
             ) : (
-              /* Selection or Result State */
               <div className="bg-white rounded-[3.5rem] shadow-[0_32px_80px_-20px_rgba(0,0,0,0.5)] w-full max-w-xl overflow-hidden animate-in zoom-in duration-500 border-4 border-white relative">
-                {/* Header Decoration */}
                 <div className="p-10 bg-indigo-600 text-white flex flex-col items-center gap-4 relative">
                   <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-10">
                      <RefreshCw size={200} className="absolute -top-20 -left-20 animate-spin-slow" />
@@ -676,15 +631,15 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                     <RefreshCw size={48} className={cn("text-white", !swapCommitted && !swapResultText && "animate-spin-slow")} />
                   </div>
                   
-                  <h3 className="text-4xl font-black font-jua drop-shadow-md">???????흮?? ???/h3>
+                  <h3 className="text-4xl font-black font-jua drop-shadow-md">점수 바꾸기</h3>
                   
                   <div className="flex flex-col items-center gap-1">
                     <p className="text-indigo-100/80 font-bold text-lg">
-                      {swapCommitted ? "?꾩룆????リ옇?? ?熬곣뫁???琉????鍮??" : "?꾩룆?? ????????ルㅎ臾??琉얠돪??"}
+                      {swapCommitted ? "바꾸기가 완료되었습니다!" : "점수를 바꿀 대상을 선택해주세요!"}
                     </p>
                     {!swapCommitted && !swapResultText && (
                       <div className="bg-indigo-700/50 px-6 py-2 rounded-2xl border border-white/10 mt-2">
-                        <span className="text-yellow-300 font-black">??瑜곷꺄 ?熬곣뫗??????? {player.score}??/span>
+                        <span className="text-yellow-300 font-black">나의 현재 점수: {player.score}점</span>
                       </div>
                     )}
                   </div>
@@ -695,7 +650,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                     <div className="py-16 flex flex-col items-center justify-center gap-8 animate-in fade-in zoom-in duration-500 text-center px-6">
                       <div className="w-24 h-24 bg-indigo-600 rounded-[2.5rem] flex items-center justify-center text-white shadow-2xl">
                         <RefreshCw size={48} className="animate-spin-slow" />
-                     </div>
+                      </div>
                       <div className="text-3xl font-black text-slate-800 leading-tight font-jua">
                         {swapResultText}
                       </div>
@@ -709,17 +664,16 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                             setSwapResultText(null);
                           }}
                         >
-                           ?筌먦끉逾?
+                           확인
                         </Button>
                       ) : (
                         <div className="mt-8 flex flex-col items-center gap-2">
                            <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                           <p className="text-slate-400 font-medium">??흮???筌먦끆??繞?. (??ル∥六사춯??リ옇?????쏀룖?筌뤾쑴??</p>
+                           <p className="text-slate-400 font-medium">바꾸기 결과를 전송 중입니다... (잠시만 기다려주세요)</p>
                         </div>
                       )}
                     </div>
                   ) : pendingSwapTarget ? (
-                    /* Target Confirmation Step */
                     <div className="py-12 flex flex-col items-center text-center gap-8 animate-in slide-in-from-bottom-4 duration-300">
                        <div className="relative group">
                           <div className={cn(
@@ -750,10 +704,10 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                        
                        <div className="space-y-2">
                           <h4 className="text-3xl font-black text-slate-800">
-                             <span className="text-indigo-600">{pendingSwapTarget.nickname}</span> ???뉖Ц??br/>
-                             ???????筌먲퐣異얍슖??꾩룆?????蹂?뱼???鍮띸뭐?
+                             <span className="text-indigo-600">{pendingSwapTarget.nickname}</span> 학생과<br/>
+                             점수를 바꿀까요?
                           </h4>
-                          <p className="text-slate-400 font-bold">?꾩룆?? ?롪퍔??????????????얏뤆?쎛 ??흮???紐껊퉵??</p>
+                          <p className="text-slate-400 font-bold">점수를 바꾸면 취소할 수 없습니다!</p>
                        </div>
                        
                        <div className="flex gap-4 w-full">
@@ -764,7 +718,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                             onClick={() => setPendingSwapTarget(null)}
                             disabled={isSwapExecuting}
                           >
-                              ?띯뫁??
+                               취소
                            </Button>
                            <Button 
                              variant="primary" 
@@ -773,12 +727,13 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                              onClick={() => handleSwapSelection(pendingSwapTarget.id, pendingSwapTarget.nickname)}
                              disabled={isSwapExecuting}
                            >
-                               바꾸기
+                                바꾸기
                            </Button>
                         </div>
-                     ) : (
-                       <div className="space-y-4">
-                         <div className="grid grid-cols-2 gap-3">
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
                         {players
                           .filter(p => {
                             if (p.id === player.id) return false;
@@ -786,7 +741,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                             return true;
                           })
                           .sort((a, b) => (b.score || 0) - (a.score || 0))
-                          .slice(0, 6) // Top 6
+                          .slice(0, 6) 
                           .map(p => (
                             <button
                               key={p.id}
@@ -819,14 +774,13 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                                    {p.nickname}
                                 </span>
                                 <div className="bg-slate-100 px-3 py-1 rounded-full mt-1">
-                                   <span className="text-xs font-black text-slate-500">{p.score}??/span>
+                                   <span className="text-xs font-black text-slate-500">{p.score}점</span>
                                 </div>
                               </div>
                             </button>
                           ))}
                       </div>
                       
-                      {/* Skip Option */}
                       <div className="pt-4 mt-4 border-t-2 border-slate-100 border-dashed">
                         <Button
                           variant="ghost"
@@ -834,7 +788,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                           className="w-full py-6 rounded-[2rem] text-slate-400 font-bold hover:bg-slate-100 hover:text-slate-600 transition-all"
                           onClick={() => handleSwapSelection(null, null)}
                         >
-                          ??ш끽維뽳쭩????轅붽틓??? ?????꾢쳞????癲ル슢???????ル봿????                        </Button>
+                          바꾸지 않고 넘어가기 (이번 라운드 점수를 그대로 유지합니다)
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -847,19 +802,17 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     );
   }
 
-  // Defensive check for missing currentQuestion
   if (!currentQuestion) {
     return (
       <div className="p-12 text-center text-indigo-400">
         <RefreshCw className="animate-spin mx-auto mb-4" size={48} />
-        <p className="text-xl font-black">???筌???鶯ㅺ동??筌믡룓愿????怨쀫뎐??????筌뤾쑵???μ떝?띄몭??袁㏉떋???????낆젵...</p>
+        <p className="text-xl font-black">문제를 불러오는 중입니다. 잠시만 기다려주세요...</p>
       </div>
     );
   }
 
   return (
     <div className="w-full max-w-2xl animate-pop relative">
-      {/* Shield Block Dynamic Animation Overlay */}
       {shieldBlock && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-indigo-900/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="relative bg-white rounded-[3rem] p-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border-8 border-cyan-400 max-w-sm w-full animate-pop flex flex-col items-center">
@@ -867,16 +820,16 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                 <Shield size={64} fill="white" />
              </div>
              <div className="mt-8 text-center">
-                <h4 className="text-3xl font-black text-indigo-900 mb-2">{shieldBlock.nickname} ????筌??/h4>
+                <h4 className="text-3xl font-black text-indigo-900 mb-2">{shieldBlock.nickname} 학생이</h4>
                 <div className="bg-indigo-50 px-6 py-4 rounded-2xl mb-4 border-2 border-indigo-100 flex items-center justify-center gap-2">
                    {shieldBlock.type === 'cut' ? <Scissors className="text-red-500 animate-pulse rotate-45" /> : <Gift className="text-pink-500 animate-pulse" />}
                    <span className="text-xl font-black text-indigo-600">
-                     {shieldBlock.type === 'cut' ? '??????????????? : '??????? ????거???}??                   </span>
+                     {shieldBlock.type === 'cut' ? '점수 뺏기 아이템' : '점수 나눠주기 아이템'}
+                   </span>
                 </div>
-                <h3 className="text-4xl font-black text-cyan-600 animate-pulse">??ш끽維??λ궔???????????????낆젵! ????釉먮폇??/h3>
+                <h3 className="text-4xl font-black text-cyan-600 animate-pulse">방어로 막았습니다! 아주 나이스!</h3>
              </div>
              
-             {/* Clashing effect icons */}
              <div className="absolute inset-0 pointer-events-none">
                 <Zap size={40} className="absolute top-1/4 left-1/4 text-yellow-400 animate-ping opacity-50" />
                 <Zap size={30} className="absolute bottom-1/4 right-1/4 text-yellow-400 animate-ping opacity-50 delay-75" />
@@ -893,14 +846,14 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         player.team === 'YELLOW' && "ring-4 ring-inset ring-yellow-400/20"
       )}>
 
-         {/* Team Identification Badge (Always visible during play) */}
         {player.team && (
           <div className={cn(
             "absolute -top-1 left-1/2 -translate-x-1/2 px-6 py-2 rounded-b-2xl text-white font-black text-xs shadow-md z-10 flex items-center gap-2",
             teamBgColors[player.team]
           )}>
             <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-            {teamNames[player.team]} ???? ????? {teamScore.toLocaleString()}??          </div>
+            {teamNames[player.team]} 팀의 총점: {teamScore.toLocaleString()}점
+          </div>
         )}
 
         <div className="flex justify-between items-end mb-8 mt-2">
@@ -909,7 +862,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
              <div className="flex flex-col gap-1">
                 <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none">Question</span>
                 <span className="bg-indigo-600 text-white px-4 py-1 rounded-xl text-xl font-black shadow-lg shadow-indigo-100 italic">
-                  #{game.current_q_index + 1}
+                   #{game.current_q_index + 1}
                 </span>
              </div>
           </div>
@@ -917,7 +870,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           <div className="flex flex-col items-center gap-1">
              <span className="text-xs font-black text-emerald-400 uppercase tracking-widest">Points</span>
              <span className="bg-emerald-500 text-white px-4 py-1 rounded-2xl text-xl font-black shadow-lg shadow-emerald-100">
-               {currentQuestion?.points || 10}??             </span>
+               {currentQuestion?.points || 10}점
+             </span>
           </div>
          
           <div className={cn(
@@ -940,7 +894,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           "text-3xl md:text-4xl leading-tight"
         )}>
           {currentQuestion?.type === "BLANK" ? (
-            "???濚밸Ŧ援????????덈쟿???????Β?띾쭡???????? ?????맜???? ?傭?끆???????꿔꺂?????" 
+            "빈칸에 들어갈 알맞은 단어를 입력해주세요! 정답을 맞히면 점수를 얻을 수 있습니다!" 
           ) : currentQuestion?.q ? (
             <ReactMarkdown 
               remarkPlugins={[remarkMath]} 
@@ -952,7 +906,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
               {processMathText(currentQuestion.q)}
             </ReactMarkdown>
           ) : (
-            "???筌???鶯ㅺ동??筌믡룓愿????怨쀫뎐??????筌뤾쑵????.."
+            "문제를 불러오는 중입니다..."
           )}
         </div>
 
@@ -960,12 +914,11 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           <div className="mb-10 p-6 bg-indigo-50 rounded-[2rem] border-2 border-indigo-100 flex flex-col items-center animate-in slide-in-from-top-2 duration-300 shadow-inner">
             <span className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
               <Zap size={14} className="fill-indigo-400" /> 
-              Teacher's Hint ({currentQuestion?.type !== "BLANK" && game.current_hint_stage === 1 ? '?????맜????? : '?逆????명뒌??????살퓢??})
+              Teacher's Hint ({currentQuestion?.type !== "BLANK" && game.current_hint_stage === 1 ? '글자 수 힌트' : '초성 힌트가 공개되었습니다!'})
             </span>
             
             <div className="flex flex-col gap-6 w-full">
               {currentQuestion?.type === "BLANK" ? (
-                // BLANK Type: Always show consonants for stage 1+
                 <div className="flex flex-wrap gap-4 justify-center">
                   {currentQuestion.q.split(/\s+/).filter(Boolean).map((word: string, wordIdx: number) => {
                     const isBlank = currentQuestion.blanks?.includes(wordIdx);
@@ -974,7 +927,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                       <div key={wordIdx} className="flex flex-col items-center gap-2">
                         {currentQuestion.blanks.length > 1 && (
                           <span className="text-[10px] font-black bg-indigo-200 text-indigo-700 px-2 py-0.5 rounded-full uppercase">
-                            {currentQuestion.blanks.indexOf(wordIdx) + 1}????????덈쟿??逆????명뒌?                          </span>
+                            {currentQuestion.blanks.indexOf(wordIdx) + 1}번째 빈칸 초성 힌트
+                          </span>
                         )}
                         <div className="flex flex-wrap justify-center gap-2">
                           {word.split('').map((char: string, i: number) => (
@@ -991,7 +945,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                   })}
                 </div>
               ) : (
-                // Standard Type: Stage 1 = Length, Stage 2 = Consonants
                 <div className="flex flex-wrap justify-center gap-3">
                   {currentQuestion?.a.split('').map((char: string, i: number) => {
                     const showChoseong = game.current_hint_stage >= 2;
@@ -1021,10 +974,11 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           internalSubmitted ? (
             <div className="flex flex-col items-center gap-8 py-12 animate-in fade-in zoom-in duration-500">
                <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-500 text-5xl shadow-inner animate-bounce">
-                 ??               </div>
+                 ✅
+               </div>
                <div className="text-center space-y-2">
-                 <h3 className="text-4xl font-black text-slate-800">??癲ル슢?????????밸븶??</h3>
-                 <p className="text-slate-500 font-bold text-lg">?????댟筌먯쥓?????蹂κ텤???轅붽틓?????⑸떭????????ル?????깆궔? ???????????????꿔꺂?????</p>
+                 <h3 className="text-4xl font-black text-slate-800">정답을 제출했습니다!</h3>
+                 <p className="text-slate-500 font-bold text-lg">다른 친구들이 문제를 모두 풀 때까지 조금만 기다려주세요. 선생님이 다음 화면으로 넘겨주실 거예요!</p>
                </div>
                <Button 
                  variant="outline" 
@@ -1036,7 +990,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                     onRetract?.();
                  }}
                >
-                 ??꿔꺂?????れ쟼???ш끽維뽳쭩?????               </Button>
+                 답안 다시 작성하기
+               </Button>
             </div>
           ) : (
             <div className="space-y-6">
@@ -1093,7 +1048,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                         const isBlank = blankIndex !== -1;
                         
                         if (isBlank) {
-                          const wordLen = word.length;
                           return (
                             <div key={wordIdx} className="relative group w-fit">
                               <SegmentedInput
@@ -1124,7 +1078,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                         handleSubmit();
                       }}
                     >
-                      ??癲ル슢???????熬곣뫂爰?
+                      정답 제출하기
                     </Button>
                  </div>
               ) : (
@@ -1135,7 +1089,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                           onChange={handleAnswerChange}
                           onEnter={() => handleSubmit(answer)}
                           className="w-full p-2 text-xl md:text-2xl font-bold bg-transparent"
-                          placeholder="??꿔꺂?????れ쟼???????⑤챷竊??癲ル슢?ｅ젆???
+                          placeholder="정답을 여기에 입력하고 엔터를 눌러주세요!"
                           template={currentQuestion?.template}
                           focusOnMount={true}
                           level={game.options?.level || 'elementary'}
@@ -1149,7 +1103,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                          handleSubmit();
                        }}
                      >
-                       ??癲ル슢???????熬곣뫂爰?
+                       정답 제출하기
                      </Button>
                  </>
               )}
@@ -1158,12 +1112,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         ) : (
           <div className="py-12 flex flex-col items-center gap-4 text-indigo-400 animate-pulse">
             <div className="text-8xl">
-              {timeLeft === 0 && !internalSubmitted ? "?? : 
-               timeLeft === 0 && internalSubmitted ? "?? : "???}
+              {timeLeft === 0 && !internalSubmitted ? "⌛" : 
+               timeLeft === 0 && internalSubmitted ? "✅" : ""}
             </div>
-            <p className="text-2xl font-black">
-              {timeLeft === 0 && !internalSubmitted ? "????????????살꺎???癲???????" : 
-               timeLeft === 0 && internalSubmitted ? "???????????살꺎?? ??β뼯援??????ル꺄椰????????????????꿔꺂?????.." : "?????댟筌먯쥓?????蹂κ텤????꿔꺂?????れ쟼????꿔꺂??틝??????μ떝?띄몭??袁㏉떋???????낆젵..."}
+            <p className="text-2xl font-black text-center">
+              {timeLeft === 0 && !internalSubmitted ? "시간이 다 되었습니다! 정답을 제출할 수 없어요." : 
+               timeLeft === 0 && internalSubmitted ? "시간이 다 되었습니다! 이제 친구들의 정답을 확인해볼까요? 잠시만 기다려주세요..." : "다른 친구들이 문제를 모두 풀 때까지 조금만 기다려주세요! 정답을 제출하지 못했다면 다음 기회를 노려보아요..."}
             </p>
           </div>
         )}
@@ -1171,5 +1125,3 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     </div>
   );
 }
-
-
