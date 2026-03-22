@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { 
@@ -13,6 +13,59 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Footer } from "@/components/layout/Footer";
+
+const PREVIEW_IMAGES = [
+  "/landing/preview1.png",
+  "/landing/preview2.png",
+  "/landing/preview3.png",
+  "/landing/preview4.png",
+];
+
+function TeacherPreviewSlider() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prev: number) => (prev + 1) % PREVIEW_IMAGES.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="relative w-full h-full overflow-hidden flex items-center justify-center p-8 bg-gradient-to-br from-indigo-50/50 to-white">
+      {PREVIEW_IMAGES.map((img, index) => (
+        <div
+          key={img}
+          className={`absolute inset-0 transition-opacity duration-1000 flex items-center justify-center p-8 ${
+            index === currentIndex ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+          }`}
+        >
+          <img 
+            src={img} 
+            alt={`Preview ${index + 1}`} 
+            className="w-full h-full object-contain drop-shadow-2xl rounded-2xl border border-white/50" 
+          />
+        </div>
+      ))}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-20">
+        {PREVIEW_IMAGES.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentIndex(index)}
+            className={`h-2 rounded-full transition-all duration-500 ${
+              index === currentIndex ? "bg-indigo-600 w-10" : "bg-indigo-100 w-2 hover:bg-indigo-200"
+            }`}
+          />
+        ))}
+      </div>
+      
+      {/* Decorative Badge */}
+      <div className="absolute top-8 right-8 bg-white/80 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm border border-slate-100 z-20 animate-bounce">
+        <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Teacher View</span>
+      </div>
+    </div>
+  );
+}
 
 export default function TeacherLanding() {
   const router = useRouter();
@@ -93,23 +146,8 @@ export default function TeacherLanding() {
           <div className="relative animate-in fade-in zoom-in duration-1000">
             <div className="absolute -top-20 -right-20 w-80 h-80 bg-indigo-200/50 rounded-full blur-[100px]" />
             <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-violet-200/50 rounded-full blur-[100px]" />
-            <div className="relative bg-white rounded-[2.5rem] border border-slate-200 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] overflow-hidden aspect-[4/3]">
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-white" />
-              <div className="absolute inset-0 flex items-center justify-center p-12">
-                <div className="w-full text-center">
-                  <div className="grid grid-cols-3 gap-6 mb-8 transform -rotate-6">
-                    {[1, 2, 3, 4, 5, 6].map(i => (
-                      <div key={i} className="bg-white p-4 rounded-2xl shadow-lg border border-slate-100 aspect-square flex items-center justify-center text-3xl">
-                        {['🎉', '💡', '🚀', '🔥', '🎯', '🌈'][i-1]}
-                      </div>
-                    ))}
-                  </div>
-                  <h3 className="text-2xl font-black text-slate-800 mb-2">선생님 화면 예시</h3>
-                  <div className="w-2/3 h-2 bg-indigo-100 rounded-full mx-auto overflow-hidden">
-                    <div className="w-3/4 h-full bg-indigo-500 rounded-full animate-pulse" />
-                  </div>
-                </div>
-              </div>
+            <div className="relative bg-white rounded-[2.5rem] border border-slate-200 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] overflow-hidden aspect-[4/3] group">
+               <TeacherPreviewSlider />
             </div>
           </div>
         </div>
