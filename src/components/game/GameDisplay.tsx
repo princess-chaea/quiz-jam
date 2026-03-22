@@ -603,7 +603,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
               {!result.is_correct && result.q_index === game.current_q_index && (
                 <div className="flex flex-col items-center gap-2">
                   {result.event === 'cut' && <span className="text-red-500 font-black text-lg">✂️ 아이템 공격으로 감점되었습니다!</span>}
-                  {result.event === 'donate' && <span className="text-indigo-500 font-black text-lg">🎁 친구들에게 점수를 나눠주었습니다! (-20)</span>}
+                  {result.event === 'donate' && <span className="text-indigo-500 font-black text-lg">🎁 친구들에게 점수를 나눠주었습니다! ({result.points_awarded})</span>}
                   {result.event?.endsWith('_blocked') && (
                     <span className="text-cyan-600 font-black flex items-center gap-2 bg-cyan-50 px-6 py-2 rounded-2xl border-2 border-cyan-200 shadow-sm">
                       <Shield size={20} fill="currentColor"/> 방패로 감점 공격을 막아냈습니다! 🛡️

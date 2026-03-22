@@ -157,7 +157,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                 return evt + '_blocked';
               }
               if (evt === 'cut') points -= basePoints;
-              if (evt === 'donate') points -= 20;
+              if (evt === 'donate') points -= 10;
               return evt;
             });
             event = finalNegEvents.join(',');
