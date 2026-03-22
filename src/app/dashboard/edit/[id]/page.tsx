@@ -609,7 +609,6 @@ export default function QuizEditor() {
                 </div>
               </div>
             </div>
-            </div>
           ))}
         </div>
           
