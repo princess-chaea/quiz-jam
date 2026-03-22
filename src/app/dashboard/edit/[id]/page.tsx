@@ -43,6 +43,7 @@ export default function QuizEditor() {
   const { showAlert } = useDialog();
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [canDrag, setCanDrag] = useState<number | null>(null);
   
 
   useEffect(() => {
@@ -63,7 +64,14 @@ export default function QuizEditor() {
         .single();
 
       if (error) throw error;
-      setQuiz(data);
+      const dataWithIds = {
+        ...data,
+        questions: (data.questions || []).map((q: any) => ({ 
+          ...q, 
+          id: q.id || Math.random().toString(36).substring(2, 9) 
+        }))
+      };
+      setQuiz(dataWithIds);
     } catch (err) {
       console.error("퀴즈 가져오기 실패:", err);
       await showAlert("퀴즈를 불러올 수 없습니다.");
@@ -74,7 +82,10 @@ export default function QuizEditor() {
   };
 
   const handleAddQuestion = useCallback(() => {
-    const newQuestion = { q: "", a: "", type: "SHORT_ANSWER", options: ["", ""], blanks: [], correct_idx: -1, points: 10, timeLimit: 20 };
+    const newQuestion = { 
+      id: Math.random().toString(36).substring(2, 9),
+      q: "", a: "", type: "SHORT_ANSWER", options: ["", ""], blanks: [], correct_idx: -1, points: 10, timeLimit: 20 
+    };
     setQuiz((prev: any) => ({ ...prev, questions: [...prev.questions, newQuestion] }));
   }, []);
 
@@ -82,6 +93,7 @@ export default function QuizEditor() {
     setQuiz((prev: any) => {
       const prepared = newQuestions.map(q => ({ 
         ...q, 
+        id: q.id || Math.random().toString(36).substring(2, 9),
         timeLimit: q.timeLimit || 20, 
         type: q.type || "SHORT_ANSWER" 
       }));
@@ -108,16 +120,12 @@ export default function QuizEditor() {
 
   // Drag and Drop Logic
   const handleDragStart = (e: React.DragEvent, index: number) => {
-    const target = e.target as HTMLElement;
-    const isHandle = target.closest('.drag-handle');
-    if (!isHandle) {
-      e.preventDefault();
-      return;
-    }
-
     setDraggedIndex(index);
+    // Use setTimeout to ensure the style is applied after the drag image is created
     setTimeout(() => {
-      (e.currentTarget as HTMLElement).style.opacity = "0.5";
+      if (e.currentTarget) {
+        (e.currentTarget as HTMLElement).style.opacity = "0.5";
+      }
     }, 0);
   };
 
@@ -135,8 +143,9 @@ export default function QuizEditor() {
   };
 
   const handleDragEnd = (e: React.DragEvent) => {
-    (e.target as HTMLElement).style.opacity = "1";
+    (e.currentTarget as HTMLElement).style.opacity = "1";
     setDraggedIndex(null);
+    setCanDrag(null);
   };
 
   const handleSave = async (redirect = false) => {
@@ -302,15 +311,19 @@ export default function QuizEditor() {
           </div>
           {quiz.questions.map((q: any, index: number) => (
             <div 
-              key={index} 
-              draggable={true}
+              key={q.id || index}
+              draggable={canDrag === index}
               onDragStart={(e) => handleDragStart(e, index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
               className={`group bg-white rounded-3xl p-8 shadow-sm border border-gray-200 relative animate-pop hover:shadow-xl hover:shadow-indigo-50 transition-all ${draggedIndex === index ? 'opacity-50 ring-4 ring-indigo-200' : ''}`}
             >
               {/* Drag Handle */}
-              <div className="drag-handle absolute -left-4 top-1/2 -translate-y-1/2 bg-white border border-gray-100 shadow-md p-2 rounded-xl text-gray-300 hidden md:flex items-center justify-center cursor-move hover:text-indigo-500 hover:bg-indigo-50 transition-colors">
+              <div 
+                className="drag-handle absolute -left-4 top-1/2 -translate-y-1/2 bg-white border border-gray-100 shadow-md p-2 rounded-xl text-gray-300 hidden md:flex items-center justify-center cursor-grab hover:text-indigo-500 hover:bg-indigo-50 transition-colors z-10 active:cursor-grabbing"
+                onMouseEnter={() => setCanDrag(index)}
+                onMouseLeave={() => setCanDrag(null)}
+              >
                 <GripVertical size={20} />
               </div>
               
