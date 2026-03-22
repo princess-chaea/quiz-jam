@@ -64,7 +64,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         redirectTo: window.location.origin,
       },
     });
-    if (error) throw error;
+    if (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   };
 
   const signOut = async () => {
