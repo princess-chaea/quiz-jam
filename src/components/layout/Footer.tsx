@@ -1,14 +1,19 @@
 import React from "react";
+import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="w-full bg-slate-900 border-t border-slate-800 py-8 lg:py-12 mt-auto">
-      <div className="max-w-7xl mx-auto px-6 flex flex-col items-center justify-center gap-4">
-        <div className="text-slate-400 text-sm font-medium text-center">
-          <p className="mb-2">저작권 표시(교육적 무료 배포)</p>
-          <p>
-            제작 <span className="text-indigo-400 font-bold">하주초등학교 교사 이성근</span> | 문의 <a href="mailto:dltjdrms320@gmail.com" className="text-indigo-400 hover:text-indigo-300 transition-colors">dltjdrms320@gmail.com</a>
-          </p>
+    <footer className="py-20 border-t border-slate-100 bg-white">
+      <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
+        <div className="flex items-center">
+          <img src="/logo.png" alt="클래스 퀴즈 잼!" className="h-10 object-contain" />
+        </div>
+        <p className="text-slate-400 text-sm font-bold">
+          © 2026 Class Quiz Jam • Created for Inspired Education
+        </p>
+        <div className="flex gap-6 text-slate-400 font-bold text-sm">
+          <Link href="/terms" className="hover:text-indigo-600 transition-colors">이용약관</Link>
+          <Link href="/privacy" className="hover:text-indigo-600 transition-colors">개인정보처리방침</Link>
         </div>
       </div>
     </footer>

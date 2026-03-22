@@ -141,21 +141,7 @@ export default function TeacherLanding() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-20 border-t border-slate-100">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center">
-            <img src="/logo.png" alt="클래스 퀴즈 잼!" className="h-10 object-contain" />
-          </div>
-          <p className="text-slate-400 text-sm font-bold">
-            © 2026 Class Quiz Jam • Created for Inspired Education
-          </p>
-          <div className="flex gap-6 text-slate-400 font-bold text-sm">
-            <a href="#" className="hover:text-indigo-600">이용약관</a>
-            <a href="#" className="hover:text-indigo-600">개인정보처리방침</a>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
