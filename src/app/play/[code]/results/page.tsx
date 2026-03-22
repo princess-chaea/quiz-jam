@@ -61,22 +61,19 @@ function ResultsContent() {
         <div className="max-w-md w-full animate-pop">
           <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-b-8 border-indigo-200">
             <div className="bg-indigo-600 p-10 flex flex-col items-center text-white relative">
-              <div className="absolute top-4 right-4 opacity-20">
-                 <Zap size={80} />
-              </div>
               <img src="/logo.png" className="w-16 h-16 object-contain mb-4 animate-pop shadow-md rounded-2xl bg-white/10 p-2" alt="Quiz Jam Logo" />
               <div className="relative mb-2">
                 <Trophy size={64} className="text-yellow-400 drop-shadow-lg" />
                 <Star size={24} className="absolute -top-2 -right-2 text-yellow-200 animate-pulse" />
               </div>
-              <h1 className="text-3xl font-jua">게임 종료!</h1>
-              <p className="opacity-80 font-bold">{name} 학생, 수고하셨습니다!</p>
+              <h1 className="text-3xl font-jua">게임 완료</h1>
+              <p className="opacity-80 font-bold">{name} 학생, 수고했어요!</p>
             </div>
 
             <div className="p-10 space-y-8">
               <div className="flex flex-col items-center">
-                <div className="text-sm font-black text-gray-400 uppercase tracking-widest mb-2">현재 내 점수</div>
-                <div className="text-7xl font-black text-indigo-600 drop-shadow-sm">{me.score}점</div>
+                <div className="text-sm font-black text-gray-400 uppercase tracking-widest mb-2">최종 점수</div>
+                <div className="text-7xl font-black text-indigo-600 drop-shadow-sm">{me.score}</div>
               </div>
 
               <div className="flex justify-between items-center bg-gray-50 p-6 rounded-2xl border border-gray-100">
@@ -85,13 +82,13 @@ function ResultsContent() {
                     <Medal size={32} />
                   </div>
                   <div>
-                     <div className="text-xs font-black text-gray-400 uppercase">최종 순위</div>
+                     <div className="text-xs font-black text-gray-400 uppercase">순위</div>
                      <div className="text-2xl font-black text-gray-800">{myRank === 0 ? '-' : myRank}위 / {players.length}명</div>
                   </div>
                 </div>
                 {myRank === 1 && (
                   <div className="bg-indigo-600 text-white px-4 py-1 rounded-full font-black text-xs animate-pulse">
-                    CHAMPION
+                    1등
                   </div>
                 )}
               </div>
@@ -107,14 +104,14 @@ function ResultsContent() {
                 className="w-full py-6 rounded-2xl text-xl font-black shadow-xl"
                 onClick={() => router.push("/join")}
               >
-                다시 참여하기
+                홈으로 이동
               </Button>
             </div>
           </div>
         </div>
 
         <div className="mt-12 text-indigo-300 font-bold text-sm">
-          © 2026 Class Quiz Jam • 실시간 퀴즈 앱
+          © 2026 퀴즈잼 • 실시간 퀴즈 앱
         </div>
       </div>
     );

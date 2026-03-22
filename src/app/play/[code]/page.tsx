@@ -36,7 +36,9 @@ function StudentPlayContent() {
     const me = players.find((p: any) => p.nickname === name);
     if (!me || !game) return;
     try {
-      const normalized = normalizeMath(val);
+      // We do NOT normalize here to preserve LaTeX (e.g., \frac{1}{2}) for the Host result screen.
+      // The grading logic in HostControl already uses normalizeMath for comparison.
+      const rawValue = val.trim();
       
       // Explicitly check for existing answer to avoid duplicate row insertions
       const { data: existing } = await supabase
@@ -51,7 +53,7 @@ function StudentPlayContent() {
       if (existing) {
         res = await supabase
           .from("answers")
-          .update({ answer: normalized })
+          .update({ answer: rawValue })
           .eq("id", existing.id)
           .select()
           .single();
@@ -62,7 +64,7 @@ function StudentPlayContent() {
             game_id: game.id,
             player_id: me.id,
             q_index: game.current_q_index,
-            answer: normalized
+            answer: rawValue
           })
           .select()
           .single();
@@ -335,8 +337,8 @@ function StudentPlayContent() {
                     </div>
                   </div>
                 </div>
-                <h1 className="text-4xl font-jua text-indigo-900 mb-4">선생님이 게임을 <br/>시작하기를 기다리고 있어요!</h1>
-                <p className="text-gray-500 font-bold mb-8">준비를 마쳤나요? <br/>곧 재미있는 퀴즈가 시작됩니다!</p>
+                <h1 className="text-4xl font-jua text-indigo-900 mb-4">시작을 기다리고 있어요!</h1>
+                <p className="text-gray-500 font-bold mb-8">곧 퀴즈가 시작됩니다!</p>
                 {me?.team && (
                   <div className={cn(
                     "p-6 rounded-3xl shadow-lg border-4 w-full max-w-sm animate-pop",

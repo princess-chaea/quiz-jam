@@ -30,13 +30,17 @@ export function getChoseong(str: string) {
 export function processMathText(text: string | null | undefined): string {
   if (!text) return "";
   
-  // Normalize common issues
-  let processed = text.replace(/\\displaylines/g, '').trim();
+  // 1. Deduplicate excessive consecutive braces (e.g., {{{ -> {)
+  // This addresses the issue where AI or copy-pasting results in triple braces
+  let processed = text.replace(/{3,}/g, '{').replace(/}{3,}/g, '}');
   
-  // 1. If it already has $, assume it's correctly formatted
+  // Normalize common issues
+  processed = processed.replace(/\\displaylines/g, '').trim();
+  
+  // 2. If it already has $, assume it's correctly formatted
   if (processed.includes("$")) return processed;
 
-  // 2. Standard split by Korean characters for mixed inline text
+  // 3. Standard split by Korean characters for mixed inline text
   const parts = processed.split(/([ㄱ-ㅎ|ㅏ-ㅣ|가-힣]+)/);
   
   return parts.map(part => {
@@ -44,12 +48,12 @@ export function processMathText(text: string | null | undefined): string {
     if (/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(part)) return part;
     
     // Markers: \ (backslash), ^ (sup), _ (sub), = (equals), \u25A1 (square), or brackets/braces often used in math
-    // Added { } [ ] to the triggers
-    if (/\\|\^|_|=|□|~|\{|\}|\[|\]/.test(part)) {
+    // Refined trigger logic: only wrap if it looks like actual math content
+    if (/\\|\^|_|=|□|~|\{|\}|\[|\]|\//.test(part)) {
       // Normalize double backslashes (often from JSON escaping: \\frac -> \frac)
       let clean = part.replace(/\\\\/g, '\\');
       
-      // If it's just punctuation/whitespace, don't wrap
+      // If it's just punctuation/whitespace or standalone braces with nothing else, don't wrap
       if (!/[a-zA-Z0-9\\^_{}=\[\]□]/.test(clean.trim())) return part;
 
       const leadingSpace = part.match(/^\s*/)?.[0] || "";
@@ -64,7 +68,6 @@ export function processMathText(text: string | null | undefined): string {
         const punctuationPart = match[2];
         if (mathPart) {
           // Preserve internal spaces in math mode by escaping them
-          // Avoiding negative lookbehind for better cross-env compatibility
           const escapedMath = mathPart.split(' ').map(s => s || '').join('\\ ');
           return `${leadingSpace}$${escapedMath}$${punctuationPart}${trailingSpace}`;
         }

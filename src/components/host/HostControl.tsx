@@ -55,7 +55,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     
     // If prematurely ending, ask for confirmation
     if (timeLeft > 0 && answersRef.current.length < playersRef.current.length) {
-      const confirmed = await showConfirm(`아직 제출하지 않은 학생이 ${playersRef.current.length - answersRef.current.length}명 있습니다.\n정말로 마감하시겠습니까?`);
+      const confirmed = await showConfirm(`${playersRef.current.length - answersRef.current.length}명이 아직 제출하지 않았습니다. 마감할까요?`);
       if (!confirmed) return;
     }
 
@@ -410,7 +410,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   };
 
   const handleForceNext = async () => {
-    const confirmed = await showConfirm("아직 점수 교체가 진행 중입니다. 정말로 강제로 다음 단계로 넘어가시겠습니까?\n(일부 학생의 점수가 반영되지 않을 수 있습니다)");
+    const confirmed = await showConfirm("누군가 점수를 바꾸고 있어요. 그래도 다음으로 넘어갈까요?");
     if (!confirmed) return;
     
     // Use a dedicated flag or just don't clear swapper status yet
@@ -465,7 +465,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   };
 
   const handleExitGame = async () => {
-    const confirmed = await showConfirm("정말로 게임을 종료하시겠습니까?");
+    const confirmed = await showConfirm("아직 참여하지 않은 친구들이 있어요. 그대로 시작할까요?");
     if (!confirmed) return;
     try {
       setCalculating(true);
@@ -479,7 +479,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
   const handleHintStage = async (stage: number) => {
     if (game.current_hint_stage >= stage) return;
-    let message = stage === 1 ? "1단계 힌트를 공개하시겠습니까?" : "2단계 힌트를 공개하시겠습니까?";
+    let message = stage === 1 ? "힌트(글자 수)를 보여줄까요?" : "힌트(초성)를 보여줄까요?";
     const confirmed = await showConfirm(message);
     if (!confirmed) return;
     
@@ -1117,7 +1117,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                       )}
                     >
                       <Zap size={18} className={game.current_hint_stage >= 1 ? "fill-white" : ""} />
-                      초성 힌트 공개
+                      힌트 보여주기
                     </button>
                   ) : (
                     [1, 2].map((s) => (

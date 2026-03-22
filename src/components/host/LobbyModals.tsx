@@ -16,8 +16,8 @@ export function KickConfirmModal({ playerName, onConfirm, onCancel }: KickConfir
         <div className="bg-red-100 text-red-600 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
           <UserMinus size={40} />
         </div>
-        <h3 className="text-2xl font-jua text-gray-800 mb-2">{playerName} 학생을 <br/> 강퇴하시겠습니까?</h3>
-        <p className="text-gray-500 font-bold mb-8">한번 퇴장한 이름으로는 <br/> 다시 입장하기 어려울 수 있습니다.</p>
+        <h3 className="text-2xl font-jua text-gray-800 mb-2">{playerName} 학생을 <br/> 강퇴할까요?</h3>
+        <p className="text-gray-500 font-bold mb-8">다시 입장하기 어려울 수 있습니다.</p>
         
         <div className="flex gap-3">
           <Button variant="ghost" className="flex-1 py-4" onClick={onCancel}>취소</Button>
@@ -67,7 +67,7 @@ export function ChangeTeamModal({ player, teamCount, onConfirm, onCancel }: Chan
         </div>
         
         <div className="p-8">
-          <p className="text-gray-500 font-bold mb-6 text-center">이동할 팀을 선택해주세요.</p>
+          <p className="text-gray-500 font-bold mb-6 text-center">어떤 팀으로 이동할까요?</p>
           <div className="grid grid-cols-2 gap-4">
             {activeTeams.map(team => (
               <button
@@ -118,6 +118,15 @@ export function EventSettingsModal({ probabilities, onSave, onCancel }: EventSet
     cut: '점수 깎기',
     donate: '점수 기부',
   };
+  
+  const descriptions = {
+    double: '정답 시 획득 점수 2배',
+    swap: '무작위로 다른 친구와 점수 교체',
+    strike: '다음 정답 시 보너스 점수 획득',
+    shield: '상대방의 공격(점수 깎기) 방어',
+    cut: '상대방의 점수를 깎고 내 점수 향상',
+    donate: '내 점수를 다른 친구들에게 골고루 기부',
+  };
 
   const colors = {
     double: 'bg-yellow-50 border-yellow-200',
@@ -135,8 +144,8 @@ export function EventSettingsModal({ probabilities, onSave, onCancel }: EventSet
           <div className="flex items-center gap-3">
             <Settings size={32} className="animate-spin-slow" />
             <div>
-              <h3 className="text-2xl font-jua">아이템 발동 확률 설정</h3>
-              <p className="text-indigo-100 text-sm font-bold">각 효과가 나타날 확률을 설정하세요 (0-100%)</p>
+              <h3 className="text-2xl font-jua">발동 확률 설정</h3>
+              <p className="text-indigo-100 text-sm font-bold">아이템별 나타날 확률을 설정하세요 (0-100%)</p>
             </div>
           </div>
           <button onClick={onCancel} className="hover:bg-white/20 p-2 rounded-2xl transition-colors">
@@ -153,7 +162,10 @@ export function EventSettingsModal({ probabilities, onSave, onCancel }: EventSet
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                        {icons[k]}
-                       <span className="font-black text-gray-700">{labels[k]}</span>
+                       <div className="flex flex-col">
+                         <span className="font-black text-gray-700">{labels[k]}</span>
+                         <span className="text-[10px] text-gray-400 font-bold leading-tight">{descriptions[k]}</span>
+                       </div>
                     </div>
                     <div className="bg-white px-3 py-1 rounded-full font-black text-indigo-600 shadow-sm border border-indigo-100">
                       {localProbs[k]}%
@@ -163,7 +175,7 @@ export function EventSettingsModal({ probabilities, onSave, onCancel }: EventSet
                     type="range" 
                     min="0" 
                     max="100" 
-                    step="5"
+                    step="1"
                     value={localProbs[k]}
                     onChange={(e) => setLocalProbs(prev => ({ ...prev, [k]: parseInt(e.target.value) }))}
                     className="w-full accent-indigo-600 h-2 bg-white rounded-lg appearance-none cursor-pointer"
@@ -199,16 +211,16 @@ export function DefaultConfirmModal({ onConfirm, onCancel }: DefaultConfirmModal
         <div className="bg-yellow-100 text-yellow-600 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
           <AlertCircle size={48} />
         </div>
-        <h3 className="text-2xl font-jua text-gray-800 mb-4 tracking-tighter">효과 확률을 <br/>설정하지 않으셨나요?</h3>
+        <h3 className="text-2xl font-jua text-gray-800 mb-4 tracking-tighter">확률을 설정할까요?</h3>
         <div className="bg-slate-50 p-4 rounded-2xl mb-8 border-2 border-slate-100">
-           <p className="text-gray-500 font-bold mb-1">모든 효과 발동 확률을</p>
+           <p className="text-gray-500 font-bold mb-1">모든 효과 확률을</p>
            <p className="text-indigo-600 font-black text-2xl">기본값 5%</p>
-           <p className="text-gray-500 font-bold mt-1">로 설정하고 시작할까요?</p>
+           <p className="text-gray-500 font-bold mt-1">로 시작할까요?</p>
         </div>
         
         <div className="flex flex-col gap-3">
           <Button className="w-full py-6 rounded-2xl text-xl font-black shadow-xl shadow-indigo-100 bg-indigo-600" onClick={onConfirm}>
-            네, 기본값으로 할래요!
+            네, 그렇게 할게요!
           </Button>
           <Button variant="ghost" className="w-full py-4 rounded-2xl font-bold" onClick={onCancel}>
             아뇨, 직접 설정할게요

@@ -345,18 +345,26 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     setTimeLeft(currentQuestion?.timeLimit || 20);
 
     if (result && result.q_index === game.current_q_index) {
-      setAnswer(result.answer || "");
-      setSubmitted(true);
-      setInternalSubmitted(true);
-      
-      if (currentQuestion?.type === "BLANK" && result.answer) {
-        const parts = result.answer.split(", ");
-        const newBlanks: Record<number, string> = {};
-        const blanks = currentQuestion.blanks || [];
-        blanks.sort((a: number, b: number) => a - b).forEach((idx: number, i: number) => {
-          if (parts[i]) newBlanks[idx] = parts[i];
-        });
-        setBlankAnswers(newBlanks);
+      if (result.answer === "(retracted)") {
+        // If it's a retraction, treat as not submitted
+        setAnswer("");
+        setBlankAnswers({});
+        setSubmitted(false);
+        setInternalSubmitted(false);
+      } else {
+        setAnswer(result.answer || "");
+        setSubmitted(true);
+        setInternalSubmitted(true);
+        
+        if (currentQuestion?.type === "BLANK" && result.answer) {
+          const parts = result.answer.split(", ");
+          const newBlanks: Record<number, string> = {};
+          const blanks = currentQuestion.blanks || [];
+          blanks.sort((a: number, b: number) => a - b).forEach((idx: number, i: number) => {
+            if (parts[i]) newBlanks[idx] = parts[i];
+          });
+          setBlankAnswers(newBlanks);
+        }
       }
     }
 
@@ -418,10 +426,16 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
   useEffect(() => {
     if (result && result.q_index === game.current_q_index) {
-      setSubmitted(true);
-      if (!internalSubmitted) {
-        setAnswer(result.answer || "");
-        setInternalSubmitted(true);
+      if (result.answer === "(retracted)") {
+        setSubmitted(false);
+        setInternalSubmitted(false);
+        setAnswer("");
+      } else {
+        setSubmitted(true);
+        if (!internalSubmitted) {
+          setAnswer(result.answer || "");
+          setInternalSubmitted(true);
+        }
       }
     }
   }, [result, game.current_q_index]);
@@ -502,6 +516,25 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                 return points >= 0 ? `+${points}점` : `${points}점`;
               })()}
             </div>
+
+            <div className="grid grid-cols-2 gap-4 w-full mt-4">
+              <div className="bg-white/50 p-4 rounded-3xl border border-slate-100 flex flex-col items-center">
+                <span className="text-[10px] font-black text-slate-400 uppercase mb-1">내가 고른 답</span>
+                <div className="text-xl font-black text-slate-600 truncate w-full text-center [&_p]:m-0">
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                    {processMathText(answer || '(미입력)')}
+                  </ReactMarkdown>
+                </div>
+              </div>
+              <div className="bg-indigo-50 p-4 rounded-3xl border border-indigo-100 flex flex-col items-center">
+                <span className="text-[10px] font-black text-indigo-400 uppercase mb-1">정답</span>
+                <div className="text-xl font-black text-indigo-600 truncate w-full text-center [&_p]:m-0">
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                    {processMathText(currentQuestion?.a || '')}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            </div>
             
             <div className="flex flex-col items-center gap-2 text-center mt-6">
               {result.is_correct && result.q_index === game.current_q_index && (() => {
@@ -543,19 +576,19 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                       if (trimmedE === 'strike') return (
                         <div key={idx} className="bg-blue-50 border-2 border-blue-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3 animate-pop">
                           <Zap className="text-blue-500" size={24} fill="currentColor" />
-                           <span className="text-blue-600 font-black text-xl font-jua">스트라이크 아이템 획득! 다음 문제를 맞히면 점수 보너스!</span>
+                            <span className="text-blue-600 font-black text-xl font-jua">스트라이크! 다음 문제 점수 보너스</span>
                         </div>
                       );
                       if (trimmedE === 'swap') return (
                         <div key={idx} className="bg-indigo-50 border-2 border-indigo-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3 animate-pop">
                           <RefreshCw className="text-indigo-600 animate-spin-slow" size={28} />
-                           <span className="text-indigo-700 font-black text-xl font-jua">점수 바꾸기 아이템 획득! 다음 문제를 맞히면 점수 바꾸기 기회!</span>
+                            <span className="text-indigo-700 font-black text-xl font-jua">점수 바꾸기! 다음 문제 점수 교체 찬스</span>
                         </div>
                       );
                       if (trimmedE === 'shield') return (
                         <div key={idx} className="bg-cyan-50 border-2 border-cyan-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3 animate-pop">
                           <Shield className="text-cyan-600" size={24} fill="currentColor" />
-                           <span className="text-cyan-700 font-black text-xl font-jua">방어 아이템 획득! 누군가 내 점수를 앗아가려 할 때 자동으로 방어!</span>
+                            <span className="text-cyan-700 font-black text-xl font-jua">방어 성공! 내 점수를 자동으로 보호</span>
                         </div>
                       );
                       return null;
@@ -566,11 +599,11 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
               {!result.is_correct && result.q_index === game.current_q_index && (
                 <div className="flex flex-col items-center gap-2">
-                  {result.event === 'cut' && <span className="text-red-500 font-black text-lg">점수를 뺏겼습니다! 방어 아이템이 없어서 점수가 차감되었습니다.</span>}
-                  {result.event === 'donate' && <span className="text-indigo-500 font-black text-lg">점수를 나눠주었습니다! 정답을 맞힌 모든 친구들에게 점수를 기부했습니다. ({result.points_awarded})</span>}
+                  {result.event === 'cut' && <span className="text-red-500 font-black text-lg">점수를 뺏겼습니다!</span>}
+                  {result.event === 'donate' && <span className="text-indigo-500 font-black text-lg">점수를 나눠주었습니다! ({result.points_awarded})</span>}
                   {result.event?.endsWith('_blocked') && (
                     <span className="text-cyan-600 font-black flex items-center gap-2 bg-cyan-50 px-6 py-2 rounded-2xl border-2 border-cyan-200 shadow-sm">
-                      <Shield size={20} fill="currentColor"/> 방어 아이템을 사용하여 내 점수를 지켰습니다!
+                      <Shield size={20} fill="currentColor"/> 방어 성공! 내 점수를 지켰습니다.
                     </span>
                   )}
                 </div>

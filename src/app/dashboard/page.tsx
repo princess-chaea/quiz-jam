@@ -407,6 +407,7 @@ export default function Dashboard() {
               <div className="space-y-4">
                 <h3 className="font-black text-gray-800 flex items-center gap-2 text-lg">
                   <Sparkles size={20} className="text-yellow-500" /> 이벤트 효과 사용 설정
+                  <span className="text-slate-400 text-[10px] font-bold ml-1">대시보드에서 발동 확률을 지정할 수 있습니다.</span>
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                   {[

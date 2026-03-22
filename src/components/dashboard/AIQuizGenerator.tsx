@@ -74,7 +74,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || []);
     if (newFiles.length === 0) return;
-    
+
     const validFiles: File[] = [];
 
     for (const file of newFiles) {
@@ -112,28 +112,28 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
     try {
       // 1. Upload files to Supabase ai-temp bucket first
       const uploadedFilePaths: { mimeType: string, path: string, name: string }[] = [];
-      
+
       const totalSize = files.reduce((acc, f) => acc + f.size, 0);
       if (totalSize > 50 * 1024 * 1024) {
         throw new Error("첨부된 전체 파일 용량이 너무 큽니다 (최대 50MB). 일부 파일을 제외해주세요.");
       }
-      
+
       for (const file of files) {
         if (!file) continue;
         console.log(`[AI Generator] Uploading file: ${file.name} (${file.type}, ${file.size} bytes)`);
-        
+
         const fileExt = file.name.split('.').pop();
         const randomId = Math.random().toString(36).substring(2, 10);
         const fileName = `${Date.now()}-${randomId}.${fileExt}`;
         const filePath = `${fileName}`;
-        
+
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('ai-temp')
           .upload(filePath, file, {
             contentType: file.type || 'application/octet-stream',
             upsert: false
           });
-          
+
         if (uploadError) {
           console.error("[AI Generator] Supabase Storage upload error details:", JSON.stringify(uploadError, null, 2));
           let msg = uploadError.message;
@@ -142,9 +142,9 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
           }
           throw new Error(`${file.name} 업로드 실패 (Status: ${uploadError.status || 'unknown'}): ${msg}`);
         }
-        
+
         console.log(`[AI Generator] Successfully uploaded ${file.name} to ${filePath}`);
-        
+
         uploadedFilePaths.push({
           mimeType: file.type,
           path: filePath,
@@ -160,25 +160,25 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      
+
       const preparedQuestions = data.map((q: any) => {
         let processed = { ...q };
-        
+
         // Ensure type consistency
         const type = q.type || (types.length === 1 ? types[0] : "SHORT_ANSWER");
-        
+
         // Fallback for BLANK type: if AI used markers but didn't provide blanks array
         if (type === 'BLANK' && (!processed.blanks || processed.blanks.length === 0)) {
           console.log("[AI Generator] Fallback: Detecting blanks from markers in text");
           const words = (processed.q || "").split(/\s+/).filter(Boolean);
           const detectedBlanks: number[] = [];
-          
+
           words.forEach((word: string, idx: number) => {
             if (word.includes('\\square') || word.includes('□') || word.includes('____')) {
               detectedBlanks.push(idx);
             }
           });
-          
+
           if (detectedBlanks.length > 0) {
             processed.blanks = detectedBlanks;
             // If answer 'a' is also missing or just the marker, try to sync it if possible
@@ -199,7 +199,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
     } catch (err) {
       console.error("[AI Generator] Error:", err);
       let errorMsg = (err as Error).message;
-      
+
       if (errorMsg.includes("payload") || errorMsg.includes("too large") || errorMsg.includes("413")) {
         errorMsg = "첨부파일 용량이 너무 커서 인공지능이 처리할 수 없습니다. 더 작은 파일을 사용하거나 파일 개수를 줄여주세요.";
       } else if (errorMsg.includes("JSON")) {
@@ -207,7 +207,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
       } else if (errorMsg.includes("할당량") || errorMsg.includes("limit") || errorMsg.includes("429")) {
         errorMsg = "현재 인공지능 사용량이 많아 할당량이 초과되었습니다. 약 30초~1분 후 다시 시도해 주세요.\n(팁: 파일 용량이 크면 할당량을 더 빨리 소모합니다.)";
       }
-      
+
       await showAlert("문항 생성 실패: " + errorMsg);
     } finally {
       setLoading(false);
@@ -239,20 +239,20 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200"
     >
-      <div 
+      <div
         className="bg-white rounded-[2.5rem] shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh] animate-pop"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-indigo-600 p-8 text-white flex justify-between items-center relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12">
-             <Sparkles size={120} />
+            <Sparkles size={120} />
           </div>
           <div className="relative z-10">
             <h3 className="text-2xl font-jua flex items-center gap-2">
-              <Sparkles size={24} /> 제미나이 AI 문항 생성
+              <Sparkles size={24} /> AI 문항 생성
             </h3>
             <p className="text-white/70 text-sm font-bold mt-1">학습 자료만 넣으면 퀴즈가 뚝딱!</p>
           </div>
@@ -272,12 +272,12 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                   </label>
                   <label className="cursor-pointer text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded-lg text-sm font-bold transition-colors">
                     {files.length > 0 ? '+ 파일 더 추가' : '+ 파일 첨부'}
-                    <input 
-                      type="file" 
-                      multiple 
-                      accept=".txt,.csv,.md,.pdf,.png,.jpg,.jpeg,.gif,.webp,.js,.py,.html,.css,.doc,.docx,.xls,.xlsx,.ppt,.pptx" 
-                      className="hidden" 
-                      onChange={handleFileUpload} 
+                    <input
+                      type="file"
+                      multiple
+                      accept=".txt,.csv,.md,.pdf,.png,.jpg,.jpeg,.gif,.webp,.js,.py,.html,.css,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                      className="hidden"
+                      onChange={handleFileUpload}
                     />
                   </label>
                 </div>
@@ -294,11 +294,11 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                             <p className="text-[10px] text-slate-400">첨부됨 (AI가 즉시 분석합니다)</p>
                           </div>
                         </div>
-                        <button 
-                          onClick={() => setFiles(prev => prev.filter((_, i) => i !== idx))} 
+                        <button
+                          onClick={() => setFiles(prev => prev.filter((_, i) => i !== idx))}
                           className="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-xl transition-all"
                         >
-                          <X size={16}/>
+                          <X size={16} />
                         </button>
                       </div>
                     ))}
@@ -355,10 +355,10 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                   className="w-full h-3 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600 border border-slate-200"
                 />
                 <div className="flex justify-between text-[10px] font-black text-slate-300 px-1">
-                   <span>1</span>
-                   <span>5</span>
-                   <span>10</span>
-                   <span>15</span>
+                  <span>1</span>
+                  <span>5</span>
+                  <span>10</span>
+                  <span>15</span>
                 </div>
               </div>
 
@@ -379,12 +379,12 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
           ) : (
             <div className="space-y-6 animate-in fade-in duration-500">
               <div className="flex items-center justify-between mb-4">
-                 <h4 className="text-xl font-jua text-slate-800 flex items-center gap-2">
-                   <ListOrdered size={20} className="text-indigo-600" /> 생성된 문항 미리보기
-                 </h4>
-                 <Button variant="ghost" size="sm" className="text-slate-400" onClick={() => setPreview(null)}>다시 만들기</Button>
+                <h4 className="text-xl font-jua text-slate-800 flex items-center gap-2">
+                  <ListOrdered size={20} className="text-indigo-600" /> 생성된 문항 미리보기
+                </h4>
+                <Button variant="ghost" size="sm" className="text-slate-400" onClick={() => setPreview(null)}>다시 만들기</Button>
               </div>
-              
+
               <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                 {preview.map((q, i) => (
                   <div key={i} className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex gap-4">
@@ -411,7 +411,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                       )}
                       <div className="text-indigo-600 font-black text-sm flex flex-col gap-1">
                         <div className="flex items-center gap-1 [&_p]:m-0">
-                          <span className="text-slate-400 font-bold">{q.type === "MULTIPLE_CHOICE" ? "정답:" : "A."}</span> 
+                          <span className="text-slate-400 font-bold">{q.type === "MULTIPLE_CHOICE" ? "정답:" : "A."}</span>
                           <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
                             {processMathText(q.a)}
                           </ReactMarkdown>
@@ -433,7 +433,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
               <div className="pt-6 flex gap-3">
                 <Button variant="ghost" className="flex-1 py-4" onClick={() => setPreview(null)}>취소</Button>
                 <Button variant="primary" className="flex-2 py-4 px-12 rounded-2xl shadow-lg shadow-indigo-100" onClick={handleAdd}>
-                   <Plus size={20} className="mr-2" /> 퀴즈에 추가하기
+                  <Plus size={20} className="mr-2" /> 퀴즈에 추가하기
                 </Button>
               </div>
             </div>

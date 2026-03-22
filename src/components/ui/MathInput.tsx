@@ -112,8 +112,11 @@ export function MathInput({
           menuIcon: 'none',
           keypressSound: 'none',
           plonkSound: 'none',
-          soundsDirectory: null
+          soundsDirectory: "" // Set to empty string to prevent default path lookup
         });
+        mfRef.current.soundsDirectory = ""; // Also set on instance directly
+        mfRef.current.keypressSound = "none";
+        mfRef.current.plonkSound = "none";
         
         // Add shortcuts for arithmetic symbols and SPACES
         mfRef.current.inlineShortcuts = {
@@ -426,6 +429,8 @@ export function MathInput({
         math-virtual-keyboard-policy="manual"
         virtual-keyboard-toggle="hidden"
         menu-icon="none"
+        keypress-sound="none"
+        plonk-sound="none"
         placeholder={placeholder}
       >
         {toMathLiveValue(value)}
