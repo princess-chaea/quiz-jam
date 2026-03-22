@@ -157,7 +157,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                 return evt + '_blocked';
               }
               if (evt === 'cut') points -= basePoints;
-              if (evt === 'donate') points -= 10;
+              // Remove fixed -10 here, we'll calculate based on targets later
               return evt;
             });
             event = finalNegEvents.join(',');
@@ -225,14 +225,18 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           // Pick up to 3 random candidates
           const targets = candidates.sort(() => 0.5 - Math.random()).slice(0, 3);
           
-          // Donor loses 10 points per target (Max 30)
-          res.points = -10 * targets.length;
+          // Donor loses 10 points per recipient
+          res.points -= (10 * targets.length);
           
           targets.forEach(t => {
             // Each target gains 10 points
             t.points += 10;
+            const donorInfo = `gift:${donorNick}`;
             if (t.event === 'none') {
-              t.event = (t.event === 'none') ? `gift:${donorNick}` : t.event + `,gift:${donorNick}`;
+              t.event = donorInfo;
+            } else {
+              // Append to existing events (comma-separated)
+              t.event = t.event + `,${donorInfo}`;
             }
           });
         }

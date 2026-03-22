@@ -30,40 +30,47 @@ export function getChoseong(str: string) {
 export function processMathText(text: string | null | undefined): string {
   if (!text) return "";
   
-  // Normalize displaylines if present
-  text = text.replace(/\\displaylines/g, '').trim();
+  // Normalize common issues
+  let processed = text.replace(/\\displaylines/g, '').trim();
   
   // 1. If it already has $, assume it's correctly formatted
-  if (text.includes("$")) return text;
+  if (processed.includes("$")) return processed;
 
   // 2. Standard split by Korean characters for mixed inline text
-  const parts = text.split(/([ㄱ-ㅎ|ㅏ-ㅣ|가-힣]+)/);
+  const parts = processed.split(/([ㄱ-ㅎ|ㅏ-ㅣ|가-힣]+)/);
   
   return parts.map(part => {
+    if (!part) return "";
     if (/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(part)) return part;
     
-    // Markers: \ (backslash), ^ (sup), _ (sub), = (equals), \u25A1 (square), or ~ (space)
-    if (/\\|\^|_|=|□|~/.test(part)) {
-      // Normalize double backslashes (often from JSON escaping)
-      let clean = part.replace(/\\\\(?=[a-zA-Z{}])/g, '\\');
+    // Markers: \ (backslash), ^ (sup), _ (sub), = (equals), \u25A1 (square), or brackets/braces often used in math
+    // Added { } [ ] to the triggers
+    if (/\\|\^|_|=|□|~|\{|\}|\[|\]/.test(part)) {
+      // Normalize double backslashes (often from JSON escaping: \\frac -> \frac)
+      let clean = part.replace(/\\\\/g, '\\');
       
-      if (!/[a-zA-Z0-9\\^_{}=□]/.test(clean)) return part;
+      // If it's just punctuation/whitespace, don't wrap
+      if (!/[a-zA-Z0-9\\^_{}=\[\]□]/.test(clean.trim())) return part;
 
       const leadingSpace = part.match(/^\s*/)?.[0] || "";
       const trailingSpace = part.match(/\s*$/)?.[0] || "";
       
-      const match = clean.trim().match(/^(.*?)(\s*[.,?!]*)$/);
+      const trimmed = clean.trim();
+      // Split by trailing punctuation to keep it outside $
+      const match = trimmed.match(/^(.*?)(\s*[.,?!]*)$/);
+      
       if (match) {
         let mathPart = match[1].trim();
         const punctuationPart = match[2];
         if (mathPart) {
-          // Preserve internal spaces in math mode by escaping them, but avoid double escaping
-          const escapedMath = mathPart.replace(/(?<!\\) /g, '\\ ');
+          // Preserve internal spaces in math mode by escaping them
+          // Avoiding negative lookbehind for better cross-env compatibility
+          const escapedMath = mathPart.split(' ').map(s => s || '').join('\\ ');
           return `${leadingSpace}$${escapedMath}$${punctuationPart}${trailingSpace}`;
         }
       }
       
-      const escapedClean = clean.trim().replace(/(?<!\\) /g, '\\ ');
+      const escapedClean = trimmed.split(' ').map(s => s || '').join('\\ ');
       return `${leadingSpace}$${escapedClean}$${trailingSpace}`;
     }
     

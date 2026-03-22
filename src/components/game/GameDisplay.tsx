@@ -514,7 +514,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                       if (trimmedE === 'strike_bonus') return (
                         <div key={idx} className="bg-orange-50 border-2 border-orange-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3 animate-bounce">
                           <span className="text-2xl">🔥</span>
-                          <span className="text-orange-600 font-black text-xl">연속 정답 보너스! 3개 이상의 문제를 연속으로 맞춰서 점수 보너스 X2!</span>
+                          <span className="text-orange-600 font-black text-xl">스트라이크 아이템 효과 발동! 이전 라운드에서 획득한 아이템으로 점수 보너스 X2!</span>
                         </div>
                       );
                       if (trimmedE === 'double') return (
