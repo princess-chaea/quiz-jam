@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
@@ -45,6 +45,8 @@ export default function QuizEditor() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [canDrag, setCanDrag] = useState<number | null>(null);
   
+  const lastSwapTime = useRef<number>(0);
+  const lastScrollTime = useRef<number>(0);
 
   useEffect(() => {
     if (!authLoading && !user) router.push("/");
@@ -134,6 +136,11 @@ export default function QuizEditor() {
     
     if (draggedIndex === null || draggedIndex === index) return;
     
+    // Throttle swap speed to prevent rapid fluttering
+    const now = Date.now();
+    if (now - lastSwapTime.current < 250) return;
+    lastSwapTime.current = now;
+
     const newQuestions = [...quiz.questions];
     const draggedItem = newQuestions[draggedIndex];
     newQuestions.splice(draggedIndex, 1);
@@ -314,13 +321,17 @@ export default function QuizEditor() {
             className="space-y-6"
             onDragOver={(e) => {
               e.preventDefault();
-              // Auto-scroll during drag
-              const threshold = 150;
-              const { clientY } = e;
-              if (clientY < threshold) {
-                window.scrollBy(0, -15);
-              } else if (clientY > window.innerHeight - threshold) {
-                window.scrollBy(0, 15);
+              const now = Date.now();
+              if (now - lastScrollTime.current > 50) {
+                // Auto-scroll during drag (throttled)
+                const threshold = 150;
+                const { clientY } = e;
+                if (clientY < threshold) {
+                  window.scrollBy(0, -10);
+                } else if (clientY > window.innerHeight - threshold) {
+                  window.scrollBy(0, 10);
+                }
+                lastScrollTime.current = now;
               }
             }}
           >
@@ -331,7 +342,7 @@ export default function QuizEditor() {
               onDragStart={(e) => handleDragStart(e, index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
-              className={`group bg-white rounded-3xl p-8 shadow-sm border border-gray-200 relative animate-pop hover:shadow-xl hover:shadow-indigo-50 transition-all ${draggedIndex === index ? 'opacity-50 ring-4 ring-indigo-200' : ''}`}
+              className={`group bg-white rounded-3xl p-8 shadow-sm border border-gray-200 relative hover:shadow-xl hover:shadow-indigo-50 transition-all duration-300 transform ${draggedIndex === index ? 'opacity-40 ring-4 ring-indigo-300 scale-[1.01] shadow-2xl z-10' : 'animate-pop'}`}
             >
               {/* Drag Handle */}
               <div 
