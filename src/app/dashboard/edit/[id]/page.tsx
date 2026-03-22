@@ -131,6 +131,7 @@ export default function QuizEditor() {
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
+    
     if (draggedIndex === null || draggedIndex === index) return;
     
     const newQuestions = [...quiz.questions];
@@ -309,7 +310,21 @@ export default function QuizEditor() {
               </div>
             </div>
           </div>
-          {quiz.questions.map((q: any, index: number) => (
+          <div 
+            className="space-y-6"
+            onDragOver={(e) => {
+              e.preventDefault();
+              // Auto-scroll during drag
+              const threshold = 150;
+              const { clientY } = e;
+              if (clientY < threshold) {
+                window.scrollBy(0, -15);
+              } else if (clientY > window.innerHeight - threshold) {
+                window.scrollBy(0, 15);
+              }
+            }}
+          >
+            {quiz.questions.map((q: any, index: number) => (
             <div 
               key={q.id || index}
               draggable={canDrag === index}
@@ -594,7 +609,9 @@ export default function QuizEditor() {
                 </div>
               </div>
             </div>
+            </div>
           ))}
+        </div>
           
           <button 
             onClick={handleAddQuestion}
