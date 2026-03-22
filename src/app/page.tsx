@@ -33,7 +33,7 @@ function TeacherPreviewSlider() {
 
   return (
     <div className="relative w-full h-full overflow-hidden flex items-center justify-center p-8 bg-gradient-to-br from-indigo-50/50 to-white">
-      {PREVIEW_IMAGES.map((img, index) => (
+      {PREVIEW_IMAGES.map((img: string, index: number) => (
         <div
           key={img}
           className={`absolute inset-0 transition-opacity duration-1000 flex items-center justify-center p-8 ${index === currentIndex ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
@@ -47,7 +47,7 @@ function TeacherPreviewSlider() {
         </div>
       ))}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-20">
-        {PREVIEW_IMAGES.map((_, index) => (
+        {PREVIEW_IMAGES.map((_: any, index: number) => (
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}

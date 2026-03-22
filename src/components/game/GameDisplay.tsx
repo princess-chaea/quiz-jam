@@ -128,7 +128,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     
     // If selecting a target (not skip) and not confirmed yet
     if (targetId && !pendingSwapTarget) {
-      const target = players.find(p => p.id === targetId);
+      const target = players.find((p: any) => p.id === targetId);
       setPendingSwapTarget(target);
       return;
     }
@@ -301,8 +301,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   }, [game?.options?.swapState, game?.status, player.id, swapCommitted, isMyTurnToSwap, result]);
 
   const teamScore = players
-    .filter(p => p.team === player.team)
-    .reduce((sum, p) => sum + p.score, 0);
+    .filter((p: any) => p.team === player.team)
+    .reduce((sum: number, p: any) => sum + p.score, 0);
 
   const teamNames: Record<string, string> = { RED: '레드팀', BLUE: '블루팀', GREEN: '그린팀', YELLOW: '옐로우팀' };
   const teamBgColors: Record<string, string> = { RED: 'bg-red-500', BLUE: 'bg-blue-500', GREEN: 'bg-green-500', YELLOW: 'bg-yellow-400' };
@@ -524,11 +524,11 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                         </div>
                       );
                       if (trimmedE.startsWith('gift')) {
-                        const giftEvents = eventStr.split(',').filter(e => e.trim().startsWith('gift'));
-                        const firstGiftIdx = eventStr.split(',').findIndex(e => e.trim().startsWith('gift'));
+                        const giftEvents = eventStr.split(',').filter((e: string) => e.trim().startsWith('gift'));
+                        const firstGiftIdx = eventStr.split(',').findIndex((e: string) => e.trim().startsWith('gift'));
                         if (idx !== firstGiftIdx) return null;
 
-                        const donorNames = giftEvents.map(e => e.split(':')[1]).filter(Boolean);
+                        const donorNames = giftEvents.map((e: string) => e.split(':')[1]).filter(Boolean);
                         const displayNames = donorNames.length > 0 ? donorNames.join(', ') : null;
                         
                         return (
@@ -735,14 +735,14 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-3">
                         {players
-                          .filter(p => {
+                          .filter((p: any) => {
                             if (p.id === player.id) return false;
                             if (game.options?.isTeamMode && p.team === player.team) return false;
                             return true;
                           })
-                          .sort((a, b) => (b.score || 0) - (a.score || 0))
+                          .sort((a: any, b: any) => (b.score || 0) - (a.score || 0))
                           .slice(0, 6) 
-                          .map(p => (
+                          .map((p: any) => (
                             <button
                               key={p.id}
                               onClick={() => handleSwapSelection(p.id, p.nickname)}
