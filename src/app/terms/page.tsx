@@ -60,7 +60,7 @@ export default function TermsOfService() {
               <p>이용자는 언제든지 서비스 내 회원 탈퇴를 통해 본 약관의 효력을 종료시킬 수 있으며, 탈퇴 시 본인이 생성한 모든 퀴즈 정보는 즉시 삭제됩니다.</p>
             </section>
           </div>
-          
+
           <div className="mt-16 pt-8 border-t border-slate-100 text-slate-400 text-sm font-bold text-center">
             시행 일자: 2026년 3월 23일
           </div>
