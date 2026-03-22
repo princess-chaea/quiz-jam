@@ -32,7 +32,7 @@ export function processMathText(text: string | null | undefined): string {
   
   // 1. Deduplicate excessive consecutive braces (e.g., {{{ -> {)
   // This addresses the issue where AI or copy-pasting results in triple braces
-  let processed = text.replace(/{3,}/g, '{').replace(/}{3,}/g, '}');
+  let processed = text.replace(/[{]{3,}/g, '{').replace(/[}]{3,}/g, '}');
   
   // Normalize common issues
   processed = processed.replace(/\\displaylines/g, '').trim();
