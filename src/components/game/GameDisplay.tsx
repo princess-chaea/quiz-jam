@@ -598,9 +598,9 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
               })()}
 
               {!result.is_correct && result.q_index === game.current_q_index && (
-                <div className="flex flex-col items-center gap-2">
-                  {result.event === 'cut' && <span className="text-red-500 font-black text-lg">점수를 뺏겼습니다!</span>}
-                  {result.event === 'donate' && <span className="text-indigo-500 font-black text-lg">점수를 나눠주었습니다! ({result.points_awarded})</span>}
+                <div className="flex flex-col items-center gap-2 mt-2">
+                  {result.event === 'cut' && <span className="text-red-500 font-black text-lg bg-red-50 border border-red-100 px-4 py-2 rounded-2xl shadow-sm">✂️ 앗! 점수를 뺏겼습니다!</span>}
+                  {result.event === 'donate' && <span className="text-indigo-500 font-black text-lg bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-2xl shadow-sm">📤 친구들에게 점수를 나눠주었습니다! ({result.points_awarded}점)</span>}
                   {result.event?.endsWith('_blocked') && (
                     <span className="text-cyan-600 font-black flex items-center gap-2 bg-cyan-50 px-6 py-2 rounded-2xl border-2 border-cyan-200 shadow-sm">
                       <Shield size={20} fill="currentColor"/> 방어 성공! 내 점수를 지켰습니다.
@@ -627,7 +627,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                   </div>
                 </div>
                 
-                <h3 className="text-4xl md:text-5xl font-black text-white mb-6 font-jua tracking-tight leading-tight">
+                <h3 className="text-4xl md:text-5xl font-black text-white mb-6 font-jua tracking-tight leading-tight break-keep">
                   {activeSwapperName ? (
                     <>
                       <span className="text-yellow-300">{activeSwapperName}</span> 학생이<br/>
@@ -647,9 +647,14 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                    </span>
                 </div>
                 
-                <p className="mt-10 text-indigo-200/60 font-medium text-lg max-w-md">
+                <p className="mt-10 text-indigo-200/60 font-medium text-lg max-w-md break-keep">
                    {activeSwapperName 
-                      ? `${activeSwapperName} 학생이 누구와 점수를 바꿀지 고민하고 있어요. 당신의 점수를 노리고 있을지도 몰라요!` 
+                      ? (
+                          <>
+                            {activeSwapperName} 학생이 누구와 점수를 바꿀지 고민하고 있어요.<br/>
+                            당신의 점수를 노리고 있을지도 몰라요!
+                          </>
+                        )
                       : "긴장되는 순간입니다! 점수가 높은 학생일수록 목표가 되기 쉽습니다. 잠시만 결과를 기다려주세요..."}
                 </p>
               </div>

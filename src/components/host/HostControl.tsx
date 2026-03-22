@@ -840,7 +840,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                     if (e === 'strike') return { icon: '⚡', text: '콤보+' };
                     if (e === 'shield') return { icon: '🛡️', text: '방어' };
                     if (e === 'cut') return { icon: '✂️', text: '삭감' };
-                    if (e === 'donate') return { icon: '🎁', text: '기부' };
+                    if (e === 'donate') return { icon: '📤', text: '기부' };
                     if (e.startsWith('gift')) return { icon: '🎁', text: '선물' };
                     if (e.endsWith('_blocked')) return { icon: '🛡️', text: '방어' };
                     return null;
