@@ -89,7 +89,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newFiles = Array.from(e.target.files || []);
+    const newFiles = Array.from(e.target.files || []) as File[];
     await processFiles(newFiles);
     e.target.value = "";
   };
@@ -111,7 +111,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
     e.stopPropagation();
     setIsDragging(false);
     
-    const droppedFiles = Array.from(e.dataTransfer.files || []);
+    const droppedFiles = Array.from(e.dataTransfer.files || []) as File[];
     await processFiles(droppedFiles);
   };
 
@@ -230,8 +230,8 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
         errorMsg = "첨부파일 용량이 너무 커서 인공지능이 처리할 수 없습니다. 더 작은 파일을 사용하거나 파일 개수를 줄여주세요.";
       } else if (errorMsg.includes("JSON")) {
         errorMsg = "인공지능이 응답 형식을 맞추지 못했습니다. 다시 시도해 주세요.";
-      } else if (errorMsg.includes("할당량") || errorMsg.includes("limit") || errorMsg.includes("429")) {
-        errorMsg = "현재 인공지능 사용량이 많아 할당량이 초과되었습니다. 약 30초~1분 후 다시 시도해 주세요.\n(팁: 파일 용량이 크면 할당량을 더 빨리 소모합니다.)";
+      } else if (errorMsg.includes("할당량") || errorMsg.includes("limit") || errorMsg.includes("429") || errorMsg.includes("503") || errorMsg.includes("unavailable")) {
+        errorMsg = "현재 인공지능 서버 사용량이 많아 응답이 지연되고 있습니다. 약 10~20초 후 다시 시도해 주세요.\n(팁: 파일 용량이 크면 처리 시간이 더 길어질 수 있습니다.)";
       }
 
       await showAlert("문항 생성 실패: " + errorMsg);
@@ -422,8 +422,16 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
               <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                 {preview.map((q, i) => (
                   <div key={i} className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex gap-4">
-                    <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center font-black shrink-0">
-                      {i + 1}
+                    <div className="flex flex-col gap-2 shrink-0">
+                      <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center font-black">
+                        {i + 1}
+                      </div>
+                      <span className="text-[10px] font-bold text-indigo-400 bg-indigo-50 px-1 py-0.5 rounded text-center">
+                        {q.type === 'SHORT_ANSWER' ? '단답형' : 
+                         q.type === 'MULTIPLE_CHOICE' ? '선다형' :
+                         q.type === 'OX' ? 'O/X' :
+                         q.type === 'BLANK' ? '빈칸' : q.type}
+                      </span>
                     </div>
                     <div className="flex-1">
                       <div className="font-bold text-slate-800 mb-2 leading-tight [&_p]:m-0">
