@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     const supabase = createClient(supabaseUrl!, supabaseAnonKey!);
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const typeLabel = types.map((t: string) => {
       if (t === "MULTIPLE_CHOICE") return "선다형(2-4개 보기)";
@@ -122,7 +122,7 @@ ${text || "첨부 파일 참조"}`;
         try {
           const arrayBuffer = await fileData.arrayBuffer();
           const base64 = Buffer.from(arrayBuffer).toString('base64');
-          
+
           // Map Haansoft/custom MIME types to standard ones if necessary
           let mimeType = file.mimeType;
           if (mimeType.includes('haansoftpptx') || mimeType.includes('pptx')) {
@@ -172,11 +172,11 @@ ${text || "첨부 파일 참조"}`;
 
   } catch (error: any) {
     console.error("Gemini Error:", error);
-    
+
     // Handle 429 Too Many Requests
-    const isRateLimit = 
-      error.message?.includes("429") || 
-      error.message?.includes("quota") || 
+    const isRateLimit =
+      error.message?.includes("429") ||
+      error.message?.includes("quota") ||
       error.status === 429;
 
     const isUnavailable =
