@@ -112,7 +112,13 @@ export function MathInput({
           menuIcon: 'none',
           keypressSound: 'none',
           plonkSound: 'none',
-          soundsDirectory: "" // Set to empty string to prevent default path lookup
+          soundsDirectory: "", // Set to empty string to prevent default path lookup
+          onKeystroke: (mf, keystroke, ev) => {
+            if (keystroke === '*' || keystroke === '/') {
+              return false; // Prevent default MathLive keystroke handling
+            }
+            return true;
+          }
         });
         mfRef.current.soundsDirectory = ""; // Also set on instance directly
         mfRef.current.keypressSound = "none";
@@ -121,6 +127,8 @@ export function MathInput({
         // Add shortcuts for arithmetic symbols and SPACES
         mfRef.current.inlineShortcuts = {
           ...mfRef.current.inlineShortcuts,
+          '*': '', 
+          '/': '',
           ' ': { mode: 'math', value: '~' }
         };
       }
@@ -321,7 +329,7 @@ export function MathInput({
 
     el.addEventListener("input", handleUpdate);
     el.addEventListener("change", handleUpdate);
-    el.addEventListener("keydown", handleKeyDown);
+    el.addEventListener("keydown", handleKeyDown, { capture: true }); // Critical: intercept before MathLive
     el.addEventListener("compositionstart", handleCompositionStart);
     el.addEventListener("focus", handleFocus);
     el.addEventListener("pointerup", handlePointerUp);
@@ -333,7 +341,7 @@ export function MathInput({
     return () => {
       el.removeEventListener("input", handleUpdate);
       el.removeEventListener("change", handleUpdate);
-      el.removeEventListener("keydown", handleKeyDown);
+      el.removeEventListener("keydown", handleKeyDown, { capture: true });
       el.removeEventListener("compositionstart", handleCompositionStart);
       el.removeEventListener("focus", handleFocus);
       el.removeEventListener("pointerup", handlePointerUp);
