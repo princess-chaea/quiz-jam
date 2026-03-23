@@ -40,7 +40,9 @@ export default function QuizEditor() {
   const [saving, setSaving] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
-  const { showAlert } = useDialog();
+  const [draftChecked, setDraftChecked] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const { showAlert, showConfirm } = useDialog();
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [canDrag, setCanDrag] = useState<number | null>(null);
@@ -80,8 +82,67 @@ export default function QuizEditor() {
       router.push("/dashboard");
     } finally {
       setLoading(false);
+      
+      // After fetching the original quiz, check for drafts
+      if (!draftChecked && id) {
+        checkDraft();
+      }
     }
   };
+
+  const checkDraft = useCallback(async () => {
+    if (!id) return;
+    const draftKey = `quiz_draft_${id}`;
+    const savedDraft = localStorage.getItem(draftKey);
+    
+    if (savedDraft) {
+      try {
+        const parsedDraft = JSON.parse(savedDraft);
+        const hasChanges = JSON.stringify(parsedDraft.questions) !== JSON.stringify(quiz?.questions) || 
+                          parsedDraft.title !== quiz?.title;
+
+        if (hasChanges) {
+          const restore = await showConfirm(
+            "저장되지 않은 초안이 있습니다.\n이전에 수정 중이던 내용을 불러오시겠습니까?"
+          );
+          
+          if (restore) {
+            setQuiz(parsedDraft);
+            await showAlert("초안이 성공적으로 복구되었습니다.");
+          } else {
+             localStorage.removeItem(draftKey);
+          }
+        } else {
+           // If draft is same as DB, just remove it
+           localStorage.removeItem(draftKey);
+        }
+      } catch (err) {
+        console.error("Draft restoration error:", err);
+      }
+    }
+    setDraftChecked(true);
+  }, [id, quiz, showConfirm, showAlert]);
+
+  // Save draft whenever quiz changes
+  useEffect(() => {
+    if (quiz && id && draftChecked && !saving) {
+      const draftKey = `quiz_draft_${id}`;
+      localStorage.setItem(draftKey, JSON.stringify(quiz));
+      setIsDirty(true);
+    }
+  }, [quiz, id, draftChecked, saving]);
+
+  // Prevent accidental navigation
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty && !saving) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty, saving]);
 
   const handleAddQuestion = useCallback(() => {
     const newQuestion = { 
@@ -176,6 +237,11 @@ export default function QuizEditor() {
         .eq("id", id);
 
       if (error) throw error;
+      
+      // Clear draft on successful save
+      localStorage.removeItem(`quiz_draft_${id}`);
+      setIsDirty(false);
+      
       await showAlert("저장되었습니다!");
       if (redirect) router.push("/dashboard");
     } catch (err) {
