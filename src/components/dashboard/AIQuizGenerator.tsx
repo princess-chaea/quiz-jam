@@ -217,7 +217,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
           ...processed,
           type,
           points: processed.points || 10,
-          timeLimit: 20,
+          timeLimit: processed.timeLimit || 20,
           math_mode: mathMode
         };
       });
