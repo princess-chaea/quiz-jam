@@ -113,7 +113,7 @@ export function MathInput({
           keypressSound: 'none',
           plonkSound: 'none',
           soundsDirectory: "", // Set to empty string to prevent default path lookup
-          onKeystroke: (mf, keystroke, ev) => {
+          onKeystroke: (mf: any, keystroke: string, ev: KeyboardEvent) => {
             if (keystroke === '*' || keystroke === '/') {
               return false; // Prevent default MathLive keystroke handling
             }
