@@ -19,56 +19,66 @@ interface AIQuizGeneratorProps {
 export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGeneratorProps) {
   const [text, setText] = useState(() => {
     if (typeof window !== "undefined") {
-      return sessionStorage.getItem("ai_gen_text") || "";
+      return localStorage.getItem("ai_gen_text") || "";
     }
     return "";
   });
   const [files, setFiles] = useState<File[]>([]);
   const [count, setCount] = useState(() => {
     if (typeof window !== "undefined") {
-      const saved = sessionStorage.getItem("ai_gen_count");
+      const saved = localStorage.getItem("ai_gen_count");
       return saved ? parseInt(saved) : 5;
     }
     return 5;
   });
   const [types, setTypes] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
-      const saved = sessionStorage.getItem("ai_gen_types");
+      const saved = localStorage.getItem("ai_gen_types");
       return saved ? JSON.parse(saved) : ["SHORT_ANSWER", "MULTIPLE_CHOICE"];
     }
     return ["SHORT_ANSWER", "MULTIPLE_CHOICE"];
   });
-  const [mathMode] = useState(true);
+  const [mathMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("ai_gen_math_mode");
+      return saved ? saved === "true" : true;
+    }
+    return true;
+  });
   const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<any[] | null>(() => {
     if (typeof window !== "undefined") {
-      const saved = sessionStorage.getItem("ai_gen_preview");
+      const saved = localStorage.getItem("ai_gen_preview");
       return saved ? JSON.parse(saved) : null;
     }
     return null;
   });
   const { showAlert } = useDialog();
 
-  // Persist state to sessionStorage
+  // Persist state to localStorage
   useEffect(() => {
-    sessionStorage.setItem("ai_gen_text", text);
+    localStorage.setItem("ai_gen_text", text);
   }, [text]);
 
   useEffect(() => {
-    sessionStorage.setItem("ai_gen_count", count.toString());
+    localStorage.setItem("ai_gen_count", count.toString());
   }, [count]);
 
   useEffect(() => {
-    sessionStorage.setItem("ai_gen_types", JSON.stringify(types));
+    localStorage.setItem("ai_gen_types", JSON.stringify(types));
   }, [types]);
+
+  useEffect(() => {
+    localStorage.setItem("ai_gen_math_mode", mathMode.toString());
+  }, [mathMode]);
 
 
   useEffect(() => {
     if (preview) {
-      sessionStorage.setItem("ai_gen_preview", JSON.stringify(preview));
+      localStorage.setItem("ai_gen_preview", JSON.stringify(preview));
     } else {
-      sessionStorage.removeItem("ai_gen_preview");
+      localStorage.removeItem("ai_gen_preview");
     }
   }, [preview]);
 
@@ -243,11 +253,11 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
   const handleAdd = () => {
     if (preview) {
       onQuestionsGenerated(preview);
-      sessionStorage.removeItem("ai_gen_preview");
-      sessionStorage.removeItem("ai_gen_text");
-      sessionStorage.removeItem("ai_gen_count");
-      sessionStorage.removeItem("ai_gen_types");
-      sessionStorage.removeItem("ai_gen_math_mode");
+      localStorage.removeItem("ai_gen_preview");
+      localStorage.removeItem("ai_gen_text");
+      localStorage.removeItem("ai_gen_count");
+      localStorage.removeItem("ai_gen_types");
+      localStorage.removeItem("ai_gen_math_mode");
       onClose();
     }
   };

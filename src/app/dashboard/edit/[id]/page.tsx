@@ -39,6 +39,25 @@ export default function QuizEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAI, setShowAI] = useState(false);
+  
+  // Persist showAI state
+  useEffect(() => {
+    if (id) {
+      const saved = localStorage.getItem(`show_ai_gen_${id}`);
+      if (saved === "true") setShowAI(true);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      if (showAI) {
+        localStorage.setItem(`show_ai_gen_${id}`, "true");
+      } else {
+        localStorage.removeItem(`show_ai_gen_${id}`);
+      }
+    }
+  }, [id, showAI]);
+
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [draftChecked, setDraftChecked] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -160,9 +179,10 @@ export default function QuizEditor() {
         timeLimit: q.timeLimit || 20, 
         type: q.type || "SHORT_ANSWER" 
       }));
+      if (id) localStorage.removeItem(`show_ai_gen_${id}`);
       return { ...prev, questions: [...prev.questions, ...prepared] };
     });
-  }, []);
+  }, [id]);
 
   const handleRemoveQuestion = useCallback((index: number) => {
     setQuiz((prev: any) => {
