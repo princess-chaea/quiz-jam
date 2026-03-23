@@ -8,7 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import { processMathText } from "@/lib/utils";
+import { processMathText, cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
 interface AIQuizGeneratorProps {
@@ -85,7 +85,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
       validFiles.push(file);
     }
 
-    setFiles(prev => [...prev, ...validFiles]);
+    setFiles((prev: File[]) => [...prev, ...validFiles]);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,7 +139,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
       // 1. Upload files to Supabase ai-temp bucket first
       const uploadedFilePaths: { mimeType: string, path: string, name: string }[] = [];
 
-      const totalSize = files.reduce((acc, f) => acc + f.size, 0);
+      const totalSize = files.reduce((acc: number, f: File) => acc + f.size, 0);
       if (totalSize > 50 * 1024 * 1024) {
         throw new Error("첨부된 전체 파일 용량이 너무 큽니다 (최대 50MB). 일부 파일을 제외해주세요.");
       }
