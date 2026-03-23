@@ -39,6 +39,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
     return ["SHORT_ANSWER", "MULTIPLE_CHOICE"];
   });
   const [mathMode] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<any[] | null>(() => {
     if (typeof window !== "undefined") {
@@ -71,8 +72,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
     }
   }, [preview]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newFiles = Array.from(e.target.files || []);
+  const processFiles = async (newFiles: File[]) => {
     if (newFiles.length === 0) return;
 
     const validFiles: File[] = [];
@@ -86,7 +86,33 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
     }
 
     setFiles(prev => [...prev, ...validFiles]);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newFiles = Array.from(e.target.files || []);
+    await processFiles(newFiles);
     e.target.value = "";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const droppedFiles = Array.from(e.dataTransfer.files || []);
+    await processFiles(droppedFiles);
   };
 
   const toggleType = (t: string) => {
@@ -264,7 +290,15 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
         <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
           {!preview ? (
             <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-              <div className="space-y-3">
+              <div 
+                className={cn(
+                  "space-y-3 p-4 rounded-[2rem] border-2 border-transparent transition-all",
+                  isDragging ? "bg-indigo-50/50 border-indigo-400 border-dashed" : ""
+                )}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 <div className="flex justify-between items-center">
                   <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
                     <span className="w-5 h-5 bg-indigo-50 text-indigo-600 rounded flex items-center justify-center text-[10px]">1</span>
