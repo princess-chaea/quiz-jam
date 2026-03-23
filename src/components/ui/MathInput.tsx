@@ -121,8 +121,6 @@ export function MathInput({
         // Add shortcuts for arithmetic symbols and SPACES
         mfRef.current.inlineShortcuts = {
           ...mfRef.current.inlineShortcuts,
-          '*': { mode: 'math', value: '\\times' },
-          '/': { mode: 'math', value: '\\div' },
           ' ': { mode: 'math', value: '~' }
         };
       }
@@ -303,7 +301,8 @@ export function MathInput({
       if (e.key === "/") {
         if (typeof el.executeCommand === 'function') {
           e.preventDefault();
-          el.executeCommand(["insert", "\\div "]);
+          e.stopPropagation(); // Block MathLive shortcut engine
+          el.executeCommand(["insert", "\\div"]);
           handleUpdate(e);
         }
         return;
@@ -312,7 +311,8 @@ export function MathInput({
       if (e.key === "*") {
         if (typeof el.executeCommand === 'function') {
           e.preventDefault();
-          el.executeCommand(["insert", "\\times "]);
+          e.stopPropagation(); // Block MathLive shortcut engine
+          el.executeCommand(["insert", "\\times"]);
           handleUpdate(e);
         }
         return;

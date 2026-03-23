@@ -81,4 +81,11 @@ export function processMathText(text: string | null | undefined): string {
   }).join('');
 }
 
-export const normalizeMath = (s: string) => s.replace(/[\s{}]+/g, "").toLowerCase();
+export const normalizeMath = (s: string) => {
+  if (!s) return "";
+  // 1. Convert to lowercase
+  // 2. Remove all whitespace (\s)
+  // 3. Remove curly braces (LaTeX leftovers)
+  // 4. Remove commas (to avoid mismatches in multi-part answers if student uses different spacing/punctuation)
+  return s.toLowerCase().replace(/[\s{},]+/g, "");
+};
