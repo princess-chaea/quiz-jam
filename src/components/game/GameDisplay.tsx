@@ -1016,7 +1016,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                </div>
                <div className="text-center space-y-2">
                  <h3 className="text-4xl font-black text-slate-800">정답을 제출했습니다!</h3>
-                 <p className="text-slate-500 font-bold text-lg">다른 친구들이 문제를 모두 풀 때까지 조금만 기다려주세요. 선생님이 다음 화면으로 넘겨주실 거예요!</p>
+                 <p className="text-slate-500 font-bold text-lg">다른 친구들이 문제를 모두 풀 때까지 조금만 기다려주세요.<br />선생님이 다음 화면으로 넘겨주실 거예요!</p>
                </div>
                <Button 
                  variant="outline" 
