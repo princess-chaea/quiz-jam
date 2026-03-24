@@ -465,7 +465,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   };
 
   const handleExitGame = async () => {
-    const confirmed = await showConfirm("아직 참여하지 않은 친구들이 있어요. 그대로 시작할까요?");
+    const confirmed = await showConfirm("여기까지 진행하고 최종 결과를 볼까요?");
     if (!confirmed) return;
     try {
       setCalculating(true);
@@ -1156,10 +1156,8 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           </div>
         </div>
 
-      {/* Fixed Footer Container */}
-      <div className="fixed bottom-0 left-0 right-0 z-[100] flex flex-col pointer-events-none">
-        {/* Main Footer Controls */}
-        <div className="bg-white/95 backdrop-blur-md border-t-2 border-indigo-100 p-4 md:p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] flex justify-between items-center pointer-events-auto">
+      {/* Main Footer Controls (Now part of flex flow) */}
+      <div className="bg-white/95 backdrop-blur-md border-t-2 border-indigo-100 p-4 md:p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] flex justify-between items-center z-[101]">
           <div className="flex items-center gap-4">
             <div className="bg-indigo-100 text-indigo-700 p-3 md:p-4 rounded-2xl">
               <Users size={32} />
@@ -1186,9 +1184,8 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         <PlayerBar 
           players={players} 
           submissions={answers.filter(a => a.answer !== '(시간초과)').map(a => a.player_id)}
-          className="bg-indigo-50/90 border-t border-indigo-200 pointer-events-auto"
+          className="bg-indigo-50/90 border-t border-indigo-200"
         />
-      </div>
     </div>
   );
 }
