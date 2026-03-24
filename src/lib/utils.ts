@@ -81,6 +81,14 @@ export function processMathText(text: string | null | undefined): string {
   }).join('');
 }
 
+// 4. Check if text contains math-specific symbols or LaTeX commands
+export function hasMathSymbols(text: string | null | undefined): boolean {
+  if (!text) return false;
+  // Patterns: \ (backslash), ^ (sup), _ (sub), □ (square), 
+  // or common LaTeX commands starting with \
+  return /\\|\^|_|=|□|~|\{|\}|\[|\]|\/|\*|[\u2200-\u22FF]|[\u2700-\u27BF]/.test(text);
+}
+
 export const normalizeMath = (s: string) => {
   if (!s) return "";
   // 1. Convert to lowercase

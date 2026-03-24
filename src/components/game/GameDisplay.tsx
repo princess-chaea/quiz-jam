@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { Clock, Zap, Shield, Scissors, Gift, RefreshCw, Check, X } from "lucide-react";
-import { cn, getChoseong, processMathText, normalizeMath } from "@/lib/utils";
+import { cn, getChoseong, processMathText, normalizeMath, hasMathSymbols } from "@/lib/utils";
 import { useDialog } from "@/components/ui/DialogProvider";
 import confetti from "canvas-confetti";
 import { supabase } from "@/lib/supabase";
@@ -948,7 +948,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           )}
         </div>
 
-        {game.current_hint_stage > 0 && !submitted && timeLeft > 0 && currentQuestion?.type !== "OX" && currentQuestion?.type !== "MULTIPLE_CHOICE" && (!currentQuestion?.math_mode || currentQuestion?.type === "BLANK") && (
+        {(game.current_hint_stage > 0 && !submitted && timeLeft > 0 && (currentQuestion?.type === "SHORT_ANSWER" || currentQuestion?.type === "BLANK")) && (
           <div className="mb-10 p-6 bg-indigo-50 rounded-[2rem] border-2 border-indigo-100 flex flex-col items-center animate-in slide-in-from-top-2 duration-300 shadow-inner">
             <span className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
               <Zap size={14} className="fill-indigo-400" /> 
@@ -1131,6 +1131,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                           template={currentQuestion?.template}
                           focusOnMount={true}
                           level={game.options?.level || 'elementary'}
+                          forceMathKeypad={hasMathSymbols(currentQuestion?.q) || hasMathSymbols(currentQuestion?.a)}
                         />
                      </div>
                      <Button 

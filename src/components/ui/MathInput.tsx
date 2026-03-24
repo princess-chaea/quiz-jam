@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { useMathKeypad } from "./MathKeypadContext";
-import { cn } from "@/lib/utils";
+import { cn, hasMathSymbols } from "@/lib/utils";
 import { Keyboard } from "lucide-react";
 
 /**
@@ -41,6 +41,7 @@ interface MathInputProps {
   containerClassName?: string;
   multiline?: boolean;
   showScrollbar?: boolean; // New prop to force scrollbar
+  forceMathKeypad?: boolean; // New prop to force math keypad for students
 }
 
 export function MathInput({ 
@@ -56,6 +57,7 @@ export function MathInput({
   focusOnMount = false,
   multiline = false,
   showScrollbar = false,
+  forceMathKeypad = false,
 }: MathInputProps) {
   const mfRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -252,14 +254,21 @@ export function MathInput({
     };
 
     const handleFocus = () => {
-      if (typeof el.executeCommand === 'function') {
-        openKeypad(el, level);
-      } else {
-        setTimeout(() => {
-          if (typeof el.executeCommand === 'function') {
-            openKeypad(el, level);
-          }
-        }, 100);
+      // SMART KEYPAD LOGIC:
+      // Always show for teachers.
+      // For students, only show if forceMathKeypad is true OR current value contains math symbols.
+      const shouldShow = isTeacher || forceMathKeypad || hasMathSymbols(el.value) || hasMathSymbols(template);
+      
+      if (shouldShow) {
+        if (typeof el.executeCommand === 'function') {
+          openKeypad(el, level);
+        } else {
+          setTimeout(() => {
+            if (typeof el.executeCommand === 'function') {
+              openKeypad(el, level);
+            }
+          }, 100);
+        }
       }
     };
 
@@ -274,9 +283,12 @@ export function MathInput({
     const handlePointerUp = (e: Event) => {
       // MathLive sometimes updates its internal cursor on gap click, but fails to focus the actual IME textarea.
       forceFocus(el);
+      
+      const shouldShow = isTeacher || forceMathKeypad || hasMathSymbols(el.value) || hasMathSymbols(template);
+      
       setTimeout(() => {
         forceFocus(el);
-        if (typeof el.executeCommand === 'function') {
+        if (shouldShow && typeof el.executeCommand === 'function') {
           openKeypad(el, level);
         }
       }, 50);
