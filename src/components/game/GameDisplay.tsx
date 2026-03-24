@@ -1121,7 +1121,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                  </div>
               ) : (
                  <>
-                     <div className="w-full border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all overflow-hidden relative">
+                     <div className="w-full border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all overflow-visible relative">
                         <MathInput
                           value={answer}
                           onChange={handleAnswerChange}

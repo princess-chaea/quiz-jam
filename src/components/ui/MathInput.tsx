@@ -390,8 +390,8 @@ export function MathInput({
     <div 
       ref={containerRef}
       className={cn(
-        "relative flex flex-col justify-center w-full h-fit rounded-2xl group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text py-2", 
-        (!multiline || showScrollbar) ? "overflow-x-auto overflow-y-hidden custom-scrollbar" : "overflow-hidden h-fit",
+        "relative flex flex-col justify-center w-full h-fit min-h-[4rem] rounded-2xl group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text py-3", 
+        (!multiline || showScrollbar) ? "overflow-x-auto custom-scrollbar" : "overflow-visible h-fit",
         containerClassName
       )}
     >
@@ -442,8 +442,9 @@ export function MathInput({
           width: "100%", 
           background: "transparent",
           border: "none",
-          fontSize: "1.125rem",
-          display: 'block'
+          fontSize: isTeacher ? "1.125rem" : "2.25rem",
+          display: 'block',
+          minHeight: isTeacher ? "1.5rem" : "3rem",
         }}
         multiline={multiline ? "true" : "false"}
         math-virtual-keyboard-policy="manual"
