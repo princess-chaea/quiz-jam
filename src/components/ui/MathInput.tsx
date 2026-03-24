@@ -405,7 +405,7 @@ export function MathInput({
           overflow: visible !important;
         }
         math-field::part(container) {
-          padding: 0 1rem !important; 
+          padding: 0 3rem 0 1rem !important; 
           overflow: visible !important;
           cursor: text !important;
         }
@@ -456,6 +456,23 @@ export function MathInput({
         {toMathLiveValue(value)}
       </math-field>
       
+      {!isTeacher && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (mfRef.current) {
+              forceFocus(mfRef.current);
+              openKeypad(mfRef.current, level);
+            }
+          }}
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-indigo-50 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-600 transition-all shadow-sm border border-indigo-100 z-10"
+          title="수식 키보드 열기"
+        >
+          <Keyboard size={20} />
+        </button>
+      )}
     </div>
   );
 }

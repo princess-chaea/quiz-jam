@@ -1131,7 +1131,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                           template={currentQuestion?.template}
                           focusOnMount={true}
                           level={game.options?.level || 'elementary'}
-                          forceMathKeypad={hasMathSymbols(currentQuestion?.q) || hasMathSymbols(currentQuestion?.a)}
+                           forceMathKeypad={hasMathSymbols(currentQuestion?.q) || hasMathSymbols(currentQuestion?.a) || hasMathSymbols(currentQuestion?.template)}
                         />
                      </div>
                      <Button 
