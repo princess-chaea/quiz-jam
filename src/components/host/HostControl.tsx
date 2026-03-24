@@ -1104,7 +1104,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             )}
 
             <div className="flex flex-wrap justify-center gap-6 mt-6 items-center">
-              {currentQuestion?.type !== "MULTIPLE_CHOICE" && currentQuestion?.type !== "OX" && (!currentQuestion?.math_mode || currentQuestion?.type === "BLANK") && (
+              {(currentQuestion?.type === "SHORT_ANSWER" || currentQuestion?.type === "BLANK") && (
                 <div className="flex bg-slate-100 p-2 rounded-2xl gap-2">
                   {currentQuestion?.type === "BLANK" ? (
                     <button
