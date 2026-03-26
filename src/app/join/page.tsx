@@ -118,15 +118,17 @@ export default function JoinPage() {
         const usedIds = new Set(usedAvatars?.map(p => p.avatar_id).filter(id => id !== null));
         let assignedAvatarId = 1;
 
-        // Try to find an unused ID from 1 to 30
-        const availableIds = Array.from({ length: 30 }, (_, i) => i + 1).filter(id => !usedIds.has(id));
+        // Try to find an unused ID from 1 to 30 (Excluding 26 which is missing)
+        const availableIds = Array.from({ length: 30 }, (_, i) => i + 1)
+          .filter(id => id !== 26 && !usedIds.has(id));
         
         if (availableIds.length > 0) {
           // Pick a random one from available to avoid sequential predictability
           assignedAvatarId = availableIds[Math.floor(Math.random() * availableIds.length)];
         } else {
-          // If all 30 are used, pick a random one (collision unavoidable)
-          assignedAvatarId = Math.floor(Math.random() * 30) + 1;
+          // If all available are used, pick a random one from 1-30 (excluding 26)
+          const backupIds = Array.from({ length: 30 }, (_, i) => i + 1).filter(id => id !== 26);
+          assignedAvatarId = backupIds[Math.floor(Math.random() * backupIds.length)];
         }
 
         const { data: newPlayer, error: playerError } = await supabase

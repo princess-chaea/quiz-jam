@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
-import { 
-  Trophy, Medal, Zap, Users, Clock, ArrowRight, Home, 
-  Settings, Save, Plus, Trash2, Edit2, Play, 
+import {
+  Trophy, Medal, Zap, Users, Clock, ArrowRight, Home,
+  Settings, Save, Plus, Trash2, Edit2, Play,
   CheckCircle2, AlertCircle, Menu, X, ChevronRight,
   Shield, Gift, RefreshCw, Scissors, Check,
   Award, HelpCircle, LogOut, Eye, EyeOff, Layers
@@ -40,7 +40,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   const [showLargeAnswer, setShowLargeAnswer] = useState(false);
   const { showConfirm, showAlert } = useDialog();
   const currentQuestion = game.options?.questions[game.current_q_index];
-  
+
   // 1. Refs (Always at the top)
   const playersRef = useRef(players);
   const answersRef = useRef(answers);
@@ -52,7 +52,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   // 2. Logic Functions
   const handleFinishRound = async () => {
     if (calculating) return;
-    
+
     // If prematurely ending, ask for confirmation
     if (timeLeft > 0 && answersRef.current.length < playersRef.current.length) {
       const confirmed = await showConfirm(`${playersRef.current.length - answersRef.current.length}명이 아직 제출하지 않았습니다. 마감할까요?`);
@@ -60,12 +60,13 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     }
 
     setCalculating(true);
-    
+
     try {
       setCalculating(true);
-      
-      // Safety delay to allow late student submissions to propagate to DB
-      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Safety delay reduced to 200ms to allow late student submissions to propagate to DB
+      // 500ms was causing perceived lag
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       const currentGame = gameRef.current;
       const qIndex = currentGame.current_q_index;
@@ -85,7 +86,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       // 2. Calculate base results
       const calculatedResults = currentPlayers.map(player => {
         const answer = currentAnswers.find(a => a.player_id === player.id);
-        
+
         // Calculate correctness locally based on question type
         let isCorrect = false;
         if (answer?.answer) {
@@ -117,7 +118,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             points *= 2;
             acquiredEvents.push('strike_bonus');
           }
-          
+
           const probs = game.options?.probabilities || { double: 5, swap: 5, strike: 5, shield: 5, cut: 5, donate: 5 };
           const p = (key: string) => (probs[key] !== undefined ? probs[key] : 5) / 100;
 
@@ -171,20 +172,20 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         if (newBuffs.includes('STRIKE')) {
           newBuffs = newBuffs.filter(b => b !== 'STRIKE');
         }
-        
+
         // Consume shield if any event blocked it
         if (event.includes('_blocked')) {
           newBuffs = newBuffs.filter(b => b !== 'SHIELD');
         }
-        
+
         // Add new buffs (independent of each other)
         if (event.includes('strike')) newBuffs.push('STRIKE');
         if (event.includes('shield')) newBuffs.push('SHIELD');
 
-        return { 
-          player, 
-          points, 
-          event, 
+        return {
+          player,
+          points,
+          event,
           newBuffs: Array.from(new Set(newBuffs)),
           isCorrect,
           answerId: answer?.id,
@@ -212,7 +213,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         if (res.event.includes('donate')) {
           const donorNick = res.player.nickname;
           const donorTeam = res.player.team;
-          
+
           // Find candidates: correct answer, NOT the donor, and NOT donor's teammate (if team mode)
           const candidates = calculatedResults.filter(r => {
             if (!r.isCorrect) return false;
@@ -221,13 +222,13 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             if (game.options?.isTeamMode && donorTeam && r.player.team === donorTeam) return false;
             return true;
           });
-          
+
           // Pick up to 3 random candidates
           const targets = candidates.sort(() => 0.5 - Math.random()).slice(0, 3);
-          
+
           // Donor loses 10 points per recipient
           res.points -= (10 * targets.length);
-          
+
           targets.forEach(t => {
             // Each target gains 10 points
             t.points += 10;
@@ -243,7 +244,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       });
 
       const finalResults = [...calculatedResults];
-      
+
       // Update local answers state immediately so UI updates
       const updatedAnswers = finalResults.map(res => ({
         player_id: res.player.id,
@@ -301,8 +302,11 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         if (error) console.error("Player update failed for", res.player.nickname, error);
       });
 
-      // Wait for all data to be committed before updating game status
-      await Promise.all([...answerPromises, ...playerPromises]);
+      // Run DB updates in parallel for better performance
+      await Promise.all([
+        ...answerPromises,
+        ...playerPromises
+      ]);
 
       // 4. Handle Broadcasts (Shield Block, etc.)
       const blockedResults = finalResults.filter(r => r.event.includes('_blocked'));
@@ -316,7 +320,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                 await eventChannel.send({
                   type: 'broadcast',
                   event: 'SHIELD_BLOCK',
-                  payload: { 
+                  payload: {
                     nickname: res.player.nickname,
                     type: bType.replace('_blocked', '')
                   }
@@ -352,48 +356,48 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             event: 'ROUND_RESULTS_READY',
             payload: { q_index: qIndex, results: updatedAnswers }
           });
-          
-             // 7. Update Game Status & Initial Swap State in DB
-             const swapState = {
-               queue: swappers,
-               currentSwapperId: swappers.length > 0 ? swappers[0].id : null,
-               currentSwapperNickname: swappers.length > 0 ? swappers[0].nickname : null
-             };
 
-             console.log("[Host] Saving initial swapState to DB:", swapState);
-             
-             const newOptions = {
-               ...(game.options || {}),
-               swapState
-             };
+          // 7. Update Game Status & Initial Swap State in DB
+          const swapState = {
+            queue: swappers,
+            currentSwapperId: swappers.length > 0 ? swappers[0].id : null,
+            currentSwapperNickname: swappers.length > 0 ? swappers[0].nickname : null
+          };
 
-             await supabase.from("games")
-               .update({ 
-                 status: "RESULT",
-                 options: newOptions
-               })
-               .eq("id", game.id);
-             
-             // 8. BROADCAST immediate refresh for all players
-             await resultChannel.send({
-               type: 'broadcast',
-               event: 'GAME_UPDATE',
-               payload: { status: "RESULT", q_index: qIndex }
-             });
+          console.log("[Host] Saving initial swapState to DB:", swapState);
 
-             // If there are swappers, trigger the first one explicitly via broadcast
-             if (swappers.length > 0) {
-               console.log("[Host] Broadcasting FIRST swap start:", swappers[0].nickname);
-               await resultChannel.send({
-                 type: 'broadcast',
-                 event: 'START_SWAP',
-                 payload: { playerId: swappers[0].id, nickname: swappers[0].nickname }
-               });
-             }
-             
-             setTimeout(() => supabase.removeChannel(resultChannel), 3000);
+          const newOptions = {
+            ...(game.options || {}),
+            swapState
+          };
+
+          await supabase.from("games")
+            .update({
+              status: "RESULT",
+              options: newOptions
+            })
+            .eq("id", game.id);
+
+          // 8. BROADCAST immediate refresh for all players
+          await resultChannel.send({
+            type: 'broadcast',
+            event: 'GAME_UPDATE',
+            payload: { status: "RESULT", q_index: qIndex }
+          });
+
+          // If there are swappers, trigger the first one explicitly via broadcast
+          if (swappers.length > 0) {
+            console.log("[Host] Broadcasting FIRST swap start:", swappers[0].nickname);
+            await resultChannel.send({
+              type: 'broadcast',
+              event: 'START_SWAP',
+              payload: { playerId: swappers[0].id, nickname: swappers[0].nickname }
+            });
           }
-        });
+
+          setTimeout(() => supabase.removeChannel(resultChannel), 3000);
+        }
+      });
 
       confetti({
         particleCount: 150,
@@ -404,15 +408,15 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     } catch (err) {
       console.error("정산 실패:", err);
     } finally {
-      // Small timeout to allow state updates to settle before enabling buttons
-      setTimeout(() => setCalculating(false), 2000);
+      // Reduced final settle timeout from 2000ms to 800ms
+      setTimeout(() => setCalculating(false), 800);
     }
   };
 
   const handleForceNext = async () => {
     const confirmed = await showConfirm("누군가 점수를 바꾸고 있어요. 그래도 다음으로 넘어갈까요?");
     if (!confirmed) return;
-    
+
     // Use a dedicated flag or just don't clear swapper status yet
     setCalculating(true);
     try {
@@ -438,13 +442,13 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     const isLast = game.current_q_index >= (game.options?.questions?.length || 1) - 1;
     const { error } = await supabase
       .from("games")
-      .update({ 
+      .update({
         status: isLast ? "ENDED" : "PLAYING",
         current_q_index: isLast ? game.current_q_index : game.current_q_index + 1,
         current_hint_stage: 0
       })
       .eq("id", game.id);
-    
+
     if (error) {
       alert("이동 실패: " + error.message);
       throw error;
@@ -482,7 +486,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     let message = stage === 1 ? "힌트(글자 수)를 보여줄까요?" : "힌트(초성)를 보여줄까요?";
     const confirmed = await showConfirm(message);
     if (!confirmed) return;
-    
+
     const { error } = await supabase.from("games").update({ current_hint_stage: stage }).eq("id", game.id);
     if (!error) {
       // Broadcast hint reveal for immediate student-side reaction
@@ -511,21 +515,21 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   // Sequential Swap Listener
   useEffect(() => {
     if (!game.id) return;
-    
+
     const channel = supabase.channel(`game_swaps_${game.id}`)
       .on('broadcast', { event: 'EXECUTE_SWAP' }, async ({ payload }: { payload: any }) => {
         const { swapperId, targetId } = payload;
-        
+
         // 1. Fetch info
         const { data: swapper } = await supabase.from('players').select('score, nickname').eq('id', swapperId).single();
-        
+
         const advanceQueue = async () => {
           const currentQueue = swapQueueRef.current || [];
           if (currentQueue.length === 0) {
             console.log("[Swap Engine] Queue already empty. End of sequence.");
             return;
           }
-          
+
           const nextQueue = currentQueue.slice(1);
           const nextSwapper = nextQueue.length > 0 ? nextQueue[0] : null;
 
@@ -590,7 +594,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             } else {
               const { error: err1 } = await supabase.from('players').update({ score: target.score }).eq('id', swapperId);
               const { error: err2 } = await supabase.from('players').update({ score: swapper.score }).eq('id', targetId);
-              
+
               if (err1 || err2) {
                 console.error("[Swap Engine] Score update FAILED:", { swapperErr: err1, targetErr: err2 });
               } else {
@@ -600,8 +604,8 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               await channel.send({
                 type: 'broadcast',
                 event: 'SWAP_COMPLETED',
-                payload: { 
-                  swapperId, swapperName: swapper.nickname, 
+                payload: {
+                  swapperId, swapperName: swapper.nickname,
                   targetId, targetName: target.nickname,
                   swapperScore: target.score, targetScore: swapper.score,
                   skipped: false
@@ -628,7 +632,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
         // 5. GO!
         await advanceQueue();
-        
+
         // 6. Refresh states to update UI
         if (refreshPlayers) {
           console.log("[Swap Engine] Refreshing players state...");
@@ -640,25 +644,28 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           .eq("game_id", game.id)
           .eq("q_index", gameRef.current.current_q_index);
         if (updatedAns) setAnswers(processAnswers(updatedAns));
-        
+
         console.log("[Swap Engine] Step finished.");
       })
       .subscribe();
-      
-    return () => { 
+
+    return () => {
       supabase.removeChannel(channel);
     };
   }, [game.id]);
 
+  const prevQIndexRef = useRef<number>(-1);
   useEffect(() => {
     if (game.status === 'RESULT' || game.status === 'PLAYING') {
       setCalculating(false);
     }
-    // RESET SWAP & SUBMISSION STATES when moving to a new turn or re-starting play
-    if (game.status === 'PLAYING') {
+    // RESET SWAP & SUBMISSION STATES only when moving to a NEW question
+    if (game.status === 'PLAYING' && prevQIndexRef.current !== game.current_q_index) {
+      console.log(`[HostControl] New question detected (${game.current_q_index}), resetting states.`);
       setCurrentSwapperId(null);
       setSwapQueue([]);
-      setAnswers([]); // CRITICAL: Reset submission status for the new question
+      setAnswers([]);
+      prevQIndexRef.current = game.current_q_index;
     }
   }, [game.status, game.current_q_index]);
 
@@ -692,15 +699,15 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   useEffect(() => {
     const channel = supabase
       .channel(`answers:${game.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'answers', filter: `game_id=eq.${game.id}` }, 
-      async () => {
-        // CRITICAL PROTECTION: Do not overwrite Host results with DB updates while in RESULT mode OR calculating.
-        // We calculate locally to ensure immediate icons/points; DB sync is for late-comers or refreshes.
-        if (gameRef.current.status !== 'RESULT' && !calculating) {
-          const { data } = await supabase.from("answers").select("*").eq("game_id", game.id).eq("q_index", gameRef.current.current_q_index);
-          if (data) setAnswers(processAnswers(data));
-        }
-      }).subscribe();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'answers', filter: `game_id=eq.${game.id}` },
+        async () => {
+          // CRITICAL PROTECTION: Do not overwrite Host results with DB updates while in RESULT mode OR calculating.
+          // We calculate locally to ensure immediate icons/points; DB sync is for late-comers or refreshes.
+          if (gameRef.current.status !== 'RESULT' && !calculating) {
+            const { data } = await supabase.from("answers").select("*").eq("game_id", game.id).eq("q_index", gameRef.current.current_q_index);
+            if (data) setAnswers(processAnswers(data));
+          }
+        }).subscribe();
 
     const fetchAnswers = async () => {
       // If we're entering a new question in PLAYING mode, start fresh
@@ -712,12 +719,12 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       // computed the final results locally. Polling risks overwriting them with stale
       // DB data if the update failed or was delayed.
     };
-    
+
     fetchAnswers();
     const interval = setInterval(() => {
-       if (gameRef.current.status === 'PLAYING' && !calculating) fetchAnswers();
+      if (gameRef.current.status === 'PLAYING' && !calculating) fetchAnswers();
     }, 2000);
-    
+
     return () => { supabase.removeChannel(channel); clearInterval(interval); };
   }, [game.id, game.current_q_index]);
 
@@ -732,15 +739,15 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         {showLargeAnswer && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-indigo-900 animate-in fade-in duration-300">
             <div className="flex flex-col items-center animate-in zoom-in duration-500 text-center p-8">
-               <div className="bg-white/10 text-indigo-200 px-8 py-2 rounded-full font-black text-xl mb-8 uppercase tracking-widest border border-white/10">
-                 Correct Answer
-               </div>
-                <div className="text-[8rem] md:text-[12rem] font-black text-yellow-300 drop-shadow-[0_20px_50px_rgba(253,224,71,0.3)] leading-none font-jua [&_p]:m-0">
-                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(currentQuestion?.a || "")}</ReactMarkdown>
-                </div>
-               <div className="mt-12 w-32 h-2 bg-yellow-400/20 rounded-full overflow-hidden">
-                  <div className="h-full bg-yellow-400 animate-loading-bar" />
-               </div>
+              <div className="bg-white/10 text-indigo-200 px-8 py-2 rounded-full font-black text-xl mb-8 uppercase tracking-widest border border-white/10">
+                Correct Answer
+              </div>
+              <div className="text-[8rem] md:text-[12rem] font-black text-yellow-300 drop-shadow-[0_20px_50px_rgba(253,224,71,0.3)] leading-none font-jua [&_p]:m-0">
+                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(currentQuestion?.a || "")}</ReactMarkdown>
+              </div>
+              <div className="mt-12 w-32 h-2 bg-yellow-400/20 rounded-full overflow-hidden">
+                <div className="h-full bg-yellow-400 animate-loading-bar" />
+              </div>
             </div>
           </div>
         )}
@@ -756,10 +763,10 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             </div>
 
             <div className="absolute top-4 right-8 no-print">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
-                className="text-white/40 hover:text-red-400 hover:bg-white/5" 
+                className="text-white/40 hover:text-red-400 hover:bg-white/5"
                 onClick={handleExitGame}
                 disabled={calculating}
               >
@@ -771,7 +778,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               <Award size={48} className="text-yellow-400 animate-bounce" />
               <h2 className="text-3xl font-jua">라운드 결과</h2>
             </div>
-            
+
             <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 w-full max-w-6xl justify-center">
               <div className="bg-white/10 px-8 py-3 rounded-2xl border-2 border-white/10 animate-pop text-center">
                 <span className="text-indigo-200 font-bold mb-1 uppercase tracking-widest text-[10px] block">정답</span>
@@ -779,16 +786,16 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                   <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(currentQuestion?.a || "")}</ReactMarkdown>
                 </h3>
               </div>
-              
+
               <div className="flex gap-3">
-                 <div className="bg-white/5 px-6 py-2 rounded-2xl border border-white/5 text-center min-w-[100px]">
-                    <div className="text-[10px] font-bold opacity-50 uppercase">정답자</div>
-                    <div className="text-2xl font-black text-green-400">{answers.filter(a => a.is_correct).length}명</div>
-                 </div>
-                 <div className="bg-white/5 px-6 py-2 rounded-2xl border border-white/5 text-center min-w-[100px]">
-                    <div className="text-[10px] font-bold opacity-50 uppercase">참여도</div>
-                    <div className="text-2xl font-black text-blue-300">{players.length > 0 ? Math.round((answers.length / players.length) * 100) : 0}%</div>
-                 </div>
+                <div className="bg-white/5 px-6 py-2 rounded-2xl border border-white/5 text-center min-w-[100px]">
+                  <div className="text-[10px] font-bold opacity-50 uppercase">정답자</div>
+                  <div className="text-2xl font-black text-green-400">{answers.filter(a => a.is_correct).length}명</div>
+                </div>
+                <div className="bg-white/5 px-6 py-2 rounded-2xl border border-white/5 text-center min-w-[100px]">
+                  <div className="text-[10px] font-bold opacity-50 uppercase">참여도</div>
+                  <div className="text-2xl font-black text-blue-300">{players.length > 0 ? Math.round((answers.length / players.length) * 100) : 0}%</div>
+                </div>
               </div>
 
               {/* Team Scores Mini List */}
@@ -799,12 +806,12 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                     teamScores[p.team] = (teamScores[p.team] || 0) + p.score;
                   }
                 });
-                
+
                 if (Object.keys(teamScores).length > 0) {
                   const teamColors: Record<string, string> = { RED: 'bg-red-500', BLUE: 'bg-blue-500', GREEN: 'bg-green-500', YELLOW: 'bg-yellow-400' };
                   return (
                     <div className="flex gap-2">
-                      {Object.entries(teamScores).sort((a,b) => b[1] - a[1]).map(([team, score]) => (
+                      {Object.entries(teamScores).sort((a, b) => b[1] - a[1]).map(([team, score]) => (
                         <div key={team} className="bg-white/5 px-3 py-1.5 rounded-xl border border-white/5 flex flex-col items-center">
                           <span className={cn("inline-block w-2 h-2 rounded-full mb-1", teamColors[team])} />
                           <span className="text-xs font-black text-white">{score.toLocaleString()}</span>
@@ -817,7 +824,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               })()}
             </div>
           </div>
-          
+
           {/* Scrollable Middle: Participant Rankings */}
           <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
             <div className="max-w-6xl mx-auto">
@@ -829,7 +836,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {players.map((player, idx) => {
                   const ans = answers.find(a => a.player_id === player.id);
-                  
+
                   const getEventInfo = (event?: string) => {
                     if (!event || event === 'none') return null;
                     const e = event.trim().toLowerCase();
@@ -847,16 +854,16 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                   };
 
                   return (
-                    <div 
-                      key={player.id} 
+                    <div
+                      key={player.id}
                       className="flex items-center gap-3 bg-white/5 p-3 rounded-2xl border border-white/5 hover:bg-white/10 transition-all group shrink-0"
                     >
                       {/* Rank Indication */}
                       <div className={cn(
                         "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs shrink-0 shadow-lg",
-                        idx === 0 ? "bg-yellow-400 text-indigo-900 border-2 border-yellow-200" : 
-                        idx === 1 ? "bg-slate-300 text-slate-700" :
-                        idx === 2 ? "bg-orange-400 text-white" : "bg-white/10 text-white"
+                        idx === 0 ? "bg-yellow-400 text-indigo-900 border-2 border-yellow-200" :
+                          idx === 1 ? "bg-slate-300 text-slate-700" :
+                            idx === 2 ? "bg-orange-400 text-white" : "bg-white/10 text-white"
                       )}>
                         {idx + 1}
                       </div>
@@ -868,8 +875,8 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                             <span className={cn(
                               "text-[8px] font-black uppercase tracking-tighter leading-none mt-0.5",
                               player.team === 'RED' ? 'text-red-400' :
-                              player.team === 'BLUE' ? 'text-blue-400' :
-                              player.team === 'GREEN' ? 'text-green-400' : 'text-yellow-400'
+                                player.team === 'BLUE' ? 'text-blue-400' :
+                                  player.team === 'GREEN' ? 'text-green-400' : 'text-yellow-400'
                             )}>
                               {player.team === 'RED' ? '빨강팀' : player.team === 'BLUE' ? '파랑팀' : player.team === 'GREEN' ? '초록팀' : '노랑팀'}
                             </span>
@@ -905,8 +912,8 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                           {ans && (
                             <div className={cn(
                               "w-full px-3 py-1 rounded-xl font-bold text-xs text-center border truncate [&_p]:m-0",
-                              ans.is_correct 
-                                ? "bg-emerald-500/80 border-emerald-400/50 text-white" 
+                              ans.is_correct
+                                ? "bg-emerald-500/80 border-emerald-400/50 text-white"
                                 : "bg-red-500/80 border-red-400/50 text-white"
                             )}>
                               <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
@@ -933,8 +940,8 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
           {/* Footer Section: Navigation & Controls */}
           <div className="shrink-0 p-6 bg-indigo-900 border-t border-white/10 flex flex-col items-center gap-3 relative z-10 shadow-[0_-20px_40px_rgba(0,0,0,0.3)]">
-            <Button 
-              size="xl" 
+            <Button
+              size="xl"
               className={cn(
                 "px-16 py-6 font-black shadow-2xl rounded-[2rem] text-xl group transition-all min-w-[320px]",
                 currentSwapperId ? "bg-slate-500 text-slate-100 cursor-not-allowed" : "bg-yellow-400 text-indigo-900 hover:bg-yellow-300 hover:scale-105"
@@ -956,13 +963,13 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                 </>
               )}
             </Button>
-            
+
             <div className="flex items-center gap-6">
               <div className="text-indigo-300 text-xs font-bold">
-                 참여 인원: <span className="text-white">{players.length}명</span>
+                참여 인원: <span className="text-white">{players.length}명</span>
               </div>
               {currentSwapperId && (
-                <button 
+                <button
                   onClick={handleForceNext}
                   className="flex items-center gap-1.5 text-red-300/60 hover:text-red-300 font-bold transition-all text-[11px] border-b border-transparent hover:border-red-400"
                 >
@@ -988,204 +995,204 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
         {/* Exit Button */}
         <div className="absolute top-4 right-4 no-print">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="sm"
-            className="text-gray-400 hover:text-red-500 hover:bg-red-50" 
+            className="text-gray-400 hover:text-red-500 hover:bg-red-50"
             onClick={handleExitGame}
             disabled={calculating}
           >
             <LogOut size={18} className="mr-2" /> 게임 종료
           </Button>
         </div>
-        
-          <div className="max-w-6xl mx-auto text-center py-12">
-            <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-700 px-6 py-2 rounded-full font-black text-xl mb-6">
-              <HelpCircle size={24} /> Question #{game.current_q_index + 1}
-            </div>
-            <div className="flex flex-col items-center gap-1 mb-8">
-               <span className="text-xs font-black text-emerald-500 uppercase tracking-widest">Points</span>
-               <span className="bg-emerald-500 text-white px-6 py-1 rounded-2xl text-2xl font-black shadow-lg shadow-emerald-100 italic">
-                 {currentQuestion?.points || 10}점
-               </span>
-            </div>
 
-            {currentQuestion?.type === "BLANK" ? (
-              <div className="flex flex-col items-center gap-6 mb-8">
-                <span className="text-2xl font-black text-indigo-400">다음 빈칸에 알맞은 글자를 넣으세요.</span>
-                <div className="p-8 bg-slate-50 rounded-[3rem] border-4 border-slate-100 flex flex-wrap gap-x-2 gap-y-8 items-center justify-center shadow-inner">
-                  {currentQuestion.q.split(/\s+/).filter(Boolean).map((word: string, wordIdx: number) => {
-                    const blanks = currentQuestion.blanks || [];
-                    const isBlank = blanks.includes(wordIdx);
-                    
-                    if (isBlank) {
-                      return (
-                        <div key={wordIdx} className="flex gap-1 bg-white p-2 rounded-2xl shadow-sm border-2 border-slate-200">
-                          {Array.from({ length: word.length }).map((_, i) => (
-                            <div key={i} className={cn(
-                              "w-12 h-14 rounded-xl flex items-center justify-center font-black text-2xl transition-all",
-                              game.current_hint_stage >= 1 
-                                ? "bg-indigo-600 text-white shadow-indigo-100 scale-110" 
-                                : "bg-slate-50 border-2 border-indigo-100 text-indigo-200"
-                            )}>
-                              {game.current_hint_stage >= 1 ? getChoseong(word[i]) : ""}
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    }
-                    return <span key={wordIdx} className="text-3xl font-black text-slate-400 px-2">{word}</span>;
+        <div className="max-w-6xl mx-auto text-center py-12">
+          <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-700 px-6 py-2 rounded-full font-black text-xl mb-6">
+            <HelpCircle size={24} /> Question #{game.current_q_index + 1}
+          </div>
+          <div className="flex flex-col items-center gap-1 mb-8">
+            <span className="text-xs font-black text-emerald-500 uppercase tracking-widest">Points</span>
+            <span className="bg-emerald-500 text-white px-6 py-1 rounded-2xl text-2xl font-black shadow-lg shadow-emerald-100 italic">
+              {currentQuestion?.points || 10}점
+            </span>
+          </div>
+
+          {currentQuestion?.type === "BLANK" ? (
+            <div className="flex flex-col items-center gap-6 mb-8">
+              <span className="text-2xl font-black text-indigo-400">다음 빈칸에 알맞은 글자를 넣으세요.</span>
+              <div className="p-8 bg-slate-50 rounded-[3rem] border-4 border-slate-100 flex flex-wrap gap-x-2 gap-y-8 items-center justify-center shadow-inner">
+                {currentQuestion.q.split(/\s+/).filter(Boolean).map((word: string, wordIdx: number) => {
+                  const blanks = currentQuestion.blanks || [];
+                  const isBlank = blanks.includes(wordIdx);
+
+                  if (isBlank) {
+                    return (
+                      <div key={wordIdx} className="flex gap-1 bg-white p-2 rounded-2xl shadow-sm border-2 border-slate-200">
+                        {Array.from({ length: word.length }).map((_, i) => (
+                          <div key={i} className={cn(
+                            "w-12 h-14 rounded-xl flex items-center justify-center font-black text-2xl transition-all",
+                            game.current_hint_stage >= 1
+                              ? "bg-indigo-600 text-white shadow-indigo-100 scale-110"
+                              : "bg-slate-50 border-2 border-indigo-100 text-indigo-200"
+                          )}>
+                            {game.current_hint_stage >= 1 ? getChoseong(word[i]) : ""}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return <span key={wordIdx} className="text-3xl font-black text-slate-400 px-2">{word}</span>;
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-6 mb-8 w-full px-4">
+              <div className={cn(
+                "font-black text-gray-800 break-keep leading-tight text-center w-full [&_p]:m-0 transition-all duration-300 whitespace-pre-wrap",
+                (currentQuestion?.q?.length || 0) > 150 ? "text-xl md:text-2xl" :
+                  (currentQuestion?.q?.length || 0) > 80 ? "text-2xl md:text-3xl" :
+                    "text-3xl md:text-5xl"
+              )}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                  components={{
+                    p: ({ node, ...props }) => <span className="whitespace-pre-wrap block" {...props} />,
+                  }}
+                >
+                  {processMathText(currentQuestion?.q || "")}
+                </ReactMarkdown>
+              </div>
+
+              {/* Question Options for Teacher (Simplified & Hidden Answer) */}
+              {(currentQuestion?.type === "MULTIPLE_CHOICE" || currentQuestion?.type === "OX") && (
+                <div className="grid grid-cols-2 gap-4 w-full max-w-3xl mt-2">
+                  {(currentQuestion.options || []).map((opt: string, i: number) => (
+                    <div
+                      key={i}
+                      className="p-5 rounded-3xl border-4 bg-white border-slate-100 text-slate-600 text-xl font-black text-left flex items-center gap-4 transition-all shadow-md opacity-80"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center shrink-0 text-lg">
+                        {i + 1}
+                      </div>
+                      <div className="break-all line-clamp-2 [&_p]:m-0 flex-1">
+                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                          {processMathText(opt)}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {game.current_hint_stage > 0 && currentQuestion?.type === "SHORT_ANSWER" && (
+                <div className="flex flex-wrap justify-center gap-3 animate-in slide-in-from-top-2 duration-300">
+                  {currentQuestion?.a.split('').map((char: string, i: number) => {
+                    const showChoseong = game.current_hint_stage >= 2;
+                    const displayChar = showChoseong ? getChoseong(char) : (char === ' ' ? ' ' : '');
+
+                    return (
+                      <div
+                        key={i}
+                        className={cn(
+                          "w-10 h-12 md:w-12 md:h-14 rounded-2xl flex items-center justify-center text-2xl font-black transition-all shadow-sm",
+                          showChoseong && char !== ' '
+                            ? "bg-indigo-600 text-white shadow-indigo-200 scale-110"
+                            : char === ' ' ? "bg-transparent border-none" : "bg-white text-indigo-200 border-2 border-indigo-100"
+                        )}
+                      >
+                        {displayChar}
+                      </div>
+                    );
                   })}
                 </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-6 mb-8 w-full px-4">
-                <div className={cn(
-                  "font-black text-gray-800 break-keep leading-tight text-center w-full [&_p]:m-0 transition-all duration-300 whitespace-pre-wrap",
-                  (currentQuestion?.q?.length || 0) > 150 ? "text-xl md:text-2xl" : 
-                  (currentQuestion?.q?.length || 0) > 80 ? "text-2xl md:text-3xl" : 
-                  "text-3xl md:text-5xl"
-                )}>
-                  <ReactMarkdown 
-                    remarkPlugins={[remarkMath]} 
-                    rehypePlugins={[rehypeKatex]}
-                    components={{
-                      p: ({node, ...props}) => <span className="whitespace-pre-wrap block" {...props} />,
-                    }}
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-wrap justify-center gap-6 mt-6 items-center">
+            {(currentQuestion?.type === "SHORT_ANSWER" || currentQuestion?.type === "BLANK") && (
+              <div className="flex bg-slate-100 p-2 rounded-2xl gap-2">
+                {currentQuestion?.type === "BLANK" ? (
+                  <button
+                    onClick={() => handleHintStage(1)}
+                    className={cn(
+                      "px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2",
+                      game.current_hint_stage >= 1
+                        ? "bg-indigo-600 text-white shadow-lg"
+                        : "text-slate-500 hover:bg-slate-200"
+                    )}
                   >
-                    {processMathText(currentQuestion?.q || "")}
-                  </ReactMarkdown>
-                </div>
-
-                {/* Question Options for Teacher (Simplified & Hidden Answer) */}
-                {(currentQuestion?.type === "MULTIPLE_CHOICE" || currentQuestion?.type === "OX") && (
-                  <div className="grid grid-cols-2 gap-4 w-full max-w-3xl mt-2">
-                    {(currentQuestion.options || []).map((opt: string, i: number) => (
-                      <div 
-                        key={i} 
-                        className="p-5 rounded-3xl border-4 bg-white border-slate-100 text-slate-600 text-xl font-black text-left flex items-center gap-4 transition-all shadow-md opacity-80"
-                      >
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center shrink-0 text-lg">
-                          {i + 1}
-                        </div>
-                        <div className="break-all line-clamp-2 [&_p]:m-0 flex-1">
-                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
-                            {processMathText(opt)}
-                          </ReactMarkdown>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {game.current_hint_stage > 0 && currentQuestion?.type === "SHORT_ANSWER" && (
-                  <div className="flex flex-wrap justify-center gap-3 animate-in slide-in-from-top-2 duration-300">
-                    {currentQuestion?.a.split('').map((char: string, i: number) => {
-                      const showChoseong = game.current_hint_stage >= 2;
-                      const displayChar = showChoseong ? getChoseong(char) : (char === ' ' ? ' ' : '');
-                      
-                      return (
-                        <div 
-                          key={i}
-                          className={cn(
-                            "w-10 h-12 md:w-12 md:h-14 rounded-2xl flex items-center justify-center text-2xl font-black transition-all shadow-sm",
-                            showChoseong && char !== ' '
-                              ? "bg-indigo-600 text-white shadow-indigo-200 scale-110" 
-                              : char === ' ' ? "bg-transparent border-none" : "bg-white text-indigo-200 border-2 border-indigo-100"
-                          )}
-                        >
-                          {displayChar}
-                        </div>
-                      );
-                    })}
-                  </div>
+                    <Zap size={18} className={game.current_hint_stage >= 1 ? "fill-white" : ""} />
+                    힌트 보여주기
+                  </button>
+                ) : (
+                  [1, 2].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => handleHintStage(s)}
+                      className={cn(
+                        "px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2",
+                        game.current_hint_stage >= s
+                          ? "bg-indigo-600 text-white shadow-lg"
+                          : "text-slate-500 hover:bg-slate-200"
+                      )}
+                    >
+                      <Zap size={18} className={game.current_hint_stage >= s ? "fill-white" : ""} />
+                      {s === 1 ? "1단계: 글자수" : "2단계: 초성"}
+                    </button>
+                  ))
                 )}
               </div>
             )}
 
-            <div className="flex flex-wrap justify-center gap-6 mt-6 items-center">
-              {(currentQuestion?.type === "SHORT_ANSWER" || currentQuestion?.type === "BLANK") && (
-                <div className="flex bg-slate-100 p-2 rounded-2xl gap-2">
-                  {currentQuestion?.type === "BLANK" ? (
-                    <button
-                      onClick={() => handleHintStage(1)}
-                      className={cn(
-                        "px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2",
-                        game.current_hint_stage >= 1 
-                          ? "bg-indigo-600 text-white shadow-lg" 
-                          : "text-slate-500 hover:bg-slate-200"
-                      )}
-                    >
-                      <Zap size={18} className={game.current_hint_stage >= 1 ? "fill-white" : ""} />
-                      힌트 보여주기
-                    </button>
-                  ) : (
-                    [1, 2].map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => handleHintStage(s)}
-                        className={cn(
-                          "px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2",
-                          game.current_hint_stage >= s 
-                            ? "bg-indigo-600 text-white shadow-lg" 
-                            : "text-slate-500 hover:bg-slate-200"
-                        )}
-                      >
-                        <Zap size={18} className={game.current_hint_stage >= s ? "fill-white" : ""} />
-                        {s === 1 ? "1단계: 글자수" : "2단계: 초성"}
-                      </button>
-                    ))
-                  )}
+            <div className="h-10 w-px bg-slate-200" />
+
+            <div className="flex items-center gap-6 bg-slate-50 px-8 py-4 rounded-3xl border-2 border-slate-100 shadow-sm font-black text-indigo-600 text-2xl">
+              <div className={cn(
+                "flex items-center gap-3 transition-all duration-300",
+                timeLeft <= 5 && "text-red-500 animate-pulse scale-110"
+              )}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner transition-colors bg-indigo-100">
+                  <Clock size={28} />
                 </div>
-              )}
-
-              <div className="h-10 w-px bg-slate-200" />
-
-              <div className="flex items-center gap-6 bg-slate-50 px-8 py-4 rounded-3xl border-2 border-slate-100 shadow-sm font-black text-indigo-600 text-2xl">
-                 <div className={cn(
-                   "flex items-center gap-3 transition-all duration-300",
-                   timeLeft <= 5 && "text-red-500 animate-pulse scale-110"
-                 )}>
-                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner transition-colors bg-indigo-100">
-                     <Clock size={28} />
-                   </div>
-                   {timeLeft}s
-                 </div>
+                {timeLeft}s
               </div>
             </div>
           </div>
         </div>
+      </div>
 
       {/* Main Footer Controls (Now part of flex flow) */}
       <div className="bg-white/95 backdrop-blur-md border-t-2 border-indigo-100 p-4 md:p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] flex justify-between items-center z-[101]">
-          <div className="flex items-center gap-4">
-            <div className="bg-indigo-100 text-indigo-700 p-3 md:p-4 rounded-2xl">
-              <Users size={32} />
-            </div>
-            <div className="hidden sm:block">
-              <div className="text-2xl font-black">{answers.length}명 제출</div>
-              <div className="text-sm font-bold text-gray-400">남은 학생: {players.length - answers.length}명</div>
-            </div>
+        <div className="flex items-center gap-4">
+          <div className="bg-indigo-100 text-indigo-700 p-3 md:p-4 rounded-2xl">
+            <Users size={32} />
           </div>
-          
-          <Button 
-            size="xl" 
-            disabled={calculating || game.status !== 'PLAYING'}
-            className="px-8 md:px-16 py-6 md:py-8 bg-indigo-600 hover:bg-indigo-700 font-black shadow-xl rounded-2xl text-xl md:text-2xl transition-transform active:scale-95"
-            onClick={handleFinishRound}
-          >
-            {calculating || game.status !== 'PLAYING' ? "채점 중..." : "문제 마감하기"}
-          </Button>
-
-          <div className="w-[100px] hidden md:block"></div> {/* Balanced spacing */}
+          <div className="hidden sm:block">
+            <div className="text-2xl font-black">{answers.length}명 제출</div>
+            <div className="text-sm font-bold text-gray-400">남은 학생: {players.length - answers.length}명</div>
+          </div>
         </div>
 
-        {/* Player Status Bar */}
-        <PlayerBar 
-          players={players} 
-          submissions={answers.filter(a => a.answer !== '(시간초과)').map(a => a.player_id)}
-          className="bg-indigo-50/90 border-t border-indigo-200"
-        />
+        <Button
+          size="xl"
+          disabled={calculating || game.status !== 'PLAYING'}
+          className="px-8 md:px-16 py-6 md:py-8 bg-indigo-600 hover:bg-indigo-700 font-black shadow-xl rounded-2xl text-xl md:text-2xl transition-transform active:scale-95"
+          onClick={handleFinishRound}
+        >
+          {calculating || game.status !== 'PLAYING' ? "채점 중..." : "문제 마감하기"}
+        </Button>
+
+        <div className="w-[100px] hidden md:block"></div> {/* Balanced spacing */}
+      </div>
+
+      {/* Player Status Bar */}
+      <PlayerBar
+        players={players}
+        submissions={answers.filter(a => a.answer !== '(시간초과)').map(a => a.player_id)}
+        className="bg-indigo-50/90 border-t border-indigo-200"
+      />
     </div>
   );
 }
