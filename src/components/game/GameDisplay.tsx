@@ -389,7 +389,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                       {currentQuestion.q.split(/\s+/).filter(Boolean).map((word: string, wordIdx: number) => {
                         const blanks = currentQuestion.blanks || [];
                         const bIdx = blanks.indexOf(wordIdx);
-                        if (bIdx !== -1) return <SegmentedInput key={wordIdx} value={blankAnswers[wordIdx] || ""} length={word.length} onChange={(val) => handleBlankChange(wordIdx, val, blanks)} onEnter={() => handleSubmit()} autoFocus={bIdx === 0} firstRef={bIdx === 0 ? firstBlankRef : null} />;
+                        if (bIdx !== -1) return <SegmentedInput key={wordIdx} value={blankAnswers[wordIdx] || ""} length={word.length} onChange={(val) => handleBlankChange(wordIdx, val, blanks)} onEnter={() => handleSubmit()} autoFocus={bIdx === 0} firstRef={bIdx === 0 ? firstBlankRef : undefined} />;
                         return <span key={wordIdx} className="text-xl md:text-2xl font-black text-slate-400">{word}</span>;
                       })}
                     </div>
