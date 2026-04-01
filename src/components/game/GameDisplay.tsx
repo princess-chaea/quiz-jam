@@ -1,113 +1,19 @@
-"use client";
-import React, { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/Button";
-import { Clock, Zap, Shield, Scissors, Gift, RefreshCw, Check, X } from "lucide-react";
-import { cn, getChoseong, processMathText, normalizeMath, hasMathSymbols } from "@/lib/utils";
-import { useDialog } from "@/components/ui/DialogProvider";
-import confetti from "canvas-confetti";
-import { supabase } from "@/lib/supabase";
+import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
+import { useDialog } from '@/components/ui/dialog-context';
+import { cn } from '@/lib/utils';
+import { 
+  Trophy, Clock, Check, X, RefreshCw, Zap, Gift, 
+  Shield, TrendingUp, ChevronLeft, ChevronRight, Scissors 
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import { MathInput } from "@/components/ui/MathInput";
-
-// --- Sub-component for Segmented Blank Input ---
-interface SegmentedInputProps {
-  value: string;
-  length: number;
-  onChange: (val: string) => void;
-  onEnter?: () => void;
-  autoFocus?: boolean;
-  firstRef?: any;
-}
-
-function SegmentedInput({ value, length, onChange, onEnter, autoFocus, firstRef }: SegmentedInputProps) {
-  const hiddenInputRef = useRef<HTMLInputElement>(null);
-  const [isFocused, setIsFocused] = useState(false);
-
-  // Sync ref with firstRef if provided
-  useEffect(() => {
-    if (firstRef && hiddenInputRef.current) {
-      firstRef.current = hiddenInputRef.current;
-    }
-  }, [firstRef]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVal = e.target.value.slice(0, length);
-    onChange(newVal);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') onEnter?.();
-  };
-
-  const handleClick = () => {
-    hiddenInputRef.current?.focus();
-    // Move cursor to end when clicking
-    if (hiddenInputRef.current) {
-      const len = hiddenInputRef.current.value.length;
-      hiddenInputRef.current.setSelectionRange(len, len);
-    }
-  };
-
-  const forceFocus = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    hiddenInputRef.current?.focus();
-    if (hiddenInputRef.current) {
-      const len = hiddenInputRef.current.value.length;
-      hiddenInputRef.current.setSelectionRange(len, len);
-    }
-  };
-
-  return (
-    <div 
-      className="flex gap-1 bg-white p-1.5 md:p-2 rounded-xl shadow-sm border border-slate-200 relative cursor-text group/seg"
-      onClick={handleClick}
-    >
-      {/* Hidden native input for IME support - improved styling for Korean */}
-      <input
-        ref={hiddenInputRef}
-        type="text"
-        value={value}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        autoFocus={autoFocus}
-        className="absolute inset-0 opacity-0 cursor-default text-transparent bg-transparent border-none outline-none caret-transparent"
-        style={{ fontSize: '16px' }} // Standard font size avoids zoom on mobile and helps IME
-      />
-      
-      {Array.from({ length }).map((_, i) => (
-        <div
-          key={i}
-          className={cn(
-            "w-8 h-10 md:w-10 md:h-12 bg-slate-50 border-2 rounded-lg flex items-center justify-center font-black text-indigo-600 text-lg md:text-xl transition-all relative",
-            isFocused && value.length === i ? "border-indigo-500 bg-indigo-50/30 ring-2 ring-indigo-200" : "border-indigo-100",
-            value[i] ? "border-indigo-200 bg-white" : ""
-          )}
-        >
-          {value[i] || ""}
-          {/* Custom blinking cursor for the active box */}
-          {isFocused && value.length === i && (
-            <div className="absolute w-0.5 h-5 md:h-6 bg-indigo-500 animate-pulse" />
-          )}
-        </div>
-      ))}
-
-      {/* Focus Recovery Button ('>') */}
-      <button
-        type="button"
-        onClick={forceFocus}
-        className="absolute -right-8 top-1/2 -translate-y-1/2 w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black shadow-sm border border-indigo-200 hover:bg-indigo-600 hover:text-white transition-all opacity-0 group-hover/seg:opacity-100 md:opacity-100"
-        title="키보드가 입력되지 않을 때 클릭하세요"
-      >
-        &gt;
-      </button>
-    </div>
-  );
-}
+import { MathInput } from '@/components/game/MathInput';
+import { SegmentedInput } from '@/components/game/SegmentedInput';
 
 interface GameDisplayProps {
   game: any;
@@ -115,24 +21,51 @@ interface GameDisplayProps {
   players: any[];
   onSubmit: (answer: string) => void;
   refresh: () => void;
-  result: any;
+  result?: any;
   onRetract?: () => void;
 }
+
+function getChoseong(str: string) {
+  const choseong = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
+  let result = "";
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i) - 44032;
+    if (code > -1 && code < 11172) result += choseong[Math.floor(code / 588)];
+    else result += str.charAt(i);
+  }
+  return result;
+}
+
+const processMathText = (text: string) => {
+  if (!text) return "";
+  let processed = text.replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$');
+  processed = processed.replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
+  return processed;
+};
+
+const hasMathSymbols = (text?: string) => {
+  if (!text) return false;
+  return /[\+\-\*\/\=\^\_\{\}\[\]\(\)\\]/.test(text) || text.includes('\\') || text.includes('$');
+};
 
 export function GameDisplay({ game, player, players, onSubmit, refresh, result, onRetract }: GameDisplayProps) {
   const { showConfirm } = useDialog();
   const [answer, setAnswer] = useState("");
   const [blankAnswers, setBlankAnswers] = useState<Record<number, string>>({});
   const [submitted, setSubmitted] = useState(false);
-  const [internalSubmitted, setInternalSubmitted] = useState(false); // Local flag for immediate UI feedback
-
-  const [timeLeft, setTimeLeft] = useState<number>(30);
-  const [shieldBlock, setShieldBlock] = useState<{nickname: string, type: string} | null>(null);
-  const isComposing = useRef(false);
-  const confettiTriggered = useRef<string | null>(null); // Track which result (q_index) triggered confetti
+  const [internalSubmitted, setInternalSubmitted] = useState(false);
+  const [showScoreTab, setShowScoreTab] = useState(false);
+  const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
+  
+  const totalQuestions = game.options?.questions?.length || 0;
+  const currentProgress = ((game.current_q_index + 1) / totalQuestions) * 100;
   const currentQuestion = game.options?.questions[game.current_q_index];
-  const supabaseRef = useRef(null);
-  const swapChannelRef = useRef<any>(null);
+  
+  const [timeLeft, setTimeLeft] = useState<number>(currentQuestion?.timeLimit || 20);
+  const [shieldBlock, setShieldBlock] = useState<{nickname: string, type: string} | null>(null);
+  const isTimeOut = timeLeft === 0;
+
+  const confettiTriggered = useRef<string | null>(null); 
   const firstBlankRef = useRef<HTMLInputElement>(null);
 
   // --- Sequential Interactive Swap Selection ---
@@ -146,7 +79,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const handleSwapSelection = async (targetId: string | null, targetName: string | null) => {
     if (isSwapExecuting || !isMyTurnToSwap) return;
     
-    // If selecting a target (not skip) and not confirmed yet
     if (targetId && !pendingSwapTarget) {
       const target = players.find((p: any) => p.id === targetId);
       setPendingSwapTarget(target);
@@ -157,34 +89,25 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     setPendingSwapTarget(null);
     
     try {
-      // 1. Mark as consumed in database LOCALLY from student side for maximum reliability
       if (result?.id) {
-         console.log(`[Swap Engine] Marking local answer ${result.id} as done...`);
          const newEvent = (result.event || "")
            .split(',')
            .map((e: string) => e.trim() === 'swap' ? 'swap_done' : e)
            .join(',');
-         
-         const { error: localUpdErr } = await supabase
-           .from('answers')
-           .update({ event: newEvent })
-           .eq('id', result.id);
-         
-         if (localUpdErr) console.error("[Swap Engine] Local DB Update error:", localUpdErr);
+         await supabase.from('answers').update({ event: newEvent }).eq('id', result.id);
       }
 
-      // 2. Broadcast to Host to perform the actual point swap
-      if (swapChannelRef.current) {
-        console.log(`[Swap Engine] Broadcasting EXECUTE_SWAP to host for ${player.nickname}...`);
-        await swapChannelRef.current.send({
-          type: 'broadcast',
-          event: 'EXECUTE_SWAP',
-          payload: {
-            swapperId: player.id,
-            targetId: targetId // Will be null if skipped
-          }
-        });
-      }
+      const channel = supabase.channel(`game_events_${game.id}`);
+      await channel.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.send({
+            type: 'broadcast',
+            event: 'EXECUTE_SWAP',
+            payload: { swapperId: player.id, targetId }
+          });
+          supabase.removeChannel(channel);
+        }
+      });
 
       if (targetId) {
         setSwapResultText(`${targetName} 학생과 점수를 바꿨습니다!`);
@@ -195,186 +118,72 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       console.error("Swap execution failed:", err);
       setIsSwapExecuting(false);
     }
-
-    // Safety timeout: If no response from Host in 5 seconds, unlock the UI
-    setTimeout(() => {
-      setIsSwapExecuting(false);
-    }, 5000);
+    setTimeout(() => { setIsSwapExecuting(false); }, 5000);
   };
 
+  // Realtime Listeners
   useEffect(() => {
     if (!game?.id || !player.id) return;
     
-    const channel = supabase.channel(`game_swaps_${game.id}`)
+    const channel = supabase.channel(`game_realtime_events_${game.id}`)
       .on('broadcast', { event: 'START_SWAP' }, ({ payload }: { payload: any }) => {
-        console.log(`[Swap Engine] Student ${player.nickname} received START_SWAP for ${payload.nickname} (${payload.playerId})`);
         setActiveSwapperName(payload.nickname);
-        
         const myId = String(player.id || "").trim();
         const swapperId = String(payload.playerId || "").trim();
-        const myNick = String(player.nickname || "").trim();
-        const swapperNick = String(payload.nickname || "").trim();
-
-        const isMe = swapperId === myId || (swapperNick === myNick && swapperNick !== "");
-
-        if (isMe) {
-          console.log(`>>> [Swap Engine] SUCCESS: Targeted me (${player.nickname}). Opening selection UI.`);
+        if (swapperId === myId) {
           setIsMyTurnToSwap(true);
           setSwapResultText(null);
         } else {
-          console.log(`>>> [Swap Engine] INFO: Target is not me. Showing waiting state for ${payload.nickname}.`);
           setIsMyTurnToSwap(false);
         }
       })
       .on('broadcast', { event: 'SWAP_COMPLETED' }, ({ payload }: { payload: any }) => {
-        const { swapperId, targetId, swapperName, targetName, skipped } = payload;
-        console.log(`[Swap Engine] Received SWAP_COMPLETED: ${swapperName} -> ${targetName} (Skipped: ${skipped})`);
+        const { swapperId, swapperName, targetName, targetId, skipped } = payload;
         setActiveSwapperName(null);
-        setIsSwapExecuting(false); 
-        
+        setIsSwapExecuting(false);
+        setIsMyTurnToSwap(false);
+
         if (swapperId === player.id) {
-          if (skipped) {
-            setSwapResultText("점수 바꾸기를 하지 않고 넘어갔습니다.");
-          } else {
+          if (skipped) setSwapResultText("점수 바꾸기를 하지 않고 넘어갔습니다.");
+          else {
             setSwapResultText(`${targetName} 학생과 점수를 바꿨습니다!`);
             confetti({ particleCount: 50, spread: 40, origin: { y: 0.8 } });
           }
-          setIsMyTurnToSwap(false);
           setSwapCommitted(true);
         } else if (targetId === player.id && !skipped) {
           setSwapResultText(`${swapperName} 학생이 당신과 점수를 바꿨습니다!`);
         }
       })
       .on('broadcast', { event: 'SHIELD_BLOCK' }, ({ payload }: { payload: any }) => {
-        const { nickname, type } = payload;
-        setActiveSwapperName(null);
-        setIsSwapExecuting(false); 
-        if (type === 'swap' && isMyTurnToSwap) {
-          setSwapResultText(`${nickname} 학생이 방어 아이템을 사용하여 바꾸기를 차단했습니다!`);
-          setIsMyTurnToSwap(false);
-          setSwapCommitted(true);
+        if (payload.targetId === player.id) {
+          setShieldBlock({ nickname: payload.attackerName, type: payload.type });
+          setTimeout(() => setShieldBlock(null), 3000);
         }
       })
+      .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
+        const newEmoji = { id: Date.now() + Math.random(), emoji: payload.emoji, left: Math.random() * 80 + 10 };
+        setFloatingEmojis(prev => [...prev, newEmoji]);
+        setTimeout(() => setFloatingEmojis(prev => prev.filter(e => e.id !== newEmoji.id)), 3000);
+      })
       .on('broadcast', { event: 'GAME_UPDATE' }, () => {
-        console.log("[useGame] GAME_UPDATE broadcast received. Refreshing...");
-        if (refresh) refresh();
+        refresh();
       })
       .subscribe();
-    
-    swapChannelRef.current = channel;
-      
-    return () => { 
-      swapChannelRef.current = null;
-      supabase.removeChannel(channel); 
-    };
-  }, [game?.id, player.id]);
 
+    return () => { supabase.removeChannel(channel); };
+  }, [game?.id, player.id, refresh]);
+
+  // Sync state with results
   useEffect(() => {
-    if (swapResultText && !isSwapExecuting) {
-      const timer = setTimeout(() => {
-        console.log(">>> [Swap Engine] Auto-closing result modal...");
-        setIsMyTurnToSwap(false);
-        setSwapResultText(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [swapResultText, isSwapExecuting]);
-
-  useEffect(() => {
-    const swapState = game?.options?.swapState;
-    if (!swapState || game.status !== 'RESULT') {
-       setActiveSwapperName(null);
-       setIsMyTurnToSwap(false);
-       return;
-    }
-
-    const currentNick = swapState.currentSwapperNickname;
-    const currentId = String(swapState.currentSwapperId || "").trim();
-    const myId = String(player.id || "").trim();
-    
-    setActiveSwapperName(currentNick);
-    const isMe = currentId === myId;
-
-    if (isMe) {
-      const alreadyDone = result?.event?.includes('swap_done');
-      
-      if (!result) return;
-
-      if (alreadyDone) {
-        setIsMyTurnToSwap(false);
-        setSwapCommitted(true); 
-        return;
-      }
-
-      if (!isMyTurnToSwap && !swapCommitted) {
-        setIsMyTurnToSwap(true);
-        setSwapResultText(null);
-      }
-    } else {
-      if (isMyTurnToSwap) {
-        setIsMyTurnToSwap(false);
-      }
-      if (swapCommitted && !isMe) {
-         setSwapCommitted(false);
-      }
-    }
-  }, [game?.options?.swapState, game?.status, player.id, swapCommitted, isMyTurnToSwap, result]);
-
-  const teamScore = players
-    .filter((p: any) => p.team === player.team)
-    .reduce((sum: number, p: any) => sum + p.score, 0);
-
-  const teamNames: Record<string, string> = { RED: '레드팀', BLUE: '블루팀', GREEN: '그린팀', YELLOW: '옐로우팀' };
-  const teamBgColors: Record<string, string> = { RED: 'bg-red-500', BLUE: 'bg-blue-500', GREEN: 'bg-green-500', YELLOW: 'bg-yellow-400' };
-
-  const handleSubmit = React.useCallback((overrideAnswer?: string) => {
-    const finalAnswer = (overrideAnswer || answer).trim();
-    if (!finalAnswer) return;
-    setSubmitted(true);
-    setInternalSubmitted(true);
-    onSubmit(finalAnswer);
-  }, [answer, onSubmit]);
-
-  const handleAnswerChange = React.useCallback((val: string) => {
-    setAnswer(val);
-  }, []);
-
-  const handleBlankChange = React.useCallback((wordIdx: number, val: string, blanks: number[]) => {
-    setBlankAnswers(prev => {
-      const next = { ...prev, [wordIdx]: val };
-      setTimeout(() => {
-        const sortedBlanks = [...blanks].sort((a: number, b: number) => a - b);
-        const combined = sortedBlanks.map(idx => next[idx] || "").join(", ");
-        setAnswer(combined);
-      }, 0);
-      return next;
-    });
-  }, []);
-
-  useEffect(() => {
-    setAnswer("");
-    setBlankAnswers({});
-    setSubmitted(false);
-    setInternalSubmitted(false);
-    setIsMyTurnToSwap(false);
-    setSwapCommitted(false);
-    setIsSwapExecuting(false);
-    setActiveSwapperName(null);
-    setSwapResultText(null);
-    setPendingSwapTarget(null);
-    setTimeLeft(currentQuestion?.timeLimit || 20);
-
-    if (result && result.q_index === game.current_q_index) {
+    if (result) {
       if (result.answer === "(retracted)") {
-        // If it's a retraction, treat as not submitted
-        setAnswer("");
-        setBlankAnswers({});
         setSubmitted(false);
         setInternalSubmitted(false);
+        setAnswer("");
       } else {
-        setAnswer(result.answer || "");
         setSubmitted(true);
         setInternalSubmitted(true);
+        setAnswer(result.answer || "");
         
         if (currentQuestion?.type === "BLANK" && result.answer) {
           const parts = result.answer.split(", ");
@@ -386,808 +195,215 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           setBlankAnswers(newBlanks);
         }
       }
+    } else {
+      setSubmitted(false);
+      setInternalSubmitted(false);
+      setAnswer("");
+      setBlankAnswers({});
+      setTimeLeft(currentQuestion?.timeLimit || 20);
     }
+  }, [result, game.current_q_index, currentQuestion]);
 
-    if (game.status === 'PLAYING' && currentQuestion?.type === "BLANK") {
-      const focus = () => {
-        if (firstBlankRef.current) {
-          firstBlankRef.current.focus();
-          const val = firstBlankRef.current.value;
-          firstBlankRef.current.value = "";
-          firstBlankRef.current.value = val;
-          firstBlankRef.current.value = val;
-        }
-      };
-
-      focus();
-      const t1 = setTimeout(focus, 50);
-      const t2 = setTimeout(focus, 200);
-      const t3 = setTimeout(focus, 500);
-
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-        clearTimeout(t3);
-      };
+  // Timer
+  useEffect(() => {
+    if (game.status === 'PLAYING' && timeLeft > 0 && !submitted) {
+      const timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
     }
-  }, [game.current_q_index, currentQuestion?.type, game.status]);
+  }, [game.status, timeLeft, submitted]);
 
-  useEffect(() => {
-    if (game.status !== 'PLAYING') return;
+  // Font Scaling Helpers
+  const getQuestionFontSize = (text: string) => {
+    const len = text.length;
+    if (len > 120) return "text-lg md:text-xl";
+    if (len > 60) return "text-xl md:text-3xl";
+    return "text-3xl md:text-4xl";
+  };
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev: number) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+  const getOptionFontSize = (text: string) => {
+    const len = text.length;
+    if (len > 40) return "text-sm md:text-base";
+    if (len > 25) return "text-base md:text-lg";
+    return "text-lg md:text-2xl";
+  };
 
-    return () => clearInterval(timer);
-  }, [game.current_q_index, submitted, game.status]);
+  const handleAnswerChange = (val: string) => setAnswer(val);
 
-  useEffect(() => {
-    if (game.status !== 'PLAYING' || currentQuestion?.type !== "BLANK" || submitted) return;
-    
-    const maintainFocus = () => {
-      if (firstBlankRef.current && document.activeElement !== firstBlankRef.current) {
-        firstBlankRef.current.focus();
-      }
-    };
+  const handleBlankChange = (wordIdx: number, val: string, blanks: number[]) => {
+    setBlankAnswers(prev => {
+      const next = { ...prev, [wordIdx]: val };
+      const sortedBlanks = [...blanks].sort((a, b) => a - b);
+      setAnswer(sortedBlanks.map(idx => next[idx] || "").join(", "));
+      return next;
+    });
+  };
 
-    window.addEventListener('click', maintainFocus);
-    window.addEventListener('touchstart', maintainFocus);
-    return () => {
-      window.removeEventListener('click', maintainFocus);
-      window.removeEventListener('touchstart', maintainFocus);
-    };
-  }, [game.status, currentQuestion?.type, submitted]);
+  const handleSubmit = (finalAnswer?: string) => {
+    if (submitted || isTimeOut) return;
+    const ans = (finalAnswer !== undefined ? finalAnswer : answer).trim();
+    if (!ans) return;
+    setSubmitted(true);
+    setInternalSubmitted(true);
+    onSubmit(ans);
+  };
 
-  useEffect(() => {
-    if (result && result.q_index === game.current_q_index) {
-      if (result.answer === "(retracted)") {
-        setSubmitted(false);
-        setInternalSubmitted(false);
-        setAnswer("");
-      } else {
-        setSubmitted(true);
-        if (!internalSubmitted) {
-          setAnswer(result.answer || "");
-          setInternalSubmitted(true);
-        }
-      }
+  const handleRetractClick = async () => {
+    const confirmed = await showConfirm(
+      "답안을 수정하시겠습니까?",
+      "수정 버튼을 누르면 현재 제출된 정답이 무효화되고 다시 입력할 수 있습니다.",
+      "수정하기", "취소"
+    );
+    if (confirmed && onRetract) {
+      onRetract();
+      setSubmitted(false);
+      setInternalSubmitted(false);
     }
-  }, [result, game.current_q_index]);
-
-  useEffect(() => {
-    const resultKey = `${game.id}_${game.current_q_index}`;
-    if (game.status === 'RESULT' && result && result.is_correct && confettiTriggered.current !== resultKey) {
-      confettiTriggered.current = resultKey;
-      setTimeout(() => {
-        confetti({
-          particleCount: 150,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ["#4f46e5", "#10b981", "#fbbf24"],
-        });
-      }, 500);
-    }
-  }, [result, game.id, game.current_q_index, game.status]);
-
-  useEffect(() => {
-    if (!game.id) return;
-
-    const channel = supabase
-      .channel(`game_events_student_${game.id}`)
-      .on('broadcast', { event: 'SHIELD_BLOCK' }, (payload: any) => {
-        setShieldBlock(payload.payload);
-        setTimeout(() => setShieldBlock(null), 4000);
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [game.id]);
+  };
 
   if (game.status === "RESULT" && result) {
-    const basePoints = currentQuestion?.points || 10;
-    
+    // Round Result Screen
     return (
-      <div className="flex flex-col items-center justify-center min-h-[600px] w-full max-w-2xl mx-auto p-4 md:p-8 animate-in fade-in zoom-in duration-500 relative">
+      <div className="flex flex-col items-center justify-center min-h-[600px] w-full max-w-2xl mx-auto p-4 md:p-8 animate-in fade-in duration-500 relative">
         <div className={cn(
-          "w-full bg-white rounded-[4rem] border-[16px] shadow-2xl overflow-hidden flex flex-col items-center p-12 mb-10 transition-all duration-500 scale-105",
+          "w-full bg-white rounded-[4rem] border-[16px] shadow-2xl overflow-hidden flex flex-col items-center p-8 transition-all duration-500 scale-105",
           result.is_correct ? "border-emerald-500" : "border-red-500"
         )}>
-          <img src="/logo.png" className="w-16 h-16 object-contain mb-4 animate-pop" alt="Quiz Jam Logo" />
-          <div className="mb-10 animate-pop">
-            {result.is_correct ? (
-              <div className="w-32 h-32 rounded-full border-[12px] border-emerald-500 flex items-center justify-center shadow-lg relative">
-                 <div className="absolute inset-0 rounded-full border-4 border-white/30" />
-                 <Check className="text-emerald-500" size={80} strokeWidth={8} />
-              </div>
-            ) : (
-              <div className="w-32 h-32 flex items-center justify-center relative animate-pop">
-                 <X className="text-red-500" size={120} strokeWidth={6} />
-              </div>
-            )}
-          </div>
-
-          <h2 className="text-5xl md:text-7xl font-black text-slate-800 font-jua tracking-tighter mb-8">
+          <div className="text-xl md:text-2xl font-black text-slate-800 font-jua mb-4">
             {result.is_correct ? "정답입니다!" : "아쉬워요!"}
-          </h2>
-
-          <div className="w-full bg-slate-50/50 rounded-[3.5rem] p-12 flex flex-col items-center shadow-inner border border-slate-100/50">
-            <div className={cn(
-              "text-8xl md:text-9xl font-black mb-2 tabular-nums tracking-tighter drop-shadow-sm",
-              result.is_correct ? "text-indigo-600" : "text-red-500"
-            )}>
-              {(() => {
-                const awarded = result.points_awarded;
-                const eventStr = (result.event || 'none').toLowerCase();
-                let multiplier = 1;
-                if (eventStr.includes('strike_double')) multiplier = 4;
-                else if (eventStr.includes('strike_bonus') || eventStr.includes('double')) multiplier = 2;
-                
-                const points = (awarded !== null && awarded !== undefined && awarded !== 0) 
-                  ? awarded 
-                  : (result.is_correct ? basePoints * multiplier : 0);
-                return points >= 0 ? `+${points}점` : `${points}점`;
-              })()}
+          </div>
+          <div className="mb-8">
+            {result.is_correct ? <Check className="text-emerald-500" size={80} strokeWidth={8} /> : <X className="text-red-500" size={100} strokeWidth={6} />}
+          </div>
+          <div className="bg-slate-50 rounded-[3rem] p-8 w-full flex flex-col items-center">
+            <div className={cn("text-6xl md:text-8xl font-black mb-4", result.is_correct ? "text-indigo-600" : "text-red-500")}>
+              {result.points_awarded >= 0 ? `+${result.points_awarded}` : result.points_awarded}점
             </div>
-
-            <div className="grid grid-cols-2 gap-4 w-full mt-4">
-              <div className="bg-white/50 p-4 rounded-3xl border border-slate-100 flex flex-col items-center">
-                <span className="text-[10px] font-black text-slate-400 uppercase mb-1">내가 고른 답</span>
-                <div className="text-xl font-black text-slate-600 truncate w-full text-center [&_p]:m-0">
-                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
-                    {processMathText(answer || '(미입력)')}
-                  </ReactMarkdown>
-                </div>
+            <div className="grid grid-cols-2 gap-4 w-full">
+              <div className="bg-white p-3 rounded-2xl border text-center">
+                <div className="text-[10px] text-slate-400 font-black uppercase">My Answer</div>
+                <div className="font-bold truncate">{answer || "(없음)"}</div>
               </div>
-              <div className="bg-indigo-50 p-4 rounded-3xl border border-indigo-100 flex flex-col items-center">
-                <span className="text-[10px] font-black text-indigo-400 uppercase mb-1">정답</span>
-                <div className="text-xl font-black text-indigo-600 truncate w-full text-center [&_p]:m-0">
-                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
-                    {processMathText(currentQuestion?.a || '')}
-                  </ReactMarkdown>
-                </div>
+              <div className="bg-indigo-50 p-3 rounded-2xl border border-indigo-100 text-center">
+                <div className="text-[10px] text-indigo-400 font-black uppercase">Correct</div>
+                <div className="font-bold text-indigo-600 truncate">{currentQuestion?.a}</div>
               </div>
-            </div>
-            
-            <div className="flex flex-col items-center gap-2 text-center mt-6">
-              {result.is_correct && result.q_index === game.current_q_index && (() => {
-                const eventStr = (result.event || 'none').trim().toLowerCase();
-                
-                return (
-                  <div className="flex flex-col items-center gap-4">
-                    {eventStr.split(',').map((e: string, idx: number) => {
-                      const trimmedE = e.trim();
-                      if (trimmedE === 'strike_bonus') return (
-                        <div key={idx} className="bg-orange-50 border-2 border-orange-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3 animate-bounce">
-                          <span className="text-2xl">🔥</span>
-                          <span className="text-orange-600 font-black text-xl">스트라이크 아이템 효과 발동! 이전 라운드에서 획득한 아이템으로 점수 보너스 X2!</span>
-                        </div>
-                      );
-                      if (trimmedE === 'double') return (
-                        <div key={idx} className="bg-yellow-50 border-2 border-yellow-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3 animate-bounce">
-                          <span className="bg-yellow-400 text-white px-3 py-1 rounded-xl font-black text-xl shadow-sm italic">X2</span>
-                          <span className="text-yellow-600 font-black text-xl">점수 2배 아이템! 이번 문제에서 얻은 점수가 2배가 됩니다!</span>
-                        </div>
-                      );
-                      if (trimmedE.startsWith('gift')) {
-                        const giftEvents = eventStr.split(',').filter((e: string) => e.trim().startsWith('gift'));
-                        const firstGiftIdx = eventStr.split(',').findIndex((e: string) => e.trim().startsWith('gift'));
-                        if (idx !== firstGiftIdx) return null;
-
-                        const donorNames = giftEvents.map((e: string) => e.split(':')[1]).filter(Boolean);
-                        const displayNames = donorNames.length > 0 ? donorNames.join(', ') : null;
-                        
-                        return (
-                          <div key={idx} className="bg-pink-50 border-2 border-pink-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3">
-                            <Gift className="text-pink-500" size={24} fill="currentColor" />
-                            <span className="text-pink-600 font-black text-xl font-jua">
-                               {displayNames ? `${displayNames}님이 보내신 선물(점수 기부)!` : "선물이 도착했습니다!"}
-                            </span>
-                          </div>
-                        );
-                      }
-                      if (trimmedE === 'strike') return (
-                        <div key={idx} className="bg-blue-50 border-2 border-blue-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3 animate-pop">
-                          <Zap className="text-blue-500" size={24} fill="currentColor" />
-                            <span className="text-blue-600 font-black text-xl font-jua">스트라이크! 다음 문제 점수 보너스</span>
-                        </div>
-                      );
-                      if (trimmedE === 'swap') return (
-                        <div key={idx} className="bg-indigo-50 border-2 border-indigo-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3 animate-pop">
-                          <RefreshCw className="text-indigo-600 animate-spin-slow" size={28} />
-                            <span className="text-indigo-700 font-black text-xl font-jua">점수 바꾸기! 다음 문제 점수 교체 찬스</span>
-                        </div>
-                      );
-                      if (trimmedE === 'shield') return (
-                        <div key={idx} className="bg-cyan-50 border-2 border-cyan-100 px-6 py-3 rounded-[2rem] shadow-sm flex items-center gap-3 animate-pop">
-                          <Shield className="text-cyan-600" size={24} fill="currentColor" />
-                            <span className="text-cyan-700 font-black text-xl font-jua">방어 성공! 내 점수를 자동으로 보호</span>
-                        </div>
-                      );
-                      return null;
-                    })}
-                  </div>
-                );
-              })()}
-
-              {!result.is_correct && result.q_index === game.current_q_index && (
-                <div className="flex flex-col items-center gap-2 mt-2">
-                  {result.event === 'cut' && <span className="text-red-500 font-black text-lg bg-red-50 border border-red-100 px-4 py-2 rounded-2xl shadow-sm">✂️ 앗! 점수를 뺏겼습니다!</span>}
-                  {result.event === 'donate' && <span className="text-indigo-500 font-black text-lg bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-2xl shadow-sm">📤 친구들에게 점수를 나눠주었습니다! ({result.points_awarded}점)</span>}
-                  {result.event?.endsWith('_blocked') && (
-                    <span className="text-cyan-600 font-black flex items-center gap-2 bg-cyan-50 px-6 py-2 rounded-2xl border-2 border-cyan-200 shadow-sm">
-                      <Shield size={20} fill="currentColor"/> 방어 성공! 내 점수를 지켰습니다.
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>
-
-        <div className="text-slate-400 font-black text-2xl animate-pulse mb-12 text-center">
-          {game?.status === 'RESULT' ? "잠시 후 다음 라운드가 시작됩니다..." : "선생님이 다음 화면으로 넘겨주실 때까지 잠시만 기다려주세요..."}
-        </div>
-
-        {((isMyTurnToSwap || activeSwapperName || swapCommitted) && game.status === 'RESULT') && (
-          <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-xl z-[900] flex items-center justify-center p-6 animate-in fade-in duration-500">
-            {!isMyTurnToSwap && !swapResultText ? (
-              <div className="flex flex-col items-center justify-center text-center max-w-lg w-full animate-pop">
-                <div className="relative mb-12">
-                   <div className="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full animate-pulse" />
-                   <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-2xl border-4 border-indigo-400 relative z-10 animate-spin-slow">
-                     <RefreshCw className="text-indigo-600" size={64} />
-                  </div>
-                </div>
-                
-                <h3 className="text-4xl md:text-5xl font-black text-white mb-6 font-jua tracking-tight leading-tight break-keep">
-                  {activeSwapperName ? (
-                    <>
-                      <span className="text-yellow-300">{activeSwapperName}</span> 학생이<br/>
-                      점수 바꾸기를 하고 있어요
-                    </>
-                  ) : (
-                    <>
-                      친구와 <br/>
-                      나눠주었습니다
-                    </>
-                  )}
-                </h3>
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 px-8 py-4 rounded-[2.5rem] flex items-center gap-4 animate-pulse">
-                   <div className="w-3 h-3 bg-green-400 rounded-full" />
-                   <span className="text-indigo-100 font-bold text-xl">
-                     {activeSwapperName ? "다른 친구를 고르는 중..." : "점수를 바꿀 대상을 찾는 중..."}
-                   </span>
-                </div>
-                
-                <p className="mt-10 text-indigo-200/60 font-medium text-lg max-w-md break-keep">
-                   {activeSwapperName 
-                      ? (
-                          <>
-                            {activeSwapperName} 학생이 누구와 점수를 바꿀지 고민하고 있어요.<br/>
-                            당신의 점수를 노리고 있을지도 몰라요!
-                          </>
-                        )
-                      : "긴장되는 순간입니다! 점수가 높은 학생일수록 목표가 되기 쉽습니다. 잠시만 결과를 기다려주세요..."}
-                </p>
-              </div>
-            ) : (
-              <div className="bg-white rounded-[3.5rem] shadow-[0_32px_80px_-20px_rgba(0,0,0,0.5)] w-full max-w-xl overflow-hidden animate-in zoom-in duration-500 border-4 border-white relative">
-                <div className="p-10 bg-indigo-600 text-white flex flex-col items-center gap-4 relative">
-                  <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-10">
-                     <RefreshCw size={200} className="absolute -top-20 -left-20 animate-spin-slow" />
-                  </div>
-                  
-                  <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center border border-white/30 shadow-xl">
-                    <RefreshCw size={48} className={cn("text-white", !swapCommitted && !swapResultText && "animate-spin-slow")} />
-                  </div>
-                  
-                  <h3 className="text-4xl font-black font-jua drop-shadow-md">점수 바꾸기</h3>
-                  
-                  <div className="flex flex-col items-center gap-1">
-                    <p className="text-indigo-100/80 font-bold text-lg">
-                      {swapCommitted ? "바꾸기가 완료되었습니다!" : "점수를 바꿀 대상을 선택해주세요!"}
-                    </p>
-                    {!swapCommitted && !swapResultText && (
-                      <div className="bg-indigo-700/50 px-6 py-2 rounded-2xl border border-white/10 mt-2">
-                        <span className="text-yellow-300 font-black">나의 현재 점수: {player.score}점</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="p-8 max-h-[500px] overflow-y-auto custom-scrollbar bg-indigo-50/50">
-                  {swapResultText ? (
-                    <div className="py-16 flex flex-col items-center justify-center gap-8 animate-in fade-in zoom-in duration-500 text-center px-6">
-                      <div className="w-24 h-24 bg-indigo-600 rounded-[2.5rem] flex items-center justify-center text-white shadow-2xl">
-                        <RefreshCw size={48} className="animate-spin-slow" />
-                      </div>
-                      <div className="text-3xl font-black text-slate-800 leading-tight font-jua">
-                        {swapResultText}
-                      </div>
-                      {!isSwapExecuting ? (
-                        <Button 
-                          variant="primary" 
-                          size="xl"
-                          className="mt-4 rounded-[2rem] px-16 py-6 shadow-xl text-xl" 
-                          onClick={() => {
-                            setIsMyTurnToSwap(false);
-                            setSwapResultText(null);
-                          }}
-                        >
-                           확인
-                        </Button>
-                      ) : (
-                        <div className="mt-8 flex flex-col items-center gap-2">
-                           <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                           <p className="text-slate-400 font-medium">바꾸기 결과를 전송 중입니다... (잠시만 기다려주세요)</p>
-                        </div>
-                      )}
-                    </div>
-                  ) : pendingSwapTarget ? (
-                    <div className="py-12 flex flex-col items-center text-center gap-8 animate-in slide-in-from-bottom-4 duration-300">
-                       <div className="relative group">
-                          <div className={cn(
-                            "w-32 h-32 rounded-[2.5rem] border-8 border-white shadow-2xl flex items-center justify-center text-5xl text-white font-black animate-pop overflow-hidden",
-                            pendingSwapTarget.team === 'RED' ? 'bg-red-500' :
-                            pendingSwapTarget.team === 'BLUE' ? 'bg-blue-500' :
-                            pendingSwapTarget.team === 'GREEN' ? 'bg-emerald-500' :
-                            pendingSwapTarget.team === 'YELLOW' ? 'bg-yellow-400' : 'bg-indigo-500'
-                          )}>
-                            {pendingSwapTarget.avatar_id ? (
-                              <img 
-                                src={`/avatars/avatar_${pendingSwapTarget.avatar_id}.png`} 
-                                alt="" 
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                  (e.target as HTMLImageElement).parentElement!.innerText = pendingSwapTarget.nickname[0];
-                                }}
-                              />
-                            ) : (
-                              pendingSwapTarget.nickname[0]
-                            )}
-                          </div>
-                          <div className="absolute -top-2 -right-2 bg-indigo-600 text-white p-2 rounded-xl shadow-lg border-2 border-white">
-                             <Check size={24} strokeWidth={4} />
-                          </div>
-                       </div>
-                       
-                       <div className="space-y-2">
-                          <h4 className="text-3xl font-black text-slate-800">
-                             <span className="text-indigo-600">{pendingSwapTarget.nickname}</span> 학생과<br/>
-                             점수를 바꿀까요?
-                          </h4>
-                          <p className="text-slate-400 font-bold">점수를 바꾸면 취소할 수 없습니다!</p>
-                       </div>
-                       
-                       <div className="flex gap-4 w-full">
-                          <Button 
-                            variant="ghost" 
-                            size="xl" 
-                            className="flex-1 py-6 rounded-3xl border-2 border-slate-200 text-slate-500 font-bold"
-                            onClick={() => setPendingSwapTarget(null)}
-                            disabled={isSwapExecuting}
-                          >
-                                취소
-                            </Button>
-                            <Button 
-                              variant="primary" 
-                              size="xl" 
-                              className="flex-1 py-6 rounded-3xl shadow-lg text-xl"
-                              onClick={() => handleSwapSelection(pendingSwapTarget.id, pendingSwapTarget.nickname)}
-                              disabled={isSwapExecuting}
-                            >
-                                 바꾸기
-                            </Button>
-                        </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        {players
-                          .filter((p: any) => {
-                            if (p.id === player.id) return false;
-                            if (game.options?.isTeamMode && p.team === player.team) return false;
-                            return true;
-                          })
-                          .sort((a: any, b: any) => (b.score || 0) - (a.score || 0))
-                          .slice(0, 6) 
-                          .map((p: any) => (
-                            <button
-                              key={p.id}
-                              onClick={() => handleSwapSelection(p.id, p.nickname)}
-                              className="w-full flex flex-col items-center gap-3 p-6 rounded-[2.5rem] border-4 border-white bg-white shadow-sm hover:shadow-xl hover:border-indigo-400 hover:-translate-y-1 transition-all active:scale-[0.95] group"
-                            >
-                              <div className={cn(
-                                "w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-white font-black text-2xl shadow-inner group-hover:scale-110 transition-transform overflow-hidden",
-                                p.team === 'RED' ? 'bg-red-500' :
-                                p.team === 'BLUE' ? 'bg-blue-500' :
-                                p.team === 'GREEN' ? 'bg-emerald-500' :
-                                p.team === 'YELLOW' ? 'bg-yellow-400' : 'bg-indigo-500'
-                              )}>
-                                {p.avatar_id ? (
-                                  <img 
-                                    src={`/avatars/avatar_${p.avatar_id}.png`} 
-                                    alt="" 
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).style.display = 'none';
-                                      (e.target as HTMLImageElement).parentElement!.innerText = p.nickname[0];
-                                    }}
-                                  />
-                                ) : (
-                                  p.nickname[0]
-                                )}
-                              </div>
-                              <div className="flex flex-col items-center text-center">
-                                <span className="font-black text-slate-800 text-lg group-hover:text-indigo-600 transition-colors truncate w-full max-w-[120px]">
-                                   {p.nickname}
-                                </span>
-                                <div className="bg-slate-100 px-3 py-1 rounded-full mt-1">
-                                   <span className="text-xs font-black text-slate-500">{p.score}점</span>
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                      </div>
-                      
-                      <div className="pt-4 mt-4 border-t-2 border-slate-100 border-dashed">
-                        <Button
-                          variant="ghost"
-                          size="xl"
-                          className="w-full py-6 rounded-[2rem] text-slate-400 font-bold hover:bg-slate-100 hover:text-slate-600 transition-all"
-                          onClick={() => handleSwapSelection(null, null)}
-                        >
-                          바꾸지 않고 넘어가기 (이번 라운드 점수를 그대로 유지합니다)
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     );
   }
 
-  if (!currentQuestion) {
-    return (
-      <div className="p-12 text-center text-indigo-400">
-        <RefreshCw className="animate-spin mx-auto mb-4" size={48} />
-        <p className="text-xl font-black">문제를 불러오는 중입니다. 잠시만 기다려주세요...</p>
-      </div>
-    );
-  }
+  if (!currentQuestion) return <div className="p-12 text-center text-indigo-400 animate-pulse font-black">문제를 불러오는 중...</div>;
 
   return (
-    <div className="w-full max-w-2xl animate-pop relative">
-      {shieldBlock && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-indigo-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="relative bg-white rounded-[3rem] p-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border-8 border-cyan-400 max-w-sm w-full animate-pop flex flex-col items-center">
-             <div className="absolute -top-16 bg-cyan-400 text-white p-6 rounded-full shadow-xl border-8 border-white animate-bounce">
-                <Shield size={64} fill="white" />
-             </div>
-             <div className="mt-8 text-center">
-                <h4 className="text-3xl font-black text-indigo-900 mb-2">{shieldBlock.nickname} 학생이</h4>
-                <div className="bg-indigo-50 px-6 py-4 rounded-2xl mb-4 border-2 border-indigo-100 flex items-center justify-center gap-2">
-                   {shieldBlock.type === 'cut' ? <Scissors className="text-red-500 animate-pulse rotate-45" /> : <Gift className="text-pink-500 animate-pulse" />}
-                   <span className="text-xl font-black text-indigo-600">
-                     {shieldBlock.type === 'cut' ? '점수 뺏기 아이템' : '점수 나눠주기 아이템'}
-                   </span>
-                </div>
-                <h3 className="text-4xl font-black text-cyan-600 animate-pulse">방어로 막았습니다! 아주 나이스!</h3>
-             </div>
-             
-             <div className="absolute inset-0 pointer-events-none">
-                <Zap size={40} className="absolute top-1/4 left-1/4 text-yellow-400 animate-ping opacity-50" />
-                <Zap size={30} className="absolute bottom-1/4 right-1/4 text-yellow-400 animate-ping opacity-50 delay-75" />
-             </div>
-          </div>
-        </div>
-      )}
-
+    <div className="relative w-full h-full flex flex-col items-center justify-center p-3 md:p-6 overflow-hidden">
+      {/* Floating Leaderboard Sidebar */}
       <div className={cn(
-        "bg-white p-5 md:p-8 rounded-3xl shadow-2xl border-b-8 border-indigo-200 relative overflow-hidden flex flex-col max-h-[90vh]",
-        player.team === 'RED' && "ring-4 ring-inset ring-red-400/20",
-        player.team === 'BLUE' && "ring-4 ring-inset ring-blue-400/20",
-        player.team === 'GREEN' && "ring-4 ring-inset ring-green-400/20",
-        player.team === 'YELLOW' && "ring-4 ring-inset ring-yellow-400/20"
+        "fixed right-0 top-1/2 -translate-y-1/2 z-50 transition-transform duration-300 flex items-center",
+        showScoreTab ? "translate-x-0" : "translate-x-[calc(100%-40px)]"
       )}>
-
-        {player.team && (
-          <div className={cn(
-            "absolute -top-1 left-1/2 -translate-x-1/2 px-6 py-2 rounded-b-2xl text-white font-black text-xs shadow-md z-10 flex items-center gap-2",
-            teamBgColors[player.team]
-          )}>
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-            {teamNames[player.team]} 팀의 총점: {teamScore.toLocaleString()}점
+        <button onClick={() => setShowScoreTab(!showScoreTab)} className="w-10 h-24 bg-indigo-600 text-white rounded-l-2xl flex flex-col items-center justify-center gap-2 shadow-lg hover:bg-indigo-700 transition-colors">
+          <Trophy size={18} />
+          <span className="text-[8px] font-black [writing-mode:vertical-lr]">RANKING</span>
+          {showScoreTab ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
+        <div className="w-64 md:w-72 h-[60vh] bg-white shadow-2xl border-2 border-indigo-100 rounded-l-2xl p-4 overflow-y-auto custom-scrollbar">
+          <h3 className="font-black text-indigo-900 border-b pb-2 mb-3">순위 현황</h3>
+          <div className="space-y-2">
+            {[...players].sort((a,b) => (b.score||0)-(a.score||0)).map((p, i) => (
+              <div key={p.id} className={cn("flex items-center justify-between p-2 rounded-xl border", p.id===player.id ? "bg-indigo-50 border-indigo-200" : "bg-slate-50 border-slate-100")}>
+                <div className="flex items-center gap-2">
+                  <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black", i<3 ? "bg-yellow-400 text-white" : "bg-slate-200 text-slate-500")}>{i+1}</span>
+                  <span className="font-bold text-sm text-slate-700 truncate max-w-[100px]">{p.nickname}</span>
+                </div>
+                <span className="font-black text-indigo-600 text-sm">{(p.score||0).toLocaleString()}</span>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
+      </div>
 
-        <div className="flex justify-between items-end mb-6 mt-2 relative z-10 shrink-0">
-          <div className="flex items-center gap-3">
-             <img src="/logo.png" className="w-10 h-10 object-contain" alt="Quiz Jam" />
-             <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none">Question</span>
-                <span className="bg-indigo-600 text-white px-4 py-1 rounded-xl text-xl font-black shadow-lg shadow-indigo-100 italic">
-                   #{game.current_q_index + 1}
-                </span>
-             </div>
-          </div>
+      <div className="w-full max-w-4xl bg-white rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl p-4 md:p-10 border-2 border-indigo-50 flex flex-col relative overflow-hidden h-full max-h-[95vh]">
+        {/* Progress Bar */}
+        <div className="absolute top-0 left-0 w-full h-2 bg-slate-100 overflow-hidden">
+          <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${currentProgress}%` }} />
+        </div>
 
-          <div className="flex flex-col items-center gap-1">
-             <span className="text-xs font-black text-emerald-400 uppercase tracking-widest">Points</span>
-             <span className="bg-emerald-500 text-white px-4 py-1 rounded-2xl text-xl font-black shadow-lg shadow-emerald-100">
-               {currentQuestion?.points || 10}점
-             </span>
+        <div className="flex items-center justify-between mb-4 px-2 pt-2">
+          <div className="bg-indigo-50 px-4 py-2 rounded-2xl flex items-center gap-3 border border-indigo-100">
+            <Trophy size={18} className="text-indigo-500" />
+            <span className="text-xl md:text-2xl font-black text-indigo-600">Q{game.current_q_index + 1}</span>
+            <span className="text-sm font-bold text-indigo-300">/ {totalQuestions}</span>
           </div>
-         
-          <div className={cn(
-            "flex flex-col items-end gap-1 transition-all duration-300",
-            timeLeft <= 5 ? "text-red-500 scale-110" : "text-gray-400"
-          )}>
-             <span className="text-xs font-black uppercase tracking-widest">Time Remaining</span>
-             <div className="flex items-center gap-3 font-black text-3xl md:text-4xl">
-               <Clock size={28} className={cn(timeLeft <= 5 && "animate-pulse")} />
-               <span>{timeLeft}s</span>
-             </div>
+          <div className={cn("px-4 py-2 rounded-2xl flex items-center gap-3 border-2 transition-all", timeLeft <= 5 ? "bg-red-50 border-red-200 animate-pulse" : "bg-slate-50 border-slate-100")}>
+            <Clock size={18} className={timeLeft <= 5 ? "text-red-500" : "text-slate-400"} />
+            <span className={cn("text-xl md:text-3xl font-black tabular-nums", timeLeft <= 5 ? "text-red-600" : "text-slate-600")}>{timeLeft}</span>
           </div>
         </div>
 
-        <div className={cn(
-          "font-black text-slate-800 mb-4 break-keep w-full whitespace-pre-wrap transition-all duration-300 overflow-y-auto pr-2 custom-scrollbar shrink-0",
-          (currentQuestion?.q?.length || 0) > 200 ? "text-lg md:text-xl leading-relaxed" :
-          (currentQuestion?.q?.length || 0) > 120 ? "text-xl md:text-2xl leading-relaxed" : 
-          (currentQuestion?.q?.length || 0) > 60 ? "text-2xl md:text-3xl leading-snug" : 
-          "text-3xl md:text-4xl leading-tight",
-          game.current_hint_stage > 0 ? "max-h-[120px] md:max-h-[160px]" : "max-h-[250px] md:max-h-[300px]"
-        )}>
-          {currentQuestion?.type === "BLANK" ? (
-            "빈칸에 들어갈 알맞은 단어를 입력해주세요!" 
-          ) : currentQuestion?.q ? (
-            <ReactMarkdown 
-              remarkPlugins={[remarkMath]} 
-              rehypePlugins={[rehypeKatex]}
-              components={{
-                p: ({node, ...props}) => <span className="whitespace-pre-wrap block" {...props} />,
-              }}
-            >
-              {processMathText(currentQuestion.q)}
-            </ReactMarkdown>
-          ) : (
-            "문제를 불러오는 중입니다..."
-          )}
-        </div>
-
-        {(game.current_hint_stage > 0 && !submitted && timeLeft > 0 && (currentQuestion?.type === "SHORT_ANSWER" || currentQuestion?.type === "BLANK")) && (
-          <div className="mb-4 p-3 md:p-4 bg-indigo-50 rounded-3xl border-2 border-indigo-100 flex flex-col items-center animate-in slide-in-from-top-2 duration-300 shadow-inner shrink-0">
-            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1 md:mb-2 flex items-center gap-2">
-              <Zap size={12} className="fill-indigo-400" /> 
-              Teacher's Hint ({currentQuestion?.type !== "BLANK" && game.current_hint_stage === 1 ? '글자 수 힌트' : '초성 힌트'})
-            </span>
-            
-            <div className="flex flex-col gap-4 w-full">
-              {currentQuestion?.type === "BLANK" ? (
-                <div className="flex flex-wrap gap-4 justify-center">
-                  {currentQuestion.blanks.map((wordIdx: number, i: number) => {
-                    const word = currentQuestion.q.split(/\s+/).filter(Boolean)[wordIdx];
-                    if (!word) return null;
-                    return (
-                      <div key={wordIdx} className="flex flex-col items-center gap-1">
-                        {currentQuestion.blanks.length > 1 && (
-                          <span className="text-[9px] font-black bg-indigo-200 text-indigo-700 px-2 py-0.5 rounded-full uppercase">
-                            {i + 1}번째 빈칸
-                          </span>
-                        )}
-                        <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
-                          {word.split('').map((char: string, j: number) => (
-                            <div 
-                              key={j}
-                              className="w-7 h-9 md:w-9 md:h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg md:text-xl font-black shadow-sm"
-                            >
-                              {getChoseong(char)}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
-                  {currentQuestion?.a.split('').map((char: string, i: number) => {
-                    const showChoseong = game.current_hint_stage >= 2;
-                    const displayChar = showChoseong ? getChoseong(char) : (char === ' ' ? ' ' : '');
-                    
-                    return (
-                      <div
-                        key={i}
-                        className={cn(
-                          "w-7 h-9 md:w-9 md:h-11 rounded-xl flex items-center justify-center text-lg md:text-xl font-black transition-all shadow-sm",
-                          showChoseong && char !== ' '
-                            ? "bg-indigo-600 text-white"
-                            : char === ' ' ? "bg-transparent border-none" : "bg-white text-indigo-200 border-2 border-indigo-100"
-                        )}
-                      >
-                        {displayChar}
-                      </div>
-                    );
-                  })}
-                </div>
+        {/* Question Area */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar px-2">
+          <div className={cn("font-black text-slate-800 break-keep leading-tight text-center py-4 md:py-8", getQuestionFontSize(currentQuestion.q))}>
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(currentQuestion.q)}</ReactMarkdown>
+          </div>
+          {currentQuestion.image_url && <img src={currentQuestion.image_url} alt="q" className="rounded-2xl max-w-full max-h-[40vh] object-contain mx-auto shadow-lg border-2 border-slate-100 mb-6" />}
+          
+          {(submitted || internalSubmitted) ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-50/50 rounded-[2.5rem] border-2 border-indigo-100 border-dashed animate-in zoom-in">
+              <div className="text-4xl md:text-6xl mb-4 animate-bounce">👍</div>
+              <h3 className="text-2xl md:text-3xl font-black text-indigo-900 mb-2 italic">멋진 도전이에요!</h3>
+              <p className="text-slate-500 font-bold text-center">정답이 전달되었습니다. 다른 친구들을 기다려주세요!</p>
+              {!isTimeOut && (
+                <button onClick={handleRetractClick} className="mt-8 px-8 py-3 bg-white text-indigo-600 border-2 border-indigo-200 rounded-2xl font-black hover:bg-indigo-600 hover:text-white transition-all shadow-sm flex items-center gap-2 group">
+                  <RefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500" /> 다시 제출하기
+                </button>
               )}
             </div>
-          </div>
-        )}
-
-        {(timeLeft > 0) ? (
-          internalSubmitted ? (
-            <div className="flex-1 flex flex-col items-center justify-center gap-4 py-4 animate-in fade-in zoom-in duration-500 overflow-y-auto">
-               <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-500 text-4xl shadow-inner animate-bounce shrink-0">
-                 ✅
-               </div>
-               <div className="text-center space-y-2">
-                 <h3 className="text-3xl font-black text-slate-800">정답을 제출했습니다!</h3>
-                 <p className="text-slate-500 font-bold text-base md:text-lg">선생님이 다음 화면으로 넘겨주실 때까지<br />잠시만 기다려주세요!</p>
-               </div>
-               <div className="absolute top-4 right-4">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="text-slate-400 hover:text-indigo-600 font-bold flex items-center gap-1"
-                    onClick={async () => {
-                       const confirmed = await showConfirm("답안을 수정하시겠습니까?\n기존에 제출한 답안이 삭제됩니다.");
-                       if (confirmed) {
-                         setInternalSubmitted(false);
-                         setSubmitted(false);
-                         onRetract?.();
-                       }
-                    }}
-                  >
-                    <RefreshCw size={14} />
-                    답안 수정
-                  </Button>
-               </div>
-            </div>
+          ) : isTimeOut ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-indigo-400 animate-pulse"><div className="text-7xl">⌛</div><p className="text-2xl font-black">시간 종료!</p></div>
           ) : (
-            <div className="flex-1 flex flex-col min-h-0">
-              {currentQuestion?.type === "MULTIPLE_CHOICE" && currentQuestion.options ? (
-                 <div className="grid grid-cols-2 gap-3 md:gap-4 overflow-y-auto custom-scrollbar p-1">
-                   {currentQuestion.options.map((opt: string, idx: number) => (
-                     <Button
-                       key={idx}
-                       size="xl"
-                       variant="ghost"
-                       className="py-8 md:py-12 whitespace-normal break-keep text-xl md:text-2xl hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 transition-all font-black text-slate-700 border-2 flex items-center gap-3 [&_p]:m-0 [&_p]:inline"
-                       onClick={() => {
-                          setAnswer(opt);
-                          setSubmitted(true);
-                          setInternalSubmitted(true);
-                          onSubmit(opt);
-                       }}
-                     >
-                       <span>{idx + 1}.</span>
-                       <div className="flex-1 text-left">
-                         <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
-                           {processMathText(opt)}
-                         </ReactMarkdown>
-                       </div>
-                     </Button>
-                   ))}
-                 </div>
-              ) : currentQuestion?.type === "OX" ? (
-                 <div className="grid grid-cols-2 gap-4 md:gap-6 py-4">
-                   {["O", "X"].map(opt => (
-                     <button
-                       key={opt}
-                       onClick={() => {
-                          setAnswer(opt);
-                          setSubmitted(true);
-                          setInternalSubmitted(true);
-                          onSubmit(opt);
-                       }}
-                       className={cn(
-                         "py-12 md:py-16 rounded-[2.5rem] border-4 font-black text-6xl md:text-7xl transition-all shadow-xl",
-                         opt === "O" ? "border-emerald-100 bg-emerald-50 text-emerald-500 hover:bg-emerald-100 hover:border-emerald-200" : "border-red-100 bg-red-50 text-red-500 hover:bg-red-100 hover:border-red-200"
-                       )}
-                     >
-                       {opt}
-                     </button>
-                   ))}
-                 </div>
-              ) : currentQuestion?.type === "BLANK" ? (
-                 <div className="space-y-4 flex flex-col flex-1 min-h-0">
-                   <div className="p-4 md:p-8 bg-slate-50 rounded-[2rem] border-2 border-slate-100 flex flex-wrap gap-x-2 gap-y-4 md:gap-y-8 items-center justify-center min-h-[100px] md:min-h-[160px] overflow-y-auto max-h-[30vh]">
+            <div className="flex-1 flex flex-col min-h-0 border-t-2 border-slate-100 pt-4">
+              {currentQuestion.type === "MULTIPLE_CHOICE" ? (
+                <div className="grid grid-cols-2 gap-3 md:gap-4 h-full">
+                  {currentQuestion.options.map((opt: string, idx: number) => (
+                    <Button key={idx} size="xl" variant="ghost" className={cn("py-6 md:py-8 h-full whitespace-normal break-keep font-black border-2 flex items-center gap-3", getOptionFontSize(opt))} onClick={() => handleSubmit(opt)}>
+                      <span className="shrink-0">{idx + 1}.</span>
+                      <div className="flex-1 text-left"><ReactMarkdown components={{ p: 'span' }}>{processMathText(opt)}</ReactMarkdown></div>
+                    </Button>
+                  ))}
+                </div>
+              ) : currentQuestion.type === "OX" ? (
+                <div className="grid grid-cols-2 gap-4 h-full py-4">
+                  {["O", "X"].map(opt => (
+                    <button key={opt} onClick={() => handleSubmit(opt)} className={cn("flex-1 rounded-[2.5rem] border-4 font-black text-7xl transition-all shadow-xl flex items-center justify-center", opt === "O" ? "bg-emerald-50 text-emerald-500 border-emerald-100 hover:bg-emerald-100" : "bg-red-50 text-red-500 border-red-100 hover:bg-red-100")}>{opt}</button>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4 flex flex-col flex-1">
+                  {currentQuestion.type === "BLANK" ? (
+                    <div className="p-6 bg-slate-50 rounded-[2rem] border-2 border-slate-100 flex flex-wrap gap-2 md:gap-4 items-center justify-center min-h-[100px] overflow-y-auto">
                       {currentQuestion.q.split(/\s+/).filter(Boolean).map((word: string, wordIdx: number) => {
                         const blanks = currentQuestion.blanks || [];
-                        const blankIndex = blanks.indexOf(wordIdx);
-                        const isBlank = blankIndex !== -1;
-                        
-                        if (isBlank) {
-                          return (
-                            <div key={wordIdx} className="relative group w-fit">
-                              <SegmentedInput
-                                value={blankAnswers[wordIdx] || ""}
-                                length={word.length}
-                                onChange={(val) => handleBlankChange(wordIdx, val, blanks)}
-                                onEnter={() => handleSubmit()}
-                                autoFocus={blankIndex === 0}
-                                firstRef={blankIndex === 0 ? firstBlankRef : null}
-                              />
-  
-                              {blanks.length > 1 && (
-                                <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
-                                  {blankIndex + 1}
-                                </span>
-                              )}
-                            </div>
-                          );
-                        }
-                        return <span key={wordIdx} className="text-xl md:text-2xl font-black text-slate-400 px-0.5 md:px-1">{word}</span>;
+                        const bIdx = blanks.indexOf(wordIdx);
+                        if (bIdx !== -1) return <SegmentedInput key={wordIdx} value={blankAnswers[wordIdx] || ""} length={word.length} onChange={(val) => handleBlankChange(wordIdx, val, blanks)} onEnter={() => handleSubmit()} autoFocus={bIdx === 0} firstRef={bIdx === 0 ? firstBlankRef : null} />;
+                        return <span key={wordIdx} className="text-xl md:text-2xl font-black text-slate-400">{word}</span>;
                       })}
-                   </div>
-                    <Button 
-                      size="xl" 
-                      className="w-full py-6 md:py-8 text-2xl md:text-3xl shadow-lg shadow-indigo-200 shrink-0"
-                      onClick={() => {
-                        setInternalSubmitted(true);
-                        handleSubmit();
-                      }}
-                    >
-                      정답 제출하기
-                    </Button>
-                 </div>
-              ) : (
-                 <div className="space-y-4 md:space-y-6 flex flex-col flex-1 min-h-0">
-                     <div className="w-full border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all overflow-visible relative shrink-0">
-                        <MathInput
-                          value={answer}
-                          onChange={handleAnswerChange}
-                          onEnter={() => handleSubmit(answer)}
-                          className="w-full p-2 text-xl md:text-2xl font-bold bg-transparent"
-                          placeholder="정답을 입력해주세요!"
-                          template={currentQuestion?.template}
-                          focusOnMount={true}
-                          level={game.options?.level || 'elementary'}
-                           forceMathKeypad={hasMathSymbols(currentQuestion?.q) || hasMathSymbols(currentQuestion?.a) || hasMathSymbols(currentQuestion?.template)}
-                        />
-                     </div>
-                     <Button 
-                       size="xl" 
-                       className="w-full py-6 md:py-8 text-2xl md:text-3xl shadow-lg shadow-indigo-200 shrink-0"
-                       onClick={() => {
-                         setInternalSubmitted(true);
-                         handleSubmit();
-                       }}
-                     >
-                       정답 제출하기
-                     </Button>
-                 </div>
+                    </div>
+                  ) : (
+                    <div className="relative border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all p-2 flex items-center">
+                      <MathInput value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-xl md:text-2xl font-bold p-2" template={currentQuestion.template} focusOnMount={true} />
+                      <button onClick={() => { (document.activeElement as HTMLElement)?.blur(); setTimeout(() => { (document.querySelector('math-field, input[type="text"]') as HTMLElement)?.focus(); }, 100); }} className="absolute -right-10 w-8 h-8 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center text-[10px] font-black border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Focus Recovery">R</button>
+                    </div>
+                  )}
+                  <Button size="xl" className="w-full py-6 md:py-8 text-2xl md:text-3xl shadow-lg mt-auto" onClick={() => handleSubmit()}>정답 제출하기</Button>
+                </div>
               )}
             </div>
-          )
-        ) : (
-          <div className="flex-1 py-8 flex flex-col items-center justify-center gap-4 text-indigo-400 animate-pulse">
-            <div className="text-7xl">
-              {timeLeft === 0 && !internalSubmitted ? "⌛" : 
-               timeLeft === 0 && internalSubmitted ? "✅" : ""}
-            </div>
-            <p className="text-xl md:text-2xl font-black text-center max-w-sm">
-              {timeLeft === 0 && !internalSubmitted ? "시간이 다 되었습니다! 정답을 제출할 수 없어요." : 
-               timeLeft === 0 && internalSubmitted ? "시간이 종료되었습니다! 결과를 기다려주세요..." : "문제가 종료되었습니다!"}
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

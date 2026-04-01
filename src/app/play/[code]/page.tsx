@@ -118,7 +118,9 @@ function StudentPlayContent() {
     }
   }, [game?.status, code, name, router]);
 
-  // 2. Real-time broadcast listener for instant kick
+  const channelRef = useRef<any>(null);
+
+  // 2. Real-time broadcast listener for instant kick & Emoji setup
   useEffect(() => {
     if (!game?.id || !name) return;
 
@@ -130,12 +132,27 @@ function StudentPlayContent() {
           setWasKicked(true);
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channelRef.current = channel;
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
+      channelRef.current = null;
     };
   }, [game?.id, name]);
+
+  const sendEmoji = (emoji: string) => {
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'EMOJI_REACTION',
+        payload: { emoji, from: name }
+      });
+    }
+  };
 
   // 3. User Exiting manually (optional, but we keep the state flag)
   const handleManualExit = () => {
@@ -341,7 +358,7 @@ function StudentPlayContent() {
                 <p className="text-gray-500 font-bold mb-8">곧 퀴즈가 시작됩니다!</p>
                 {me?.team && (
                   <div className={cn(
-                    "p-6 rounded-3xl shadow-lg border-4 w-full max-w-sm animate-pop",
+                    "p-6 rounded-3xl shadow-lg border-4 w-full max-w-sm animate-pop flex flex-col items-center",
                     me.team === 'RED' ? 'bg-red-50 border-red-200 text-red-700' :
                     me.team === 'BLUE' ? 'bg-blue-50 border-blue-200 text-blue-700' :
                     me.team === 'GREEN' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-yellow-50 border-yellow-200 text-yellow-700'
@@ -369,6 +386,22 @@ function StudentPlayContent() {
                     </div>
                   </div>
                 )}
+
+                {/* Emoji Reactions Section */}
+                <div className="mt-10 mb-2">
+                   <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">눌러서 리액션을 보내보세요!</p>
+                   <div className="flex gap-3 justify-center">
+                      {['👏', '🔥', '❤️', '🥳', '😎'].map(emoji => (
+                        <button
+                          key={emoji}
+                          onClick={() => sendEmoji(emoji)}
+                          className="w-12 h-12 text-2xl bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:scale-125 hover:shadow-md active:scale-95 transition-all flex items-center justify-center"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                   </div>
+                </div>
                 <div className="mt-12">
                   <Button 
                     variant="ghost" 

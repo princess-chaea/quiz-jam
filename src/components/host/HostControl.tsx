@@ -55,7 +55,13 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
     // If prematurely ending, ask for confirmation
     if (timeLeft > 0 && answersRef.current.length < playersRef.current.length) {
-      const confirmed = await showConfirm(`${playersRef.current.length - answersRef.current.length}명이 아직 제출하지 않았습니다. 마감할까요?`);
+      const remaining = playersRef.current.length - answersRef.current.length;
+      const confirmed = await showConfirm(
+        "아직 제출하지 않은 학생이 있습니다.",
+        `${remaining}명의 학생이 정답을 제출하지 않았습니다. 정말 마감할까요?`,
+        "마감하기",
+        "더 기다리기"
+      );
       if (!confirmed) return;
     }
 
@@ -688,47 +694,91 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   }, [game.id, game.current_q_index, game.status]);
 
   useEffect(() => {
+    if (!game.id) return;
+
     const channel = supabase
       .channel(`answers:${game.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'answers', filter: `game_id=eq.${game.id}` },
         async (payload: any) => {
-          // CRITICAL PROTECTION: Do not overwrite Host results with DB updates while in RESULT mode OR calculating.
-          if (gameRef.current.status !== 'RESULT' && !calculating) {
-            // Optimization: If it's a simple INSERT/UPDATE for the current question, we can update local state
-            // without a full re-fetch, but for robustness we re-fetch briefly.
-            const { data } = await supabase.from("answers")
-              .select("*")
-              .eq("game_id", game.id)
-              .eq("q_index", gameRef.current.current_q_index);
+          // Optimization: Update local state incrementally to prevent perceived lag or missing updates
+          if (gameRef.current.status === 'PLAYING' && !calculating) {
+            const { eventType, new: newRecord, old: oldRecord } = payload;
             
-            if (data) setAnswers(processAnswers(data));
+            setAnswers(prev => {
+              if (eventType === 'INSERT') {
+                // If it's a new answer and it matches the current question index
+                if (newRecord.q_index === gameRef.current.current_q_index && newRecord.answer !== '(retracted)') {
+                  const exists = prev.some(a => a.player_id === newRecord.player_id);
+                  if (exists) {
+                    return prev.map(a => a.player_id === newRecord.player_id ? newRecord : a);
+                  }
+                  return [...prev, newRecord];
+                }
+              } else if (eventType === 'UPDATE') {
+                if (newRecord.q_index === gameRef.current.current_q_index) {
+                  if (newRecord.answer === '(retracted)') {
+                    return prev.filter(a => a.player_id !== newRecord.player_id);
+                  }
+                  const exists = prev.some(a => a.player_id === newRecord.player_id);
+                  if (exists) {
+                    return prev.map(a => a.player_id === newRecord.player_id ? newRecord : a);
+                  }
+                  return [...prev, newRecord];
+                }
+              } else if (eventType === 'DELETE') {
+                return prev.filter(a => a.id !== oldRecord.id);
+              }
+              return prev;
+            });
           }
         }).subscribe();
 
     const fetchAnswers = async () => {
-      // Use the component's 'game' prop directly here during the initial interval check 
-      // to ensure consistency if gameRef hasn't updated yet.
-      if (game.status === 'PLAYING' && !calculating) {
+      // If we are in the middle of a question, fetch current answers
+      if (gameRef.current.status === 'PLAYING' && !calculating) {
         const { data } = await supabase.from("answers")
           .select("*")
           .eq("game_id", game.id)
           .eq("q_index", game.current_q_index);
         
-        if (data) setAnswers(processAnswers(data));
+        if (data) {
+          const processed = processAnswers(data);
+          setAnswers(processed);
+          answersRef.current = processed;
+        }
       }
     };
 
+    // Immediate cleanup and initial fetch on question index change
+    setAnswers([]);
+    answersRef.current = [];
     fetchAnswers();
-    // Safety polling reduced to 1.5s for prompter submission counting
+
     const interval = setInterval(() => {
       if (gameRef.current.status === 'PLAYING' && !calculating) fetchAnswers();
-    }, 1500);
+    }, 2500); 
 
     return () => { 
       supabase.removeChannel(channel); 
       clearInterval(interval); 
     };
-  }, [game.id, game.current_q_index, game.status]); // Added game.status dependency for better transition handling
+  }, [game.id, game.current_q_index, game.status]); 
+
+  // Font Scaling Helpers for Host Screen
+  const getHostQuestionFontSize = (text: string) => {
+    const len = text.length;
+    if (len > 200) return "text-lg md:text-xl";
+    if (len > 100) return "text-xl md:text-2xl";
+    if (len > 50) return "text-2xl md:text-4xl";
+    return "text-4xl md:text-6xl";
+  };
+
+  const getHostOptionFontSize = (text: string) => {
+    const len = text.length;
+    if (len > 50) return "text-sm md:text-base";
+    if (len > 30) return "text-base md:text-lg";
+    return "text-lg md:text-xl";
+  };
 
 
   // 4. Final Early Return Correct Placement
@@ -1072,12 +1122,15 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                   {(currentQuestion.options || []).map((opt: string, i: number) => (
                     <div
                       key={i}
-                      className="p-5 rounded-3xl border-4 bg-white border-slate-100 text-slate-600 text-xl font-black text-left flex items-center gap-4 transition-all shadow-md opacity-80"
+                      className={cn(
+                        "p-4 md:p-6 rounded-3xl border-4 bg-white border-slate-100 text-slate-600 font-black text-left flex items-center gap-4 transition-all shadow-md opacity-80",
+                        getHostOptionFontSize(opt)
+                      )}
                     >
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center shrink-0 text-lg">
+                      <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center shrink-0 text-sm md:text-lg">
                         {i + 1}
                       </div>
-                      <div className="break-all line-clamp-2 [&_p]:m-0 flex-1">
+                      <div className="break-all [&_p]:m-0 flex-1">
                         <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
                           {processMathText(opt)}
                         </ReactMarkdown>
@@ -1189,9 +1242,9 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         <div className="w-[100px] hidden md:block"></div> {/* Balanced spacing */}
       </div>
 
-      {/* Player Status Bar */}
+      {/* Player Status Bar - Sorted by Score */}
       <PlayerBar
-        players={players}
+        players={[...players].sort((a, b) => (b.score || 0) - (a.score || 0))}
         submissions={answers.filter(a => a.answer !== '(시간초과)').map(a => a.player_id)}
         className="bg-indigo-50/90 border-t border-indigo-200"
       />
