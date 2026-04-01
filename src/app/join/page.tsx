@@ -151,7 +151,7 @@ export default function JoinPage() {
       
       router.push(`/play/${cleanCode}?name=${cleanNickname}`);
     } catch (err) {
-      showAlert("입장 실패: " + (err as Error).message);
+      showAlert({ message: "입장 실패: " + (err as Error).message });
     } finally {
       setLoading(false);
     }

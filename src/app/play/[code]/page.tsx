@@ -406,7 +406,7 @@ function StudentPlayContent() {
                   <Button 
                     variant="ghost" 
                     onClick={async () => {
-                      const confirmed = await showConfirm("정말로 방에서 나가시겠습니까?");
+                      const confirmed = await showConfirm({ message: "정말로 방에서 나가시겠습니까?" });
                       if (!confirmed) return;
                       
                       if (me) {
