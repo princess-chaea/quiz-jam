@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { useDialog } from '@/components/ui/dialog-context';
+import { Button } from '@/components/ui/Button';
+import { useDialog } from '@/components/ui/DialogProvider';
 import { cn } from '@/lib/utils';
 import { 
   Trophy, Clock, Check, X, RefreshCw, Zap, Gift, 
@@ -12,7 +12,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import { MathInput } from '@/components/game/MathInput';
+import { MathInput } from '@/components/ui/MathInput';
 import { SegmentedInput } from '@/components/game/SegmentedInput';
 
 interface GameDisplayProps {
