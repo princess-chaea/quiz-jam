@@ -94,6 +94,7 @@ CREATE POLICY "Players can update their own status" ON players FOR UPDATE USING 
 CREATE POLICY "Players can submit answers" ON answers FOR INSERT WITH CHECK (true);
 CREATE POLICY "Everyone can read answers" ON answers FOR SELECT USING (true);
 CREATE POLICY "Everyone can update answers" ON answers FOR UPDATE USING (true);
+CREATE POLICY "Everyone can delete answers" ON answers FOR DELETE USING (true);
 
 -- Posts: Anyone can read, Users insert, Users edit/delete own or admin
 CREATE POLICY "Anyone can read posts" ON posts FOR SELECT USING (true);
