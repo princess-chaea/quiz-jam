@@ -10,14 +10,17 @@ interface DialogConfig {
   id: string;
   type: DialogType;
   message: string;
+  description?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
   defaultValue?: string;
   resolve: (value: any) => void;
 }
 
 interface DialogContextType {
-  showAlert: (message: string) => Promise<boolean>;
-  showConfirm: (message: string) => Promise<boolean>;
-  showPrompt: (message: string, defaultValue?: string) => Promise<string | null>;
+  showAlert: (message: string, description?: string) => Promise<boolean>;
+  showConfirm: (message: string, description?: string, confirmLabel?: string, cancelLabel?: string) => Promise<boolean>;
+  showPrompt: (message: string, defaultValue?: string, description?: string) => Promise<string | null>;
 }
 
 const DialogContext = createContext<DialogContextType | undefined>(undefined);
@@ -34,30 +37,30 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const [dialogs, setDialogs] = useState<DialogConfig[]>([]);
   const [promptValue, setPromptValue] = useState("");
 
-  const showAlert = (message: string) => {
+  const showAlert = (message: string, description?: string) => {
     return new Promise<boolean>((resolve) => {
       setDialogs((prev) => [
         ...prev,
-        { id: Math.random().toString(), type: "alert", message, resolve },
+        { id: Math.random().toString(), type: "alert", message, description, resolve },
       ]);
     });
   };
 
-  const showConfirm = (message: string) => {
+  const showConfirm = (message: string, description?: string, confirmLabel?: string, cancelLabel?: string) => {
     return new Promise<boolean>((resolve) => {
       setDialogs((prev) => [
         ...prev,
-        { id: Math.random().toString(), type: "confirm", message, resolve },
+        { id: Math.random().toString(), type: "confirm", message, description, confirmLabel, cancelLabel, resolve },
       ]);
     });
   };
 
-  const showPrompt = (message: string, defaultValue: string = "") => {
+  const showPrompt = (message: string, defaultValue: string = "", description?: string) => {
     setPromptValue(defaultValue);
     return new Promise<string | null>((resolve) => {
       setDialogs((prev) => [
         ...prev,
-        { id: Math.random().toString(), type: "prompt", message, defaultValue, resolve },
+        { id: Math.random().toString(), type: "prompt", message, description, defaultValue, resolve },
       ]);
     });
   };
@@ -88,10 +91,11 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                  dialog.type === 'confirm' ? <HelpCircle size={32} /> : <MessageSquare size={32} />}
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">
-                {dialog.type === 'alert' ? '알림' : 
-                 dialog.type === 'confirm' ? '확인' : '입력'}
+                {dialog.message}
               </h3>
-              <p className="text-gray-500 font-medium whitespace-pre-wrap mb-4">{dialog.message}</p>
+              {dialog.description && (
+                <p className="text-gray-500 font-medium whitespace-pre-wrap mb-4 text-sm leading-relaxed">{dialog.description}</p>
+              )}
               
               {dialog.type === 'prompt' && (
                 <input 
@@ -114,7 +118,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                   className="flex-1 rounded-xl py-3 border border-gray-200 bg-white"
                   onClick={() => closeDialog(dialog.id, dialog.type === 'confirm' ? false : null)}
                 >
-                  취소
+                  {dialog.cancelLabel || "취소"}
                 </Button>
               )}
               <Button 
@@ -125,7 +129,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                 }`}
                 onClick={() => closeDialog(dialog.id, dialog.type === 'prompt' ? promptValue : true)}
               >
-                확인
+                {dialog.confirmLabel || "확인"}
               </Button>
             </div>
           </div>
