@@ -353,10 +353,18 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                   const t = p.team || "팀 없음";
                   teamScores[t] = (teamScores[t] || 0) + (p.score || 0);
                 });
-                const teamRanks = Object.entries(teamScores)
+                const sortedTeams = Object.entries(teamScores)
                   .map(([team, score]) => ({ team, score }))
-                  .sort((a, b) => b.score - a.score)
-                  .map((t, i, arr) => ({ ...t, rank: i > 0 && t.score === arr[i-1].score ? arr[i-1].rank : i + 1 }));
+                  .sort((a, b) => b.score - a.score);
+                
+                const teamRanks = sortedTeams.map((t, i) => {
+                  let rank = i + 1;
+                  if (i > 0 && t.score === sortedTeams[i-1].score) {
+                    const firstIdx = sortedTeams.findIndex(t2 => t2.score === t.score);
+                    rank = firstIdx + 1;
+                  }
+                  return { ...t, rank };
+                });
 
                 return (
                   <div className="space-y-4">
