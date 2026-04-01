@@ -318,7 +318,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             <span className="text-[10px] text-indigo-400 font-bold">실시간</span>
           </div>
 
-          {game?.is_team_mode && (
+          {game?.options?.isTeamMode && (
             <div className="flex gap-1 mb-3 p-1 bg-slate-100 rounded-xl shrink-0">
               <button onClick={() => setRankingTab('individual')} className={cn("flex-1 py-1 text-[10px] font-black rounded-lg transition-all", rankingTab === 'individual' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}>개인별</button>
               <button onClick={() => setRankingTab('team')} className={cn("flex-1 py-1 text-[10px] font-black rounded-lg transition-all", rankingTab === 'team' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}>팀별</button>
@@ -327,7 +327,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
           <div className="space-y-2 overflow-y-auto flex-1 pr-1 custom-scrollbar">
             {(() => {
-              if (rankingTab === 'team' && game?.is_team_mode) {
+              if (rankingTab === 'team' && game?.options?.isTeamMode) {
                 const teamScores: Record<string, number> = {};
                 players.forEach(p => {
                   const t = p.team || "팀 없음";
