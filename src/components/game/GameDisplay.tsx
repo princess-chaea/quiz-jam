@@ -318,7 +318,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             <span className="text-[10px] text-indigo-400 font-bold">실시간</span>
           </div>
 
-          {game.is_team_mode && (
+          {game?.is_team_mode && (
             <div className="flex gap-1 mb-3 p-1 bg-slate-100 rounded-xl shrink-0">
               <button onClick={() => setRankingTab('individual')} className={cn("flex-1 py-1 text-[10px] font-black rounded-lg transition-all", rankingTab === 'individual' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}>개인별</button>
               <button onClick={() => setRankingTab('team')} className={cn("flex-1 py-1 text-[10px] font-black rounded-lg transition-all", rankingTab === 'team' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}>팀별</button>
@@ -327,7 +327,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
           <div className="space-y-2 overflow-y-auto flex-1 pr-1 custom-scrollbar">
             {(() => {
-              if (rankingTab === 'team' && game.is_team_mode) {
+              if (rankingTab === 'team' && game?.is_team_mode) {
                 const teamScores: Record<string, number> = {};
                 players.forEach(p => {
                   const t = p.team || "팀 없음";
@@ -379,7 +379,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         <div className="flex items-center justify-between mb-4 px-2 pt-2">
           <div className="bg-indigo-50 px-4 py-2 rounded-2xl flex items-center gap-3 border border-indigo-100">
             <Trophy size={18} className="text-indigo-500" />
-            <span className="text-xl md:text-2xl font-black text-indigo-600">Q{game.current_q_index + 1}</span>
+            <span className="text-xl md:text-2xl font-black text-indigo-600">Q{(game?.current_q_index ?? 0) + 1}</span>
             <span className="text-sm font-bold text-indigo-300">/ {totalQuestions}</span>
           </div>
           <div className={cn("px-4 py-2 rounded-2xl flex items-center gap-3 border-2 transition-all", timeLeft <= 5 ? "bg-red-50 border-red-200 animate-pulse" : "bg-slate-50 border-slate-100")}>
@@ -457,6 +457,5 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         </div>
       </div>
     </div>
-  </div>
-);
+  );
 }

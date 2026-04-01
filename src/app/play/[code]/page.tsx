@@ -243,7 +243,7 @@ function StudentPlayContent() {
 
   // 4. Fetch round result logic
   useEffect(() => {
-    if (!game?.id || !name || wasKicked) return;
+    if (!game || !game.id || !name || wasKicked) return;
 
     const fetchResult = async () => {
       const currentMe = players.find(p => p.nickname === name);
@@ -308,7 +308,7 @@ function StudentPlayContent() {
           'postgres_changes',
           { event: 'UPDATE', schema: 'public', table: 'answers', filter: `player_id=eq.${me.id}` },
           (payload: any) => {
-            if (payload.new.game_id === game.id && payload.new.q_index === game.current_q_index) {
+            if (payload.new.game_id === game?.id && payload.new.q_index === game?.current_q_index) {
               console.log("Realtime: Answer updated", payload.new);
               setPlayerResult(payload.new);
             }
@@ -353,7 +353,7 @@ function StudentPlayContent() {
     );
   }
 
-  if (game.status === 'ENDED') {
+  if (game?.status === 'ENDED') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-indigo-50 font-jua text-indigo-600">
         <Loader2 className="animate-spin mb-4" size={48} />
@@ -379,7 +379,7 @@ function StudentPlayContent() {
   return (
     <div className="min-h-screen flex flex-col">
        <main className="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-50">
-          {game.status === 'WAITING' ? (
+          {game?.status === 'WAITING' ? (
              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-white to-indigo-50 w-full rounded-3xl">
                 <div className="animate-bounce mb-8 cursor-pointer group relative" onClick={handleAvatarChange}>
                    <div className="w-40 h-40 bg-white rounded-full flex items-center justify-center shadow-2xl border-8 border-indigo-100 relative overflow-hidden group-hover:border-indigo-400 transition-colors">
@@ -494,7 +494,7 @@ function StudentPlayContent() {
           currentNickname={name}
           className={cn(
             "fixed bottom-0 left-0 right-0 z-50 border-t-2 shadow-2xl transition-all duration-300",
-            (game.status === 'PLAYING' || game.status === 'RESULT') ? "border-indigo-200" : "border-indigo-100 bg-white"
+            (game?.status === 'PLAYING' || game?.status === 'RESULT') ? "border-indigo-200" : "border-indigo-100 bg-white"
           )}
        />
     </div>

@@ -19,6 +19,21 @@ function ResultsContent() {
   const [showScoreTab, setShowScoreTab] = useState(false);
   const [rankingTab, setRankingTab] = useState<'individual' | 'team'>('individual');
 
+  if (loading) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-indigo-50 font-jua p-6">
+      <div className="animate-pulse flex flex-col items-center gap-4">
+        <Trophy size={48} className="text-indigo-200" />
+        <div className="text-2xl text-indigo-400">결과 집계 중...</div>
+      </div>
+    </div>
+  );
+
+  if (!game) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-red-50 font-jua p-6">
+      <div className="text-xl text-red-600">게임을 찾을 수 없습니다.</div>
+    </div>
+  );
+
   const me = players.find(p => p.nickname === name);
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
   
@@ -41,21 +56,8 @@ function ResultsContent() {
     }
   }, [loading, players.length, myRank]);
 
-  // --- RENDERING ---
-  
-  let content = null;
-
-  if (loading) {
-    content = (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-indigo-50 font-jua p-6">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <Trophy size={48} className="text-indigo-200" />
-          <div className="text-2xl text-indigo-400">결과 집계 중...</div>
-        </div>
-      </div>
-    );
-  } else if (!me) {
-    content = (
+  if (!me) {
+    return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-indigo-50 font-jua p-6 text-center">
         <div className="bg-white p-10 rounded-3xl shadow-xl border-b-4 border-indigo-100 max-w-sm">
           <Medal size={48} className="text-indigo-200 mb-4 mx-auto" />
@@ -64,9 +66,10 @@ function ResultsContent() {
         </div>
       </div>
     );
-  } else {
-    content = (
-      <div className="min-h-screen bg-indigo-50 flex flex-col items-center justify-center p-6 text-center overflow-hidden relative">
+  }
+
+  return (
+    <div className="min-h-screen bg-indigo-50 flex flex-col items-center justify-center p-6 text-center overflow-hidden relative">
         
         {/* Floating Leaderboard Sidebar (Consistent with GameDisplay) */}
         <div className={cn(
@@ -84,7 +87,7 @@ function ResultsContent() {
               <span className="text-[10px] text-indigo-400 font-bold">집계완료</span>
             </div>
 
-            {game.is_team_mode && (
+            {game?.is_team_mode && (
               <div className="flex gap-1 mb-3 p-1 bg-slate-100 rounded-xl shrink-0">
                 <button onClick={() => setRankingTab('individual')} className={cn("flex-1 py-1 text-[10px] font-black rounded-lg transition-all", rankingTab === 'individual' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}>개인별</button>
                 <button onClick={() => setRankingTab('team')} className={cn("flex-1 py-1 text-[10px] font-black rounded-lg transition-all", rankingTab === 'team' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}>팀별</button>
@@ -93,7 +96,7 @@ function ResultsContent() {
 
             <div className="space-y-2 overflow-y-auto flex-1 pr-1 custom-scrollbar">
               {(() => {
-                if (rankingTab === 'team' && game.is_team_mode) {
+                if (rankingTab === 'team' && game?.is_team_mode) {
                   const teamScores: Record<string, number> = {};
                   players.forEach(p => {
                     const t = p.team || "팀 없음";
@@ -101,7 +104,7 @@ function ResultsContent() {
                   });
                   const sortedTeams = Object.entries(teamScores).sort((a,b) => b[1] - a[1]);
                   return sortedTeams.map(([teamName, score], i) => (
-                    <div key={teamName} className={cn("flex items-center justify-between p-2 rounded-xl border bg-slate-50 border-slate-100", teamName === me.team ? "bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100" : "")}>
+                    <div key={teamName} className={cn("flex items-center justify-between p-2 rounded-xl border bg-slate-50 border-slate-100", teamName === me?.team ? "bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100" : "")}>
                       <div className="flex items-center gap-2">
                         <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black", i===0 ? "bg-yellow-400 text-white" : "bg-slate-200 text-slate-500")}>{i+1}</span>
                         <span className="font-bold text-sm text-slate-700 truncate max-w-[100px]">{teamName} {teamName === me.team && "(우리 팀)"}</span>
@@ -147,7 +150,7 @@ function ResultsContent() {
             <div className="p-10 space-y-8">
               <div className="flex flex-col items-center">
                 <div className="text-sm font-black text-gray-400 uppercase tracking-widest mb-2">최종 점수</div>
-                <div className="text-7xl font-black text-indigo-600 drop-shadow-sm">{me.score}</div>
+                <div className="text-7xl font-black text-indigo-600 drop-shadow-sm">{me?.score || 0}</div>
               </div>
 
               <div className="flex justify-between items-center bg-gray-50 p-6 rounded-2xl border border-gray-100">
@@ -188,10 +191,8 @@ function ResultsContent() {
           © 2026 퀴즈잼 • 실시간 퀴즈 앱
         </div>
       </div>
-    );
-  }
-
-  return content;
+    </div>
+  );
 }
 
 export default function StudentResults() {
