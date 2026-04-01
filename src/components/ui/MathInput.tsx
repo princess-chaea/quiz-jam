@@ -62,9 +62,24 @@ export function MathInput({
   const mfRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastValueRef = useRef<string | undefined>(undefined);
-  const { activeField, openKeypad } = useMathKeypad();
-  const [mounted, setMounted] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+
+  useEffect(() => {
+    if (!isTeacher) {
+      const dismissed = localStorage.getItem("quiz-jam-focus-help-dismissed");
+      if (!dismissed) {
+        // Show after a short delay
+        const timer = setTimeout(() => setShowHelp(true), 1500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isTeacher]);
+
+  const dismissHelp = () => {
+    setShowHelp(false);
+    localStorage.setItem("quiz-jam-focus-help-dismissed", "true");
+  };
 
   const forceFocus = (mathFieldEl: any) => {
     if (!mathFieldEl) return;
@@ -389,8 +404,9 @@ export function MathInput({
   return (
     <div 
       ref={containerRef}
+      onClick={() => mfRef.current && forceFocus(mfRef.current)}
       className={cn(
-        "relative flex flex-col justify-center w-full h-fit min-h-[4rem] rounded-2xl group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text py-3", 
+        "relative flex flex-col justify-center w-full h-fit min-h-[3rem] rounded-2xl group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text py-0", 
         (!multiline || showScrollbar) ? "overflow-x-auto custom-scrollbar" : "overflow-visible h-fit",
         containerClassName
       )}
@@ -400,7 +416,7 @@ export function MathInput({
           display: block !important;
           width: ${(multiline && !showScrollbar) ? '100%' : 'max-content'} !important;
           min-width: 100% !important;
-          height: auto !important;
+          height: 100% !important;
           background: transparent !important;
           overflow: visible !important;
         }
@@ -408,13 +424,16 @@ export function MathInput({
           padding: 0 3rem 0 1rem !important; 
           overflow: visible !important;
           cursor: text !important;
+          min-height: 100% !important;
+          display: flex !important;
+          align-items: center !important;
         }
         math-field .ML__base {
           display: flex !important;
           flex-wrap: ${multiline ? 'wrap' : 'nowrap'} !important;
           width: 100% !important;
-          line-height: 1.2 !important;
-          padding: 2px 0 !important;
+          line-height: inherit !important;
+          padding: 4px 0 !important;
         }
         math-field .ML__content {
           display: ${multiline ? 'block' : 'inline-block'} !important;
@@ -444,7 +463,7 @@ export function MathInput({
           border: "none",
           fontSize: isTeacher ? "1.125rem" : "2.25rem",
           display: 'block',
-          minHeight: isTeacher ? "1.5rem" : "3rem",
+          minHeight: isTeacher ? "3rem" : "5rem",
         }}
         multiline={multiline ? "true" : "false"}
         math-virtual-keyboard-policy="manual"
@@ -458,21 +477,48 @@ export function MathInput({
       </math-field>
       
       {!isTeacher && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (mfRef.current) {
-              forceFocus(mfRef.current);
-              openKeypad(mfRef.current, level);
-            }
-          }}
-          className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-indigo-50 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-600 transition-all shadow-sm border border-indigo-100 z-10"
-          title="수식 키보드 열기"
-        >
-          <Keyboard size={20} />
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (showHelp) dismissHelp();
+              if (mfRef.current) {
+                forceFocus(mfRef.current);
+                openKeypad(mfRef.current, level);
+              }
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-indigo-50 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-600 transition-all shadow-sm border border-indigo-100 z-10"
+            title="수식 키보드 열기"
+          >
+            <Keyboard size={20} />
+          </button>
+
+          {showHelp && (
+            <div className="absolute right-0 bottom-full mb-3 z-50 animate-tip-pop pointer-events-auto">
+              <div className="bg-indigo-600 text-white px-4 py-3 rounded-2xl shadow-2xl min-w-[180px] relative">
+                <p className="text-xs font-black leading-snug pr-4">
+                  입력이 되지 않을 때<br/>
+                  여기를 눌러주세요!
+                </p>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dismissHelp();
+                  }}
+                  className="absolute top-2 right-2 text-white/50 hover:text-white p-1"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                {/* Arrow */}
+                <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-indigo-600 rotate-45" />
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

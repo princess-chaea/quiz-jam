@@ -651,6 +651,21 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       const remaining = calculateTimeLeft();
       setTimeLeft(remaining);
       
+      // Periodically broadcast sync for all student clients to handle drift
+      if (remaining > 0 && remaining % 5 === 0) {
+        const channel = supabase.channel(`game_realtime:${game.id}`);
+        channel.subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await channel.send({
+              type: 'broadcast',
+              event: 'TIMER_SYNC',
+              payload: { timeLeft: remaining }
+            });
+            setTimeout(() => supabase.removeChannel(channel), 1000);
+          }
+        });
+      }
+
       if (remaining <= 0) {
         clearInterval(timer);
         // Only host triggers the finish round

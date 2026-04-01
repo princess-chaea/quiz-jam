@@ -534,7 +534,7 @@ export default function QuizEditor() {
                                       updateQuestion(index, "correct_idx", optIdx);
                                     }}
                                   />
-                                    <div className="flex-1 min-w-0 max-w-full p-1">
+                                    <div className="flex-1 min-w-0 max-w-full p-0">
                                       <MathInput
                                         value={opt}
                                         onChange={(val) => {

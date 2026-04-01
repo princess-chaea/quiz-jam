@@ -391,26 +391,28 @@ function StudentPlayContent() {
        <main className="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-50">
           {game?.status === 'WAITING' ? (
              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-white to-indigo-50 w-full rounded-3xl">
-                <div className="animate-bounce mb-8 cursor-pointer group relative" onClick={handleAvatarChange}>
+                <div className="animate-float mb-8 cursor-pointer group relative" onClick={handleAvatarChange}>
                     <div className={cn(
-                       "w-40 h-40 rounded-full flex items-center justify-center shadow-2xl border-8 transition-all overflow-hidden relative",
-                       me?.team === 'RED' ? "bg-red-500 border-indigo-500 ring-4 ring-indigo-400/30" :
-                       me?.team === 'BLUE' ? "bg-blue-500 border-indigo-500 ring-4 ring-indigo-400/30" :
-                       me?.team === 'GREEN' ? "bg-green-500 border-indigo-500 ring-4 ring-indigo-400/30" :
-                       me?.team === 'YELLOW' ? "bg-yellow-400 border-indigo-500 ring-4 ring-indigo-400/30" :
+                       "w-48 h-48 rounded-full flex items-center justify-center shadow-2xl border-8 transition-all overflow-hidden relative",
+                       me?.team === 'RED' ? "bg-red-500 border-red-200 ring-4 ring-red-100/50" :
+                       me?.team === 'BLUE' ? "bg-blue-500 border-blue-200 ring-4 ring-blue-100/50" :
+                       me?.team === 'GREEN' ? "bg-green-500 border-green-200 ring-4 ring-green-100/50" :
+                       me?.team === 'YELLOW' ? "bg-yellow-400 border-yellow-200 ring-4 ring-yellow-100/50" :
                        "bg-white border-indigo-100 group-hover:border-indigo-400"
                     )}>
                       {me?.avatar_id ? (
-                         <img src={`/avatars/avatar_${me.avatar_id}.png`} alt="My Avatar" className="w-32 h-32 object-contain" />
+                         <img src={`/avatars/avatar_${me.avatar_id}.png`} alt="My Avatar" className="w-full h-full object-cover p-4" />
                       ) : (
-                         <img src="/logo.png" alt="Quiz Jam Logo" className="w-24 h-24 object-contain translate-y-1" />
+                         <img src="/logo.png" alt="Quiz Jam Logo" className="w-28 h-28 object-contain translate-y-1" />
                       )}
-                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-white font-black text-xs">캐릭터 바꾸기</span>
+                     <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <RefreshCw size={32} className="text-white mb-2" />
+                        <span className="text-white font-black text-sm uppercase tracking-wider">캐릭터 변경</span>
                      </div>
                    </div>
-                    <div className="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-3 rounded-2xl shadow-lg z-10">
-                      <RefreshCw size={24} className={cn(changingAvatar && "animate-spin")} />
+                    <div className="absolute -bottom-2 -right-2 bg-indigo-600 text-white px-4 py-2 rounded-2xl shadow-lg z-10 flex items-center gap-2 border-2 border-white">
+                      <RefreshCw size={20} className={cn(changingAvatar && "animate-spin")} />
+                      <span className="text-sm font-black whitespace-nowrap">바꾸기</span>
                     </div>
                  </div>
                 <h1 className="text-4xl font-jua text-indigo-900 mb-4">시작을 기다리고 있어요!</h1>

@@ -54,6 +54,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const [blankAnswers, setBlankAnswers] = useState<Record<number, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [internalSubmitted, setInternalSubmitted] = useState(false);
+  const [showFocusHelp, setShowFocusHelp] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("quiz_jam_focus_help_dismissed") !== "true";
+    }
+    return true;
+  });
   const [showScoreTab, setShowScoreTab] = useState(false);
   const [rankingTab, setRankingTab] = useState<'individual' | 'team'>('individual');
   const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
@@ -62,6 +68,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const currentProgress = ((game.current_q_index + 1) / totalQuestions) * 100;
   const currentQuestion = game.options?.questions[game.current_q_index];
   
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const [shieldBlock, setShieldBlock] = useState<{nickname: string, type: string} | null>(null);
 
   const confettiTriggered = useRef<string | null>(null); 
@@ -169,8 +176,19 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [game?.id, player.id, refresh]);
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (showScoreTab && sidebarRef.current && !sidebarRef.current.contains(target)) {
+        setShowScoreTab(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => { 
+      supabase.removeChannel(channel); 
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [game?.id, player.id, refresh, showScoreTab, setShowScoreTab]);
 
   // Sync state with results
   useEffect(() => {
@@ -222,16 +240,33 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       return Math.max(0, limit - elapsed);
     };
 
-    // Immediate sync
-    setTimeLeft(calculateTimeLeft());
+    // Immediate initial sync
+    const initialTime = calculateTimeLeft();
+    setTimeLeft(initialTime);
     
-    // Periodic sync
+    // Decrement timer locally every second
     const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
+      setTimeLeft(prev => {
+        if (prev <= 0) return 0;
+        return prev - 1;
+      });
     }, 1000);
+
+    // Listen for Host broadcast SYNC to handle clock drift
+    const channel = supabase.channel(`game_realtime:${game.id}`)
+      .on('broadcast', { event: 'TIMER_SYNC' }, ({ payload }: { payload: any }) => {
+        if (payload?.timeLeft !== undefined) {
+          // Sync with the absolute truth from host
+          setTimeLeft(payload.timeLeft);
+        }
+      })
+      .subscribe();
     
-    return () => clearInterval(timer);
-  }, [game.status, game.options?.current_q_started_at, currentQuestion?.timeLimit]);
+    return () => {
+      clearInterval(timer);
+      supabase.removeChannel(channel);
+    };
+  }, [game.status, game.id, game.options?.current_q_started_at]);
 
   // Font Scaling Helpers
   const getQuestionFontSize = (text: string) => {
@@ -251,7 +286,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const handleAnswerChange = (val: string) => setAnswer(val);
 
   const handleBlankChange = (wordIdx: number, val: string, blanks: number[]) => {
-    setBlankAnswers(prev => {
+    setBlankAnswers((prev: Record<number, string>) => {
       const next = { ...prev, [wordIdx]: val };
       const sortedBlanks = [...blanks].sort((a, b) => a - b);
       setAnswer(sortedBlanks.map(idx => next[idx] || "").join(", "));
@@ -303,12 +338,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
               {result.points_awarded >= 0 ? `+${result.points_awarded}` : result.points_awarded}점
             </div>
             <div className="grid grid-cols-2 gap-4 w-full">
-              <div className="bg-white p-3 rounded-2xl border text-center">
+              <div className="bg-indigo-50 p-3 rounded-2xl border text-center">
                 <div className="text-[10px] text-slate-400 font-black uppercase">내가 쓴 답</div>
                 <div className="font-bold truncate">{answer || "(없음)"}</div>
               </div>
               <div className="bg-indigo-50 p-3 rounded-2xl border border-indigo-100 text-center">
-                <div className="text-[10px] text-indigo-400 font-black uppercase">진짜 정답</div>
+                <div className="text-[10px] text-indigo-400 font-black uppercase">정답</div>
                 <div className="font-bold text-indigo-600 truncate">{currentQuestion?.a}</div>
               </div>
             </div>
@@ -323,20 +358,52 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center p-3 md:p-6 overflow-hidden">
       {/* Floating Leaderboard Sidebar */}
-      <div className={cn(
-        "fixed right-0 top-1/2 -translate-y-1/2 z-50 transition-transform duration-300 flex items-center",
-        showScoreTab ? "translate-x-0" : "translate-x-[calc(100%-40px)]"
-      )}>
+      <div 
+        ref={sidebarRef}
+        className={cn(
+          "fixed right-0 top-1/2 -translate-y-1/2 z-50 transition-transform duration-300 flex items-center",
+          showScoreTab ? "translate-x-0" : "translate-x-[calc(100%-40px)]"
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
         <button onClick={() => setShowScoreTab(!showScoreTab)} className="w-10 h-24 bg-indigo-600 text-white rounded-l-2xl flex flex-col items-center justify-center gap-2 shadow-lg hover:bg-indigo-700 transition-colors">
           <Trophy size={18} />
           <span className="text-[8px] font-black [writing-mode:vertical-lr]">RANKING</span>
           {showScoreTab ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
         <div className="w-64 md:w-72 h-[60vh] bg-white shadow-2xl border-2 border-indigo-100 rounded-l-2xl p-4 overflow-y-auto custom-scrollbar flex flex-col">
-          <div className="flex items-center justify-between border-b pb-2 mb-3">
+          <div className="flex items-center justify-between border-b pb-2 mb-3 shrink-0">
             <h3 className="font-black text-indigo-900">순위 현황</h3>
             <span className="text-[10px] text-indigo-400 font-bold">실시간</span>
           </div>
+
+          {/* Detailed Team Stats (Sticky at top of content if team mode) */}
+          {game?.options?.isTeamMode && player?.team && (
+            <div className="mb-4 p-3 bg-indigo-50/50 rounded-2xl border-2 border-indigo-100/50 shrink-0">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-black text-indigo-400">우리팀 현황</span>
+                <span className="px-2 py-0.5 bg-indigo-600 text-white text-[8px] font-black rounded-full">
+                  {player.team === 'RED' ? '빨강팀' : player.team === 'BLUE' ? '파랑팀' : player.team === 'GREEN' ? '초록팀' : player.team === 'YELLOW' ? '노랑팀' : player.team}
+                </span>
+              </div>
+              <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
+                {players.filter(p => p.team === player.team).map(member => (
+                  <div key={member.id} className="flex justify-between items-center bg-white/60 p-1.5 rounded-lg border border-indigo-50">
+                    <span className={cn("text-[11px] font-bold truncate pr-1 flex-1", member.id === player.id ? "text-indigo-600" : "text-slate-600")}>
+                      {member.id === player.id && "👤 "}{member.nickname}
+                    </span>
+                    <span className="text-[11px] font-black text-slate-500 tabular-nums">{(member.score || 0).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex justify-between items-center border-t border-indigo-100 pt-2 pb-0.5">
+                <span className="text-[10px] font-black text-indigo-800 uppercase tracking-tighter">팀 합산 점수</span>
+                <span className="text-sm font-black text-indigo-600 tabular-nums">
+                  {players.filter(p => p.team === player.team).reduce((acc, curr) => acc + (curr.score || 0), 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          )}
 
           {game?.options?.isTeamMode && (
             <div className="flex gap-1 mb-3 p-1 bg-slate-100 rounded-xl shrink-0">
@@ -459,8 +526,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         </div>
       </div>
 
-      <div className="w-full max-w-4xl bg-white rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl p-4 md:p-10 border-2 border-indigo-50 flex flex-col relative overflow-hidden h-full max-h-[95vh]">
-        <div className="absolute top-0 left-0 w-full h-2 bg-slate-100 overflow-hidden">
+      <div className="w-full max-w-4xl bg-white rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl p-4 md:p-10 border-2 border-indigo-50 flex flex-col relative overflow-hidden h-full max-h-[95vh] focus-within:ring-0">
+        <div className="absolute top-0 left-0 w-full h-2 bg-slate-100 overflow-hidden rounded-t-full">
           <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${currentProgress}%` }} />
         </div>
 
@@ -494,7 +561,13 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             )}
             
             {(submitted || internalSubmitted) ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-50/50 rounded-[2.5rem] border-2 border-indigo-100 border-dashed animate-in zoom-in">
+              <div className="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-50/50 rounded-[2.5rem] border-2 border-indigo-100 border-dashed animate-in zoom-in relative">
+                {/* Embedded Timer for Continuity */}
+                <div className="absolute top-6 right-6 flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border-2 border-indigo-100 shadow-sm">
+                  <Clock size={14} className={timeLeft <= 5 ? "text-red-500 animate-pulse" : "text-indigo-400"} />
+                  <span className={cn("text-lg font-black tabular-nums", timeLeft <= 5 ? "text-red-600" : "text-indigo-600")}>{timeLeft}</span>
+                </div>
+
                 <div className="text-4xl md:text-6xl mb-4 animate-bounce">✨</div>
                 <h3 className="text-2xl md:text-3xl font-black text-indigo-900 mb-2 italic">정답 제출 완료!</h3>
                 <p className="text-slate-500 font-bold text-center">우와! 정답을 잘 제출했어요. <br/>다른 친구들이 문제를 다 풀 때까지 우리 조금만 기다려 볼까요? 😊</p>
@@ -535,9 +608,40 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                         })}
                       </div>
                     ) : (
-                      <div className="relative border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all p-2 flex items-center pr-12">
+                      <div className="relative border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all p-2 flex items-center">
                         <MathInput value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-xl md:text-2xl font-bold p-2" template={currentQuestion.template} focusOnMount={true} />
-                        <button onClick={() => { (document.activeElement as HTMLElement)?.blur(); setTimeout(() => { (document.querySelector('math-field, input[type="text"]') as HTMLElement)?.focus(); }, 100); }} className="absolute right-2 w-8 h-8 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center text-[10px] font-black border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Focus Recovery">R</button>
+                        
+                        {showFocusHelp && (
+                          <div className="absolute right-0 bottom-full mb-4 animate-bounce z-50">
+                            <div className="bg-indigo-600 text-white px-4 py-2 rounded-2xl shadow-xl text-xs font-black whitespace-nowrap relative">
+                              입력이 안 될 때 여기를 눌러주세요!
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowFocusHelp(false);
+                                  sessionStorage.setItem("quiz_jam_focus_help_dismissed", "true");
+                                }}
+                                className="ml-2 hover:text-red-300 transition-colors"
+                              >
+                                ✕
+                              </button>
+                              {/* Triangle Arrow */}
+                              <div className="absolute top-full right-4 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-indigo-600" />
+                            </div>
+                          </div>
+                        )}
+
+                        <button 
+                          onClick={() => { 
+                            (document.activeElement as HTMLElement)?.blur(); 
+                            setTimeout(() => { 
+                              (document.querySelector('math-field, input[type="text"]') as HTMLElement)?.focus(); 
+                            }, 100); 
+                          }} 
+                          className="shrink-0 w-10 h-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100"
+                        >
+                          <RefreshCw size={18} />
+                        </button>
                       </div>
                     )}
                     <Button size="xl" className="w-full py-6 md:py-8 text-2xl md:text-3xl shadow-lg mt-auto" onClick={() => handleSubmit()}>정답 제출하기</Button>
@@ -547,6 +651,19 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             )}
           </div>
         </div>
+      </div>
+
+      {/* Floating Emojis Layer */}
+      <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+        {floatingEmojis.map(item => (
+          <div 
+            key={item.id}
+            className="absolute bottom-[-50px] text-4xl animate-float-up"
+            style={{ left: `${item.left}%` }}
+          >
+            {item.emoji}
+          </div>
+        ))}
       </div>
     </div>
   );

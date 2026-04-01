@@ -16,7 +16,35 @@ export function PlayerBar({ players, currentNickname, submissions, className }: 
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
 
   return (
-    <div className={cn("w-full bg-white/80 backdrop-blur-md border-t border-indigo-100 p-2 flex gap-3 overflow-x-auto scrollbar-hide shrink-0", className)}>
+    <div className={cn("w-full bg-white/90 backdrop-blur-md border-t border-indigo-100 p-2 flex gap-3 overflow-x-auto scrollbar-hide shrink-0 items-center", className)}>
+      {/* Team Summary Pill (Only in Team Mode) */}
+      {players.some(p => p.team) && (
+        <div className="flex gap-2 mr-2 border-r border-indigo-100 pr-3">
+          {(() => {
+            const teamScores: Record<string, number> = {};
+            players.forEach(p => { if(p.team) teamScores[p.team] = (teamScores[p.team] || 0) + (p.score || 0); });
+            const myTeam = players.find(p => p.nickname === currentNickname)?.team;
+            
+            return Object.entries(teamScores).sort((a,b) => b[1]-a[1]).map(([team, score]) => {
+              const colors: any = { RED: 'bg-red-500', BLUE: 'bg-blue-500', GREEN: 'bg-green-500', YELLOW: 'bg-yellow-400' };
+              const isMyTeam = team === myTeam;
+              return (
+                <div key={team} className={cn(
+                  "px-3 py-1.5 rounded-2xl flex flex-col items-center justify-center min-w-[70px] border-2 shadow-sm transition-all",
+                  isMyTeam ? "bg-white border-indigo-400 ring-2 ring-indigo-50 scale-105 z-10" : "bg-slate-50 border-slate-100"
+                )}>
+                  <div className="flex items-center gap-1.5">
+                    <div className={cn("w-2 h-2 rounded-full", colors[team])} />
+                    <span className="text-[9px] font-black text-slate-400">{isMyTeam ? '우리팀' : '상대팀'}</span>
+                  </div>
+                  <span className={cn("text-xs font-black", isMyTeam ? "text-indigo-600" : "text-slate-600")}>{score.toLocaleString()}</span>
+                </div>
+              );
+            });
+          })()}
+        </div>
+      )}
+
       {sortedPlayers.map((player, idx) => {
         const isMe = player.nickname === currentNickname;
         const hasSubmitted = submissions?.includes(player.id);
@@ -35,18 +63,18 @@ export function PlayerBar({ players, currentNickname, submissions, className }: 
           >
             <div className="relative">
               <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs relative overflow-hidden",
-                player.team === 'RED' ? 'bg-red-500 text-white' :
-                player.team === 'BLUE' ? 'bg-blue-500 text-white' :
-                player.team === 'GREEN' ? 'bg-green-500 text-white' :
-                player.team === 'YELLOW' ? 'bg-yellow-400 text-white' : 
-                (isMe ? 'bg-indigo-50 text-indigo-600' : 'bg-indigo-50 text-indigo-600')
+                "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs relative overflow-hidden transition-colors border",
+                player.team === 'RED' ? (isMe ? 'bg-red-500 text-white border-indigo-500 border-2' : 'bg-red-500 text-white border-red-600') :
+                player.team === 'BLUE' ? (isMe ? 'bg-blue-500 text-white border-indigo-300 border-2' : 'bg-blue-500 text-white border-blue-600') :
+                player.team === 'GREEN' ? (isMe ? 'bg-green-500 text-white border-indigo-500 border-2' : 'bg-green-500 text-white border-green-600') :
+                player.team === 'YELLOW' ? (isMe ? 'bg-yellow-400 text-white border-indigo-500 border-2' : 'bg-yellow-400 text-white border-yellow-500') : 
+                isMe ? 'bg-indigo-500 text-white border-indigo-300' : 'bg-indigo-50 text-indigo-600 border-indigo-100'
               )}>
                 {player.avatar_id ? (
                   <img 
                     src={`/avatars/avatar_${player.avatar_id}.png`} 
                     alt="" 
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover p-0.5"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                       (e.target as HTMLImageElement).parentElement!.innerText = player.nickname[0];
@@ -57,7 +85,7 @@ export function PlayerBar({ players, currentNickname, submissions, className }: 
                 )}
               </div>
               {hasSubmitted && (
-                <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-0.5 border-2 border-white z-20">
+                <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-0.5 border-2 border-white z-20 shadow-sm">
                   <CheckCircle2 size={10} />
                 </div>
               )}
