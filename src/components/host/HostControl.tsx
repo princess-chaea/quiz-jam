@@ -59,8 +59,8 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       const confirmed = await showConfirm({
         message: "아직 제출하지 않은 학생이 있습니다.",
         description: `${remaining}명의 학생이 정답을 제출하지 않았습니다. 정말 마감할까요?`,
-        okText: "마감하기",
-        cancelText: "더 기다리기"
+        confirmLabel: "마감하기",
+        cancelLabel: "더 기다리기"
       });
       if (!confirmed) return;
     }

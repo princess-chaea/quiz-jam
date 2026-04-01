@@ -54,7 +54,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
     }
     return null;
   });
-  const { showAlert } = useDialog();
+  const { showAlert, showConfirm } = useDialog();
 
   // Persist state to localStorage
   useEffect(() => {
