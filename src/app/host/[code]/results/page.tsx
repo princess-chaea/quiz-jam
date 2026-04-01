@@ -14,6 +14,17 @@ export default function ResultsPage() {
   const { game, players, loading } = useGame(code as string);
 
   const sortedPlayers = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
+  
+  // Calculate ranks using competition ranking (1, 1, 1, 4)
+  const rankedPlayers = sortedPlayers.map((player, index) => {
+    if (index > 0 && player.score === sortedPlayers[index - 1].score) {
+      return { ...player, rank: (sortedPlayers as any)[index - 1].rank };
+    }
+    return { ...player, rank: index + 1 };
+  });
+  
+  // Update sortedPlayers to include rank
+  const finalSortedPlayers = rankedPlayers;
 
   // Team score calculation
   const isTeamMode = game?.options?.isTeamMode;
@@ -129,9 +140,9 @@ export default function ResultsPage() {
           <div className="flex flex-col items-center animate-in slide-in-from-bottom-20 duration-700 delay-300">
             <div className="mb-6 text-center z-20">
               <div className="text-xl md:text-3xl font-black truncate max-w-[120px] text-slate-300 drop-shadow-lg uppercase tracking-tight">
-                {sortedPlayers[1]?.nickname || "---"}
+                {finalSortedPlayers[1]?.nickname || "---"}
               </div>
-              <div className="text-lg font-black text-slate-400">{sortedPlayers[1]?.score?.toLocaleString() || 0} PTS</div>
+              <div className="text-lg font-black text-slate-400">{finalSortedPlayers[1]?.score?.toLocaleString() || 0} PTS</div>
             </div>
             <div className="w-full bg-gradient-to-t from-slate-500 to-slate-400 h-44 md:h-64 rounded-t-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center justify-center relative border-x-4 border-t-4 border-white/20 group hover:scale-105 transition-transform overflow-hidden">
                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -139,31 +150,31 @@ export default function ResultsPage() {
                  <Medal size={64} className="text-slate-100 drop-shadow-lg" />
                  <span className="absolute text-slate-500 font-black text-xl mt-1.5">2</span>
                </div>
-               <div className="absolute bottom-6 md:bottom-10 text-5xl md:text-6xl font-black text-slate-900/20 italic select-none">2nd</div>
+               <div className="absolute bottom-6 md:bottom-10 text-5xl md:text-6xl font-black text-slate-900/20 italic select-none">{finalSortedPlayers[1]?.rank}nd</div>
             </div>
           </div>
 
           <div className="flex flex-col items-center z-10 animate-in slide-in-from-bottom-24 duration-1000">
             <div className="mb-8 text-center drop-shadow-[0_0_20px_rgba(250,204,21,0.3)]">
               <div className="text-3xl md:text-5xl font-black truncate max-w-[200px] text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.4)] animate-pulse uppercase tracking-tight">
-                {sortedPlayers[0]?.nickname || "---"}
+                {finalSortedPlayers[0]?.nickname || "---"}
               </div>
-              <div className="text-2xl font-black text-yellow-200">{sortedPlayers[0]?.score?.toLocaleString() || 0} PTS</div>
+              <div className="text-2xl font-black text-yellow-200">{finalSortedPlayers[0]?.score?.toLocaleString() || 0} PTS</div>
             </div>
             <div className="w-full bg-gradient-to-t from-yellow-600 to-yellow-400 h-72 md:h-96 rounded-t-[3rem] shadow-[0_20px_60px_-10px_rgba(250,204,21,0.4)] flex flex-col items-center justify-center relative border-x-4 border-t-4 border-yellow-200 group hover:scale-105 transition-transform overflow-hidden">
                {/* Shine effect */}
                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
                <Trophy size={100} className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)] mb-2 animate-pop" />
-               <div className="absolute bottom-10 md:bottom-14 text-[6rem] md:text-[8rem] font-black text-yellow-900/20 italic select-none leading-none">1st</div>
+               <div className="absolute bottom-10 md:bottom-14 text-[6rem] md:text-[8rem] font-black text-yellow-900/20 italic select-none leading-none">{finalSortedPlayers[0]?.rank}st</div>
             </div>
           </div>
 
           <div className="flex flex-col items-center animate-in slide-in-from-bottom-16 duration-700 delay-500">
             <div className="mb-6 text-center z-20">
               <div className="text-xl md:text-3xl font-black truncate max-w-[120px] text-orange-300 drop-shadow-lg uppercase tracking-tight">
-                {sortedPlayers[2]?.nickname || "---"}
+                {finalSortedPlayers[2]?.nickname || "---"}
               </div>
-              <div className="text-lg font-black text-orange-400">{sortedPlayers[2]?.score?.toLocaleString() || 0} PTS</div>
+              <div className="text-lg font-black text-orange-400">{finalSortedPlayers[2]?.score?.toLocaleString() || 0} PTS</div>
             </div>
             <div className="w-full bg-gradient-to-t from-orange-600 to-orange-500 h-36 md:h-52 rounded-t-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center justify-center relative border-x-4 border-t-4 border-white/20 group hover:scale-105 transition-transform overflow-hidden">
                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -171,13 +182,13 @@ export default function ResultsPage() {
                  <Medal size={56} className="text-orange-100 drop-shadow-lg" />
                  <span className="absolute text-orange-800 font-black text-lg mt-1">3</span>
                </div>
-               <div className="absolute bottom-4 md:bottom-8 text-4xl md:text-5xl font-black text-orange-900/20 italic select-none">3rd</div>
+               <div className="absolute bottom-4 md:bottom-8 text-4xl md:text-5xl font-black text-orange-900/20 italic select-none">{finalSortedPlayers[2]?.rank}rd</div>
             </div>
           </div>
         </div>
 
         {/* Lower Rankings List - Show ALL players from 4th place down */}
-        {sortedPlayers.length > 3 && (
+        {finalSortedPlayers.length > 3 && (
           <div className="w-full max-w-4xl bg-white/10 backdrop-blur-xl rounded-[3rem] p-8 md:p-12 mb-20 border border-white/20 shadow-2xl animate-in fade-in duration-1000 delay-700">
             <h3 className="text-2xl font-black text-indigo-400 uppercase tracking-widest mb-10 text-center flex items-center justify-center gap-4">
                <div className="h-px w-12 bg-indigo-500/30" />
@@ -185,13 +196,13 @@ export default function ResultsPage() {
                <div className="h-px w-12 bg-indigo-500/30" />
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 max-h-[600px] overflow-y-auto pr-4 custom-scrollbar">
-              {sortedPlayers.slice(3).map((player, index) => (
+              {finalSortedPlayers.slice(3).map((player, index) => (
                 <div 
                   key={player.id} 
                   className="flex justify-between items-center p-6 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all group scale-100 hover:scale-[1.02]"
                 >
                   <div className="flex items-center gap-6">
-                    <span className="text-indigo-500 font-black text-2xl italic opacity-50 group-hover:opacity-100 transition-opacity">#{index + 4}</span>
+                    <span className="text-indigo-500 font-black text-2xl italic opacity-50 group-hover:opacity-100 transition-opacity">#{player.rank}</span>
                     <span className="text-2xl font-black tracking-tight">{player.nickname}</span>
                     {player.team && (
                       <span className={cn(

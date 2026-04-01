@@ -3,7 +3,7 @@ import React from "react";
 
 import { useGame } from "@/hooks/useGame";
 import { useSearchParams, useParams, useRouter } from "next/navigation";
-import { Loader2, Zap, HelpCircle, LogOut } from "lucide-react";
+import { Loader2, RefreshCw, HelpCircle, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { supabase } from "@/lib/supabase";
 import { GameDisplay } from "@/components/game/GameDisplay";
