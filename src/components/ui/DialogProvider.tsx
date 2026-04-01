@@ -9,6 +9,7 @@ type DialogType = "alert" | "confirm" | "prompt";
 interface DialogConfig {
   id: string;
   type: DialogType;
+  title?: string;
   message: string;
   description?: string;
   confirmLabel?: string;
@@ -18,14 +19,16 @@ interface DialogConfig {
 }
 
 interface DialogContextType {
-  showAlert: (options: { message: string; description?: string }) => Promise<boolean>;
+  showAlert: (options: { title?: string; message: string; description?: string }) => Promise<boolean>;
   showConfirm: (options: { 
+    title?: string;
     message: string; 
     description?: string; 
     confirmLabel?: string; 
     cancelLabel?: string;
   }) => Promise<boolean>;
   showPrompt: (options: { 
+    title?: string;
     message: string; 
     description?: string; 
     defaultValue?: string;
@@ -46,16 +49,17 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const [dialogs, setDialogs] = useState<DialogConfig[]>([]);
   const [promptValue, setPromptValue] = useState("");
 
-  const showAlert = ({ message, description }: { message: string, description?: string }) => {
+  const showAlert = ({ title, message, description }: { title?: string, message: string, description?: string }) => {
     return new Promise<boolean>((resolve) => {
       setDialogs((prev) => [
         ...prev,
-        { id: Math.random().toString(), type: "alert", message, description, resolve },
+        { id: Math.random().toString(), type: "alert", title, message, description, resolve },
       ]);
     });
   };
 
-  const showConfirm = ({ message, description, confirmLabel, cancelLabel }: { 
+  const showConfirm = ({ title, message, description, confirmLabel, cancelLabel }: { 
+    title?: string,
     message: string, 
     description?: string, 
     confirmLabel?: string, 
@@ -64,12 +68,13 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     return new Promise<boolean>((resolve) => {
       setDialogs((prev) => [
         ...prev,
-        { id: Math.random().toString(), type: "confirm", message, description, confirmLabel, cancelLabel, resolve },
+        { id: Math.random().toString(), type: "confirm", title, message, description, confirmLabel, cancelLabel, resolve },
       ]);
     });
   };
 
-  const showPrompt = ({ message, defaultValue = "", description }: { 
+  const showPrompt = ({ title, message, defaultValue = "", description }: { 
+    title?: string,
     message: string, 
     defaultValue?: string, 
     description?: string 
@@ -78,7 +83,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     return new Promise<string | null>((resolve) => {
       setDialogs((prev) => [
         ...prev,
-        { id: Math.random().toString(), type: "prompt", message, description, defaultValue, resolve },
+        { id: Math.random().toString(), type: "prompt", title, message, description, defaultValue, resolve },
       ]);
     });
   };
@@ -108,6 +113,11 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                 {dialog.type === 'alert' ? <AlertCircle size={32} /> : 
                  dialog.type === 'confirm' ? <HelpCircle size={32} /> : <MessageSquare size={32} />}
               </div>
+
+              {dialog.title && (
+                <span className="text-xs font-black uppercase tracking-wider text-gray-400 mb-1">{dialog.title}</span>
+              )}
+
               <h3 className="text-xl font-bold text-gray-900 mb-2">
                 {dialog.message}
               </h3>
