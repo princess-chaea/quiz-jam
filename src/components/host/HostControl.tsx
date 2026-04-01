@@ -438,12 +438,22 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   // Internal common logic for moving to next round
   const performNextTurnAction = async () => {
     const isLast = game.current_q_index >= (game.options?.questions?.length || 1) - 1;
+    const nextStatus = isLast ? "ENDED" : "PLAYING";
+    const nextIndex = isLast ? game.current_q_index : game.current_q_index + 1;
+    
+    // Add start timestamp to options for timer sync
+    const nextOptions = {
+      ...(game.options || {}),
+      current_q_started_at: nextStatus === "PLAYING" ? new Date().toISOString() : null
+    };
+
     const { error } = await supabase
       .from("games")
       .update({
-        status: isLast ? "ENDED" : "PLAYING",
-        current_q_index: isLast ? game.current_q_index : game.current_q_index + 1,
-        current_hint_stage: 0
+        status: nextStatus,
+        current_q_index: nextIndex,
+        current_hint_stage: 0,
+        options: nextOptions
       })
       .eq("id", game.id);
 
@@ -459,7 +469,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         await channel.send({
           type: 'broadcast',
           event: 'GAME_UPDATE',
-          payload: { status: isLast ? "ENDED" : "PLAYING", q_index: isLast ? game.current_q_index : game.current_q_index + 1 }
+          payload: { status: nextStatus, q_index: nextIndex }
         });
         setTimeout(() => supabase.removeChannel(channel), 2000);
       }
@@ -623,20 +633,33 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
   useEffect(() => {
     if (game.status !== 'PLAYING') return;
-    const limit = currentQuestion?.timeLimit || 20;
-    setTimeLeft(limit);
+    
+    const calculateTimeLeft = () => {
+      const limit = currentQuestion?.timeLimit || 20;
+      const startedAt = game.options?.current_q_started_at;
+      if (!startedAt) return limit;
+      
+      const start = new Date(startedAt).getTime();
+      const now = new Date().getTime();
+      const elapsed = Math.floor((now - start) / 1000);
+      return Math.max(0, limit - elapsed);
+    };
+
+    setTimeLeft(calculateTimeLeft());
+    
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setTimeout(() => { if (finishRoundRef.current) finishRoundRef.current(); }, 2000);
-          return 0;
-        }
-        return prev - 1;
-      });
+      const remaining = calculateTimeLeft();
+      setTimeLeft(remaining);
+      
+      if (remaining <= 0) {
+        clearInterval(timer);
+        // Only host triggers the finish round
+        setTimeout(() => { if (finishRoundRef.current) finishRoundRef.current(); }, 1500);
+      }
     }, 1000);
+
     return () => clearInterval(timer);
-  }, [game.id, game.current_q_index, game.status]);
+  }, [game.id, game.current_q_index, game.status, game.options?.current_q_started_at]);
 
   useEffect(() => {
     if (!game.id) return;

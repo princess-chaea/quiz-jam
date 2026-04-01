@@ -392,12 +392,19 @@ function StudentPlayContent() {
           {game?.status === 'WAITING' ? (
              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-white to-indigo-50 w-full rounded-3xl">
                 <div className="animate-bounce mb-8 cursor-pointer group relative" onClick={handleAvatarChange}>
-                   <div className="w-40 h-40 bg-white rounded-full flex items-center justify-center shadow-2xl border-8 border-indigo-100 relative overflow-hidden group-hover:border-indigo-400 transition-colors">
-                     {me?.avatar_id ? (
-                        <img src={`/avatars/avatar_${me.avatar_id}.png`} alt="My Avatar" className="w-32 h-32 object-contain" />
-                     ) : (
-                        <img src="/logo.png" alt="Quiz Jam Logo" className="w-24 h-24 object-contain translate-y-1" />
-                     )}
+                    <div className={cn(
+                       "w-40 h-40 rounded-full flex items-center justify-center shadow-2xl border-8 transition-all overflow-hidden relative",
+                       me?.team === 'RED' ? "bg-red-500 border-indigo-500 ring-4 ring-indigo-400/30" :
+                       me?.team === 'BLUE' ? "bg-blue-500 border-indigo-500 ring-4 ring-indigo-400/30" :
+                       me?.team === 'GREEN' ? "bg-green-500 border-indigo-500 ring-4 ring-indigo-400/30" :
+                       me?.team === 'YELLOW' ? "bg-yellow-400 border-indigo-500 ring-4 ring-indigo-400/30" :
+                       "bg-white border-indigo-100 group-hover:border-indigo-400"
+                    )}>
+                      {me?.avatar_id ? (
+                         <img src={`/avatars/avatar_${me.avatar_id}.png`} alt="My Avatar" className="w-32 h-32 object-contain" />
+                      ) : (
+                         <img src="/logo.png" alt="Quiz Jam Logo" className="w-24 h-24 object-contain translate-y-1" />
+                      )}
                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <span className="text-white font-black text-xs">캐릭터 바꾸기</span>
                      </div>

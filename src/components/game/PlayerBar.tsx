@@ -28,17 +28,19 @@ export function PlayerBar({ players, currentNickname, submissions, className }: 
             key={player.id}
             className={cn(
               "flex items-center gap-2 px-3 py-1.5 rounded-2xl border transition-all shrink-0 min-w-[120px]",
-              isMe ? "bg-indigo-600 text-white border-indigo-400 shadow-lg shadow-indigo-200 ring-2 ring-indigo-300 ring-offset-1" : "bg-white border-gray-100 text-gray-700 shadow-sm"
+              isMe 
+                ? "bg-white border-indigo-500 ring-4 ring-indigo-400/50 shadow-lg shadow-indigo-100" 
+                : "bg-white border-gray-100 text-gray-700 shadow-sm"
             )}
           >
             <div className="relative">
               <div className={cn(
                 "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs relative overflow-hidden",
-                isMe ? "bg-white text-indigo-600" : "bg-indigo-50 text-indigo-600",
-                player.team === 'RED' && !isMe ? 'bg-red-500 text-white' :
-                player.team === 'BLUE' && !isMe ? 'bg-blue-500 text-white' :
-                player.team === 'GREEN' && !isMe ? 'bg-green-500 text-white' :
-                player.team === 'YELLOW' && !isMe ? 'bg-yellow-400 text-white' : ''
+                player.team === 'RED' ? 'bg-red-500 text-white' :
+                player.team === 'BLUE' ? 'bg-blue-500 text-white' :
+                player.team === 'GREEN' ? 'bg-green-500 text-white' :
+                player.team === 'YELLOW' ? 'bg-yellow-400 text-white' : 
+                (isMe ? 'bg-indigo-50 text-indigo-600' : 'bg-indigo-50 text-indigo-600')
               )}>
                 {player.avatar_id ? (
                   <img 
@@ -64,12 +66,12 @@ export function PlayerBar({ players, currentNickname, submissions, className }: 
             <div className="flex flex-col min-w-0 pr-1">
               <span className={cn(
                 "text-[11px] font-black truncate max-w-[80px] leading-tight",
-                isMe ? "text-white" : "text-indigo-900"
+                isMe ? "text-indigo-600" : "text-indigo-900"
               )}>{player.nickname}</span>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className={cn(
                   "text-[10px] font-black px-1.5 py-0.5 rounded-lg",
-                  isMe ? "bg-white/20 text-white" : "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                  isMe ? "bg-indigo-50 text-indigo-600 border border-indigo-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100"
                 )}>
                   {player.score.toLocaleString()}
                 </span>

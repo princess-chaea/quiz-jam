@@ -62,9 +62,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const currentProgress = ((game.current_q_index + 1) / totalQuestions) * 100;
   const currentQuestion = game.options?.questions[game.current_q_index];
   
-  const [timeLeft, setTimeLeft] = useState<number>(currentQuestion?.timeLimit || 20);
   const [shieldBlock, setShieldBlock] = useState<{nickname: string, type: string} | null>(null);
-  const isTimeOut = timeLeft === 0;
 
   const confettiTriggered = useRef<string | null>(null); 
   const firstBlankRef = useRef<HTMLInputElement>(null);
@@ -201,19 +199,39 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       setInternalSubmitted(false);
       setAnswer("");
       setBlankAnswers({});
-      setTimeLeft(currentQuestion?.timeLimit || 20);
     }
   }, [result, game.current_q_index, currentQuestion]);
 
-  // Timer
+  // 2. Timer Sync Logic
+  const [timeLeft, setTimeLeft] = useState<number>(30);
+  
   useEffect(() => {
-    if (game.status === 'PLAYING' && timeLeft > 0 && !submitted) {
-      const timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-      return () => clearInterval(timer);
+    if (game.status !== 'PLAYING') {
+      setTimeLeft(currentQuestion?.timeLimit || 20);
+      return;
     }
-  }, [game.status, timeLeft, submitted]);
+    
+    const calculateTimeLeft = () => {
+      const limit = currentQuestion?.timeLimit || 20;
+      const startedAt = game.options?.current_q_started_at;
+      if (!startedAt) return limit;
+      
+      const start = new Date(startedAt).getTime();
+      const now = new Date().getTime();
+      const elapsed = Math.floor((now - start) / 1000);
+      return Math.max(0, limit - elapsed);
+    };
+
+    // Immediate sync
+    setTimeLeft(calculateTimeLeft());
+    
+    // Periodic sync
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [game.status, game.options?.current_q_started_at, currentQuestion?.timeLimit]);
 
   // Font Scaling Helpers
   const getQuestionFontSize = (text: string) => {
@@ -240,6 +258,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       return next;
     });
   };
+
+  const isTimeOut = timeLeft === 0;
 
   const handleSubmit = (finalAnswer?: string) => {
     if (submitted || isTimeOut) return;
@@ -333,24 +353,85 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                   const t = p.team || "팀 없음";
                   teamScores[t] = (teamScores[t] || 0) + (p.score || 0);
                 });
-                const sortedTeams = Object.entries(teamScores).sort((a,b) => b[1] - a[1]);
-                return sortedTeams.map(([teamName, score], i) => (
-                  <div key={teamName} className={cn("flex items-center justify-between p-2 rounded-xl border bg-slate-50 border-slate-100", teamName === player.team ? "bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100" : "")}>
-                    <div className="flex items-center gap-2">
-                       <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black", i===0 ? "bg-yellow-400 text-white" : "bg-slate-200 text-slate-500")}>{i+1}</span>
-                       <span className="font-bold text-sm text-slate-700 truncate max-w-[100px]">{teamName} {teamName === player.team && "(우리 팀)"}</span>
-                    </div>
-                    <span className="font-black text-indigo-600 text-sm">{score.toLocaleString()}</span>
+                const teamRanks = Object.entries(teamScores)
+                  .map(([team, score]) => ({ team, score }))
+                  .sort((a, b) => b.score - a.score)
+                  .map((t, i, arr) => ({ ...t, rank: i > 0 && t.score === arr[i-1].score ? arr[i-1].rank : i + 1 }));
+
+                return (
+                  <div className="space-y-4">
+                    {teamRanks.map((rank, i) => {
+                      const myTeam = player?.team;
+                      const isMyTeam = rank.team === myTeam;
+                      const members = players.filter(p => p.team === rank.team)
+                        .sort((a, b) => b.score - a.score);
+                      
+                      return (
+                        <div key={rank.team} className={cn(
+                          "p-4 rounded-2xl border-2 transition-all",
+                          isMyTeam 
+                            ? "bg-indigo-50 border-indigo-200 shadow-md ring-2 ring-indigo-400/20" 
+                            : "bg-white border-slate-100"
+                        )}>
+                          <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                            <div className="flex items-center gap-3">
+                              <span className={cn(
+                                "w-7 h-7 rounded-full flex items-center justify-center text-sm font-black",
+                                i === 0 ? "bg-yellow-400 text-white" :
+                                i === 1 ? "bg-slate-300 text-white" :
+                                i === 2 ? "bg-orange-300 text-white" : "bg-slate-100 text-slate-500"
+                              )}>{rank.rank}</span>
+                              <span className={cn(
+                                "font-black text-lg",
+                                rank.team === 'RED' ? 'text-red-600' :
+                                rank.team === 'BLUE' ? 'text-blue-600' :
+                                rank.team === 'GREEN' ? 'text-green-600' : 'text-yellow-600'
+                              )}>
+                                {rank.team === 'RED' ? '빨강팀' : 
+                                 rank.team === 'BLUE' ? '파랑팀' : 
+                                 rank.team === 'GREEN' ? '초록팀' : '노랑팀'}
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs text-slate-400 font-bold block leading-none mb-1">합계 점수</span>
+                              <span className="font-black text-xl text-slate-700">{rank.score.toLocaleString()}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-1.5">
+                            {members.map(member => (
+                              <div key={member.id} className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className={cn(
+                                    "w-1.5 h-1.5 rounded-full",
+                                    rank.team === 'RED' ? 'bg-red-400' :
+                                    rank.team === 'BLUE' ? 'bg-blue-400' :
+                                    rank.team === 'GREEN' ? 'bg-green-400' : 'bg-yellow-400'
+                                  )} />
+                                  <span className={cn(
+                                    "font-bold",
+                                    member.id === player?.id ? "text-indigo-600 underline underline-offset-2" : "text-slate-600"
+                                  )}>
+                                    {member.nickname} {member.id === player?.id && "(나)"}
+                                  </span>
+                                </div>
+                                <span className="font-black text-slate-500 tabular-nums">
+                                  {member.score.toLocaleString()}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                ));
+                );
               }
 
               const sorted = [...players].sort((a,b) => (b.score||0)-(a.score||0));
               return sorted.map((p, i) => {
-                // Competition Ranking (1224) logic
                 let rank = i + 1;
                 if (i > 0 && (p.score||0) === (sorted[i-1].score||0)) {
-                  // Find the first index of this score
                   const firstIdx = sorted.findIndex(p2 => (p2.score||0) === (p.score||0));
                   rank = firstIdx + 1;
                 }
@@ -371,7 +452,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       </div>
 
       <div className="w-full max-w-4xl bg-white rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl p-4 md:p-10 border-2 border-indigo-50 flex flex-col relative overflow-hidden h-full max-h-[95vh]">
-        {/* Progress Bar */}
         <div className="absolute top-0 left-0 w-full h-2 bg-slate-100 overflow-hidden">
           <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${currentProgress}%` }} />
         </div>
@@ -388,7 +468,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           </div>
         </div>
 
-        {/* Question Area */}
         <div className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar px-2">
           <div className={cn("font-black text-slate-800 break-keep leading-tight text-center py-4 md:py-8", getQuestionFontSize(currentQuestion.q))}>
             <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
