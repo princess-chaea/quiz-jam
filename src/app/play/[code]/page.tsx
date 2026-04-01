@@ -30,6 +30,32 @@ function StudentPlayContent() {
   const [wasKicked, setWasKicked] = useState(false);
   const [hasFoundMe, setHasFoundMe] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [changingAvatar, setChangingAvatar] = useState(false);
+  const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
+
+  const me = players.find((p: any) => p.nickname === name);
+
+  const handleAvatarChange = async () => {
+    if (!me || changingAvatar) return;
+    setChangingAvatar(true);
+    let nextId = (me.avatar_id || 0) + 1;
+    if (nextId > 30) nextId = 1;
+    if (nextId === 26) nextId = 27;
+    
+    try {
+      const { error } = await supabase
+        .from("players")
+        .update({ avatar_id: nextId })
+        .eq("id", me.id);
+      
+      if (error) throw error;
+      await refresh();
+    } catch (err) {
+      console.error("Avatar update failed:", err);
+    } finally {
+      setTimeout(() => setChangingAvatar(false), 500);
+    }
+  };
 
   // 1. Memoized Answer Submission to avoid re-renders or closures inside conditional blocks
   const handleSubmitAnswer = useCallback(async (val: string) => {
@@ -131,6 +157,15 @@ function StudentPlayContent() {
           console.log("Kicked via broadcast!");
           setWasKicked(true);
         }
+      })
+      .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
+        const newEmoji = { 
+          id: Date.now() + Math.random(), 
+          emoji: payload.emoji, 
+          left: Math.random() * 80 + 10 
+        };
+        setFloatingEmojis((prev: any[]) => [...prev, newEmoji]);
+        setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 3000);
       })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
@@ -327,9 +362,9 @@ function StudentPlayContent() {
     );
   }
 
-  const me = players.find((p: any) => p.nickname === name);
+  const meFound = players.find((p: any) => p.nickname === name);
   
-  if (!me && !loading) {
+  if (!meFound && !loading) {
      // If we are not loading anymore but 'me' isn't found, 
      // it's likely they were cleaned up or never existed.
      // Redirect to join page to re-verify/re-insert.
@@ -346,14 +381,21 @@ function StudentPlayContent() {
        <main className="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-50">
           {game.status === 'WAITING' ? (
              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-white to-indigo-50 w-full rounded-3xl">
-                <div className="animate-bounce mb-8">
-                  <div className="w-40 h-40 bg-white rounded-full flex items-center justify-center shadow-2xl border-8 border-indigo-100 relative">
-                    <img src="/logo.png" alt="Quiz Jam Logo" className="w-24 h-24 object-contain translate-y-1" />
-                    <div className="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-3 rounded-2xl animate-pulse">
-                      <Zap size={24} fill="white" />
-                    </div>
-                  </div>
-                </div>
+                <div className="animate-bounce mb-8 cursor-pointer group relative" onClick={handleAvatarChange}>
+                   <div className="w-40 h-40 bg-white rounded-full flex items-center justify-center shadow-2xl border-8 border-indigo-100 relative overflow-hidden group-hover:border-indigo-400 transition-colors">
+                     {me?.avatar_id ? (
+                        <img src={`/avatars/avatar_${me.avatar_id}.png`} alt="My Avatar" className="w-32 h-32 object-contain" />
+                     ) : (
+                        <img src="/logo.png" alt="Quiz Jam Logo" className="w-24 h-24 object-contain translate-y-1" />
+                     )}
+                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-white font-black text-xs">캐릭터 바꾸기</span>
+                     </div>
+                   </div>
+                   <div className="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-3 rounded-2xl animate-pulse shadow-lg z-10">
+                     <Zap size={24} fill="white" />
+                   </div>
+                 </div>
                 <h1 className="text-4xl font-jua text-indigo-900 mb-4">시작을 기다리고 있어요!</h1>
                 <p className="text-gray-500 font-bold mb-8">곧 퀴즈가 시작됩니다!</p>
                 {me?.team && (

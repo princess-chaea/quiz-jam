@@ -22,6 +22,7 @@ export default function HostPage() {
   const [starting, setStarting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -137,6 +138,23 @@ export default function HostPage() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+  
+  // Emoji Listener
+  useEffect(() => {
+    if (!game?.id) return;
+    const channel = supabase.channel(`lobby_events_${game.id}`)
+      .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
+        const newEmoji = { 
+          id: Date.now() + Math.random(), 
+          emoji: payload.emoji, 
+          left: Math.random() * 80 + 10 
+        };
+        setFloatingEmojis((prev: any[]) => [...prev, newEmoji]);
+        setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 3000);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [game?.id]);
 
   // Redirect to results page when game is over
   useEffect(() => {
@@ -331,6 +349,17 @@ export default function HostPage() {
             </div>
           )}
         </div>
+        
+        {/* Floating Emojis */}
+        {floatingEmojis.map((e: any) => (
+          <div
+            key={e.id}
+            className="fixed bottom-0 pointer-events-none animate-float-up text-6xl z-[100] drop-shadow-2xl"
+            style={{ left: `${e.left}%` }}
+          >
+            {e.emoji}
+          </div>
+        ))}
       </main>
     </div>
   );

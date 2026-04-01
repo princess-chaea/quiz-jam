@@ -33,6 +33,7 @@ const processAnswers = (data: any[]) => {
 
 export function HostControl({ game, players, refreshPlayers }: HostControlProps) {
   const [answers, setAnswers] = useState<any[]>([]);
+  const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
   const [calculating, setCalculating] = useState(false);
   const [swapQueue, setSwapQueue] = useState<any[]>([]);
   const [currentSwapperId, setCurrentSwapperId] = useState<string | null>(null);
@@ -644,6 +645,15 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
         console.log("[Swap Engine] Step finished.");
       })
+      .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
+        const newEmoji = { 
+          id: Date.now() + Math.random(), 
+          emoji: payload.emoji, 
+          left: Math.random() * 80 + 10 
+        };
+        setFloatingEmojis((prev: any[]) => [...prev, newEmoji]);
+        setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 3000);
+      })
       .subscribe();
 
     return () => {
@@ -1031,6 +1041,16 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             </div>
           </div>
         </div>
+        {/* Floating Emojis */}
+        {floatingEmojis.map((e: any) => (
+          <div
+            key={e.id}
+            className="fixed bottom-0 pointer-events-none animate-float-up text-6xl z-[100] drop-shadow-2xl"
+            style={{ left: `${e.left}%` }}
+          >
+            {e.emoji}
+          </div>
+        ))}
       </div>
     );
   }

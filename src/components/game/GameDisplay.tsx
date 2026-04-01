@@ -55,6 +55,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const [submitted, setSubmitted] = useState(false);
   const [internalSubmitted, setInternalSubmitted] = useState(false);
   const [showScoreTab, setShowScoreTab] = useState(false);
+  const [rankingTab, setRankingTab] = useState<'individual' | 'team'>('individual');
   const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
   
   const totalQuestions = game.options?.questions?.length || 0;
@@ -311,18 +312,60 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           <span className="text-[8px] font-black [writing-mode:vertical-lr]">RANKING</span>
           {showScoreTab ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
-        <div className="w-64 md:w-72 h-[60vh] bg-white shadow-2xl border-2 border-indigo-100 rounded-l-2xl p-4 overflow-y-auto custom-scrollbar">
-          <h3 className="font-black text-indigo-900 border-b pb-2 mb-3">순위 현황</h3>
-          <div className="space-y-2">
-            {[...players].sort((a,b) => (b.score||0)-(a.score||0)).map((p, i) => (
-              <div key={p.id} className={cn("flex items-center justify-between p-2 rounded-xl border", p.id===player.id ? "bg-indigo-50 border-indigo-200" : "bg-slate-50 border-slate-100")}>
-                <div className="flex items-center gap-2">
-                  <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black", i<3 ? "bg-yellow-400 text-white" : "bg-slate-200 text-slate-500")}>{i+1}</span>
-                  <span className="font-bold text-sm text-slate-700 truncate max-w-[100px]">{p.nickname}</span>
-                </div>
-                <span className="font-black text-indigo-600 text-sm">{(p.score||0).toLocaleString()}</span>
-              </div>
-            ))}
+        <div className="w-64 md:w-72 h-[60vh] bg-white shadow-2xl border-2 border-indigo-100 rounded-l-2xl p-4 overflow-y-auto custom-scrollbar flex flex-col">
+          <div className="flex items-center justify-between border-b pb-2 mb-3">
+            <h3 className="font-black text-indigo-900">순위 현황</h3>
+            <span className="text-[10px] text-indigo-400 font-bold">실시간</span>
+          </div>
+
+          {game.is_team_mode && (
+            <div className="flex gap-1 mb-3 p-1 bg-slate-100 rounded-xl shrink-0">
+              <button onClick={() => setRankingTab('individual')} className={cn("flex-1 py-1 text-[10px] font-black rounded-lg transition-all", rankingTab === 'individual' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}>개인별</button>
+              <button onClick={() => setRankingTab('team')} className={cn("flex-1 py-1 text-[10px] font-black rounded-lg transition-all", rankingTab === 'team' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}>팀별</button>
+            </div>
+          )}
+
+          <div className="space-y-2 overflow-y-auto flex-1 pr-1 custom-scrollbar">
+            {(() => {
+              if (rankingTab === 'team' && game.is_team_mode) {
+                const teamScores: Record<string, number> = {};
+                players.forEach(p => {
+                  const t = p.team || "팀 없음";
+                  teamScores[t] = (teamScores[t] || 0) + (p.score || 0);
+                });
+                const sortedTeams = Object.entries(teamScores).sort((a,b) => b[1] - a[1]);
+                return sortedTeams.map(([teamName, score], i) => (
+                  <div key={teamName} className={cn("flex items-center justify-between p-2 rounded-xl border bg-slate-50 border-slate-100", teamName === player.team ? "bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100" : "")}>
+                    <div className="flex items-center gap-2">
+                       <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black", i===0 ? "bg-yellow-400 text-white" : "bg-slate-200 text-slate-500")}>{i+1}</span>
+                       <span className="font-bold text-sm text-slate-700 truncate max-w-[100px]">{teamName} {teamName === player.team && "(우리 팀)"}</span>
+                    </div>
+                    <span className="font-black text-indigo-600 text-sm">{score.toLocaleString()}</span>
+                  </div>
+                ));
+              }
+
+              const sorted = [...players].sort((a,b) => (b.score||0)-(a.score||0));
+              return sorted.map((p, i) => {
+                // Competition Ranking (1224) logic
+                let rank = i + 1;
+                if (i > 0 && (p.score||0) === (sorted[i-1].score||0)) {
+                  // Find the first index of this score
+                  const firstIdx = sorted.findIndex(player => (player.score||0) === (p.score||0));
+                  rank = firstIdx + 1;
+                }
+
+                return (
+                  <div key={p.id} className={cn("flex items-center justify-between p-2 rounded-xl border transition-all", p.id===player.id ? "bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100" : "bg-slate-50 border-slate-100")}>
+                    <div className="flex items-center gap-2">
+                      <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black", rank===1 ? "bg-yellow-400 text-white" : rank===2 ? "bg-slate-300 text-white" : rank===3 ? "bg-orange-300 text-white" : "bg-slate-200 text-slate-500")}>{rank}</span>
+                      <span className="font-bold text-sm text-slate-700 truncate max-w-[100px]">{p.nickname} {p.id===player.id && "(나)"}</span>
+                    </div>
+                    <span className="font-black text-indigo-600 text-sm">{(p.score||0).toLocaleString()}</span>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
       </div>
@@ -352,14 +395,21 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           </div>
           {currentQuestion.image_url && <img src={currentQuestion.image_url} alt="q" className="rounded-2xl max-w-full max-h-[40vh] object-contain mx-auto shadow-lg border-2 border-slate-100 mb-6" />}
           
-          {(submitted || internalSubmitted) ? (
+          <div className="space-y-4 flex flex-col flex-1">
+            {currentQuestion.type === "BLANK" && !submitted && !internalSubmitted && (
+               <div className="text-center font-black text-indigo-500 bg-indigo-50 py-2 rounded-2xl animate-pulse text-sm">
+                 💡 빈칸에 알맞은 단어를 입력해 주세요!
+               </div>
+            )}
+            
+            {(submitted || internalSubmitted) ? (
             <div className="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-50/50 rounded-[2.5rem] border-2 border-indigo-100 border-dashed animate-in zoom-in">
-              <div className="text-4xl md:text-6xl mb-4 animate-bounce">👍</div>
-              <h3 className="text-2xl md:text-3xl font-black text-indigo-900 mb-2 italic">멋진 도전이에요!</h3>
-              <p className="text-slate-500 font-bold text-center">정답이 전달되었습니다. 다른 친구들을 기다려주세요!</p>
+              <div className="text-4xl md:text-6xl mb-4 animate-bounce">✨</div>
+              <h3 className="text-2xl md:text-3xl font-black text-indigo-900 mb-2 italic">정답 제출 완료!</h3>
+              <p className="text-slate-500 font-bold text-center">정답이 전달되었어요. 친구들이 다 풀 때까지 조금만 기다려 봐요! 😊</p>
               {!isTimeOut && (
                 <button onClick={handleRetractClick} className="mt-8 px-8 py-3 bg-white text-indigo-600 border-2 border-indigo-200 rounded-2xl font-black hover:bg-indigo-600 hover:text-white transition-all shadow-sm flex items-center gap-2 group">
-                  <RefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500" /> 다시 제출하기
+                  <RefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500" /> 다시 고치기
                 </button>
               )}
             </div>
@@ -394,9 +444,9 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                       })}
                     </div>
                   ) : (
-                    <div className="relative border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all p-2 flex items-center">
+                    <div className="relative border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all p-2 flex items-center pr-12">
                       <MathInput value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-xl md:text-2xl font-bold p-2" template={currentQuestion.template} focusOnMount={true} />
-                      <button onClick={() => { (document.activeElement as HTMLElement)?.blur(); setTimeout(() => { (document.querySelector('math-field, input[type="text"]') as HTMLElement)?.focus(); }, 100); }} className="absolute -right-10 w-8 h-8 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center text-[10px] font-black border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Focus Recovery">R</button>
+                      <button onClick={() => { (document.activeElement as HTMLElement)?.blur(); setTimeout(() => { (document.querySelector('math-field, input[type="text"]') as HTMLElement)?.focus(); }, 100); }} className="absolute right-2 w-8 h-8 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center text-[10px] font-black border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Focus Recovery">R</button>
                     </div>
                   )}
                   <Button size="xl" className="w-full py-6 md:py-8 text-2xl md:text-3xl shadow-lg mt-auto" onClick={() => handleSubmit()}>정답 제출하기</Button>
@@ -407,5 +457,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }

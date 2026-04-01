@@ -22,72 +22,63 @@ export function SegmentedInput({
   firstRef,
   className
 }: SegmentedInputProps) {
-  const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const hiddenInputRef = useRef<HTMLInputElement>(null);
 
-  // Initialize refs array
   useEffect(() => {
-    inputsRef.current = inputsRef.current.slice(0, length);
-  }, [length]);
+    if (autoFocus && hiddenInputRef.current) {
+      hiddenInputRef.current.focus();
+    }
+  }, [autoFocus]);
 
-  const handleChange = (index: number, char: string) => {
-    // Only allow single character
-    const newChar = char.slice(-1);
-    const newValue = value.split("");
-    
-    // Fill or replace
-    while (newValue.length < length) newValue.push("");
-    newValue[index] = newChar;
-    
-    const finalValue = newValue.slice(0, length).join("");
-    onChange(finalValue);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.slice(0, length);
+    onChange(val);
+  };
 
-    // Auto-focus next input if char is entered
-    if (newChar && index < length - 1) {
-      inputsRef.current[index + 1]?.focus();
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      onEnter?.();
     }
   };
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace") {
-      if (!value[index] && index > 0) {
-        // Focus previous and clear it
-        inputsRef.current[index - 1]?.focus();
-        const newValue = value.split("");
-        newValue[index - 1] = "";
-        onChange(newValue.join(""));
-      }
-    } else if (e.key === "Enter") {
-      onEnter?.();
-    } else if (e.key === "ArrowLeft" && index > 0) {
-      inputsRef.current[index - 1]?.focus();
-    } else if (e.key === "ArrowRight" && index < length - 1) {
-      inputsRef.current[index + 1]?.focus();
-    }
+  const handleContainerClick = () => {
+    hiddenInputRef.current?.focus();
   };
 
   return (
-    <div className={cn("flex gap-1.5 items-center", className)}>
+    <div className={cn("relative flex gap-1.5 items-center cursor-text", className)} onClick={handleContainerClick}>
+      {/* Hidden input to handle all input and IME composition natively */}
+      <input
+        ref={(el) => {
+          (hiddenInputRef as any).current = el;
+          if (firstRef) (firstRef as any).current = el;
+        }}
+        type="text"
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        className="absolute inset-0 opacity-0 cursor-default pointer-events-none"
+        autoFocus={autoFocus}
+        maxLength={length}
+      />
+      
+      {/* Visual segments */}
       {Array.from({ length }).map((_, i) => (
-        <input
+        <div
           key={i}
-          ref={(el) => {
-            inputsRef.current[i] = el;
-            if (i === 0 && firstRef) {
-              (firstRef as any).current = el;
-            }
-          }}
-          type="text"
-          maxLength={1}
-          value={value[i] || ""}
-          onChange={(e) => handleChange(i, e.target.value)}
-          onKeyDown={(e) => handleKeyDown(i, e)}
-          autoFocus={autoFocus && i === 0}
           className={cn(
-            "w-10 h-12 md:w-12 md:h-14 bg-white border-2 border-slate-200 rounded-xl text-center text-xl md:text-2xl font-black text-indigo-600 outline-none transition-all",
-            "focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50/50 focus:scale-105",
-            value[i] ? "border-indigo-400 bg-indigo-50/20" : "border-slate-100"
+            "w-10 h-12 md:w-12 md:h-14 bg-white border-2 rounded-xl flex items-center justify-center text-xl md:text-2xl font-black text-indigo-600 outline-none transition-all",
+            // Highlight the active character segment or the current input position
+            (value.length === i || (i === length - 1 && value.length === length)) ? "border-indigo-500 ring-4 ring-indigo-50/50 scale-105" : "border-slate-200",
+            value[i] ? "border-indigo-400 bg-indigo-50/20" : "border-slate-100 bg-white"
           )}
-        />
+        >
+          {value[i] || ""}
+          {/* Caret effect for the current position */}
+          {value.length === i && (
+            <div className="absolute w-0.5 h-6 bg-indigo-500 animate-pulse rounded-full" />
+          )}
+        </div>
       ))}
     </div>
   );
