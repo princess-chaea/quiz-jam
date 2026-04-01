@@ -3,7 +3,7 @@
 import { useGame } from "@/hooks/useGame";
 import { useSearchParams, useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Trophy, Home, Medal, Star, Zap, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trophy, Medal, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useEffect, Suspense, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -37,7 +37,6 @@ function ResultsContent() {
   const me = players.find(p => p.nickname === name);
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
   
-  // Competition Ranking (1224) logic for myRank
   const myRank = (() => {
     if (!name) return 0;
     const myScore = me?.score || 0;
@@ -71,7 +70,7 @@ function ResultsContent() {
   return (
     <div className="min-h-screen bg-indigo-50 flex flex-col items-center justify-center p-6 text-center overflow-hidden relative">
         
-        {/* Floating Leaderboard Sidebar (Consistent with GameDisplay) */}
+        {/* Floating Leaderboard Sidebar */}
         <div className={cn(
           "fixed right-0 top-1/2 -translate-y-1/2 z-50 transition-transform duration-300 flex items-center",
           showScoreTab ? "translate-x-0" : "translate-x-[calc(100%-40px)]"
@@ -117,7 +116,7 @@ function ResultsContent() {
                 return sortedPlayers.map((p, i) => {
                   let rank = i + 1;
                   if (i > 0 && p.score === sortedPlayers[i-1].score) {
-                    const firstIdx = sortedPlayers.findIndex(player => player.score === p.score);
+                    const firstIdx = sortedPlayers.findIndex(p2 => p2.score === p.score);
                     rank = firstIdx + 1;
                   }
                   return (
@@ -186,11 +185,6 @@ function ResultsContent() {
             </div>
           </div>
         </div>
-
-        <div className="mt-12 text-indigo-300 font-bold text-sm">
-          © 2026 퀴즈잼 • 실시간 퀴즈 앱
-        </div>
-      </div>
     </div>
   );
 }

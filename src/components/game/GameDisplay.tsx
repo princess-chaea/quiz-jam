@@ -126,7 +126,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   useEffect(() => {
     if (!game?.id || !player.id) return;
     
-    const channel = supabase.channel(`game_realtime_events_${game.id}`)
+    const channel = supabase.channel(`game_events_${game.id}`)
       .on('broadcast', { event: 'START_SWAP' }, ({ payload }: { payload: any }) => {
         setActiveSwapperName(payload.nickname);
         const myId = String(player.id || "").trim();
@@ -284,11 +284,11 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             </div>
             <div className="grid grid-cols-2 gap-4 w-full">
               <div className="bg-white p-3 rounded-2xl border text-center">
-                <div className="text-[10px] text-slate-400 font-black uppercase">My Answer</div>
+                <div className="text-[10px] text-slate-400 font-black uppercase">내가 쓴 답</div>
                 <div className="font-bold truncate">{answer || "(없음)"}</div>
               </div>
               <div className="bg-indigo-50 p-3 rounded-2xl border border-indigo-100 text-center">
-                <div className="text-[10px] text-indigo-400 font-black uppercase">Correct</div>
+                <div className="text-[10px] text-indigo-400 font-black uppercase">진짜 정답</div>
                 <div className="font-bold text-indigo-600 truncate">{currentQuestion?.a}</div>
               </div>
             </div>
@@ -351,7 +351,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                 let rank = i + 1;
                 if (i > 0 && (p.score||0) === (sorted[i-1].score||0)) {
                   // Find the first index of this score
-                  const firstIdx = sorted.findIndex(player => (player.score||0) === (p.score||0));
+                  const firstIdx = sorted.findIndex(p2 => (p2.score||0) === (p.score||0));
                   rank = firstIdx + 1;
                 }
 
@@ -391,7 +391,11 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         {/* Question Area */}
         <div className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar px-2">
           <div className={cn("font-black text-slate-800 break-keep leading-tight text-center py-4 md:py-8", getQuestionFontSize(currentQuestion.q))}>
-            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(currentQuestion.q)}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+              {processMathText(currentQuestion.type === "BLANK" ? 
+                currentQuestion.q.split(/\s+/).map((w: string, i: number) => (currentQuestion.blanks || []).includes(i) ? "___" : w).join(" ") 
+                : currentQuestion.q)}
+            </ReactMarkdown>
           </div>
           {currentQuestion.image_url && <img src={currentQuestion.image_url} alt="q" className="rounded-2xl max-w-full max-h-[40vh] object-contain mx-auto shadow-lg border-2 border-slate-100 mb-6" />}
           
@@ -403,57 +407,58 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             )}
             
             {(submitted || internalSubmitted) ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-50/50 rounded-[2.5rem] border-2 border-indigo-100 border-dashed animate-in zoom-in">
-              <div className="text-4xl md:text-6xl mb-4 animate-bounce">✨</div>
-              <h3 className="text-2xl md:text-3xl font-black text-indigo-900 mb-2 italic">정답 제출 완료!</h3>
-              <p className="text-slate-500 font-bold text-center">정답이 전달되었어요. 친구들이 다 풀 때까지 조금만 기다려 봐요! 😊</p>
-              {!isTimeOut && (
-                <button onClick={handleRetractClick} className="mt-8 px-8 py-3 bg-white text-indigo-600 border-2 border-indigo-200 rounded-2xl font-black hover:bg-indigo-600 hover:text-white transition-all shadow-sm flex items-center gap-2 group">
-                  <RefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500" /> 다시 고치기
-                </button>
-              )}
-            </div>
-          ) : isTimeOut ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-indigo-400 animate-pulse"><div className="text-7xl">⌛</div><p className="text-2xl font-black">시간 종료!</p></div>
-          ) : (
-            <div className="flex-1 flex flex-col min-h-0 border-t-2 border-slate-100 pt-4">
-              {currentQuestion.type === "MULTIPLE_CHOICE" ? (
-                <div className="grid grid-cols-2 gap-3 md:gap-4 h-full">
-                  {currentQuestion.options.map((opt: string, idx: number) => (
-                    <Button key={idx} size="xl" variant="ghost" className={cn("py-6 md:py-8 h-full whitespace-normal break-keep font-black border-2 flex items-center gap-3", getOptionFontSize(opt))} onClick={() => handleSubmit(opt)}>
-                      <span className="shrink-0">{idx + 1}.</span>
-                      <div className="flex-1 text-left"><ReactMarkdown components={{ p: 'span' }}>{processMathText(opt)}</ReactMarkdown></div>
-                    </Button>
-                  ))}
-                </div>
-              ) : currentQuestion.type === "OX" ? (
-                <div className="grid grid-cols-2 gap-4 h-full py-4">
-                  {["O", "X"].map(opt => (
-                    <button key={opt} onClick={() => handleSubmit(opt)} className={cn("flex-1 rounded-[2.5rem] border-4 font-black text-7xl transition-all shadow-xl flex items-center justify-center", opt === "O" ? "bg-emerald-50 text-emerald-500 border-emerald-100 hover:bg-emerald-100" : "bg-red-50 text-red-500 border-red-100 hover:bg-red-100")}>{opt}</button>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4 flex flex-col flex-1">
-                  {currentQuestion.type === "BLANK" ? (
-                    <div className="p-6 bg-slate-50 rounded-[2rem] border-2 border-slate-100 flex flex-wrap gap-2 md:gap-4 items-center justify-center min-h-[100px] overflow-y-auto">
-                      {currentQuestion.q.split(/\s+/).filter(Boolean).map((word: string, wordIdx: number) => {
-                        const blanks = currentQuestion.blanks || [];
-                        const bIdx = blanks.indexOf(wordIdx);
-                        if (bIdx !== -1) return <SegmentedInput key={wordIdx} value={blankAnswers[wordIdx] || ""} length={word.length} onChange={(val) => handleBlankChange(wordIdx, val, blanks)} onEnter={() => handleSubmit()} autoFocus={bIdx === 0} firstRef={bIdx === 0 ? firstBlankRef : undefined} />;
-                        return <span key={wordIdx} className="text-xl md:text-2xl font-black text-slate-400">{word}</span>;
-                      })}
-                    </div>
-                  ) : (
-                    <div className="relative border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all p-2 flex items-center pr-12">
-                      <MathInput value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-xl md:text-2xl font-bold p-2" template={currentQuestion.template} focusOnMount={true} />
-                      <button onClick={() => { (document.activeElement as HTMLElement)?.blur(); setTimeout(() => { (document.querySelector('math-field, input[type="text"]') as HTMLElement)?.focus(); }, 100); }} className="absolute right-2 w-8 h-8 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center text-[10px] font-black border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Focus Recovery">R</button>
-                    </div>
-                  )}
-                  <Button size="xl" className="w-full py-6 md:py-8 text-2xl md:text-3xl shadow-lg mt-auto" onClick={() => handleSubmit()}>정답 제출하기</Button>
-                </div>
-              )}
-            </div>
-          )}
+              <div className="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-50/50 rounded-[2.5rem] border-2 border-indigo-100 border-dashed animate-in zoom-in">
+                <div className="text-4xl md:text-6xl mb-4 animate-bounce">✨</div>
+                <h3 className="text-2xl md:text-3xl font-black text-indigo-900 mb-2 italic">정답 제출 완료!</h3>
+                <p className="text-slate-500 font-bold text-center">우와! 정답을 잘 제출했어요. <br/>다른 친구들이 문제를 다 풀 때까지 우리 조금만 기다려 볼까요? 😊</p>
+                {!isTimeOut && (
+                  <button onClick={handleRetractClick} className="mt-8 px-8 py-3 bg-white text-indigo-600 border-2 border-indigo-200 rounded-2xl font-black hover:bg-indigo-600 hover:text-white transition-all shadow-sm flex items-center gap-2 group">
+                    <RefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500" /> 다시 고치기
+                  </button>
+                )}
+              </div>
+            ) : isTimeOut ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-indigo-400 animate-pulse"><div className="text-7xl">⌛</div><p className="text-2xl font-black">시간 종료!</p></div>
+            ) : (
+              <div className="flex-1 flex flex-col min-h-0 border-t-2 border-slate-100 pt-4">
+                {currentQuestion.type === "MULTIPLE_CHOICE" ? (
+                  <div className="grid grid-cols-2 gap-3 md:gap-4 h-full">
+                    {currentQuestion.options.map((opt: string, idx: number) => (
+                      <Button key={idx} size="xl" variant="ghost" className={cn("py-6 md:py-8 h-full whitespace-normal break-keep font-black border-2 flex items-center gap-3", getOptionFontSize(opt))} onClick={() => handleSubmit(opt)}>
+                        <span className="shrink-0">{idx + 1}.</span>
+                        <div className="flex-1 text-left"><ReactMarkdown components={{ p: 'span' }}>{processMathText(opt)}</ReactMarkdown></div>
+                      </Button>
+                    ))}
+                  </div>
+                ) : currentQuestion.type === "OX" ? (
+                  <div className="grid grid-cols-2 gap-4 h-full py-4">
+                    {["O", "X"].map(opt => (
+                      <button key={opt} onClick={() => handleSubmit(opt)} className={cn("flex-1 rounded-[2.5rem] border-4 font-black text-7xl transition-all shadow-xl flex items-center justify-center", opt === "O" ? "bg-emerald-50 text-emerald-500 border-emerald-100 hover:bg-emerald-100" : "bg-red-50 text-red-500 border-red-100 hover:bg-red-100")}>{opt}</button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4 flex flex-col flex-1">
+                    {currentQuestion.type === "BLANK" ? (
+                      <div className="p-6 bg-slate-50 rounded-[2rem] border-2 border-slate-100 flex flex-wrap gap-2 md:gap-4 items-center justify-center min-h-[100px] overflow-y-auto">
+                        {currentQuestion.q.split(/\s+/).filter(Boolean).map((word: string, wordIdx: number) => {
+                          const blanks = currentQuestion.blanks || [];
+                          const bIdx = blanks.indexOf(wordIdx);
+                          if (bIdx !== -1) return <SegmentedInput key={wordIdx} value={blankAnswers[wordIdx] || ""} length={word.length} onChange={(val) => handleBlankChange(wordIdx, val, blanks)} onEnter={() => handleSubmit()} autoFocus={bIdx === 0} firstRef={bIdx === 0 ? firstBlankRef : undefined} />;
+                          return <span key={wordIdx} className="text-xl md:text-2xl font-black text-slate-400">{word}</span>;
+                        })}
+                      </div>
+                    ) : (
+                      <div className="relative border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all p-2 flex items-center pr-12">
+                        <MathInput value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-xl md:text-2xl font-bold p-2" template={currentQuestion.template} focusOnMount={true} />
+                        <button onClick={() => { (document.activeElement as HTMLElement)?.blur(); setTimeout(() => { (document.querySelector('math-field, input[type="text"]') as HTMLElement)?.focus(); }, 100); }} className="absolute right-2 w-8 h-8 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center text-[10px] font-black border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Focus Recovery">R</button>
+                      </div>
+                    )}
+                    <Button size="xl" className="w-full py-6 md:py-8 text-2xl md:text-3xl shadow-lg mt-auto" onClick={() => handleSubmit()}>정답 제출하기</Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

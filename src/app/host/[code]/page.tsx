@@ -139,10 +139,10 @@ export default function HostPage() {
     setTimeout(() => setCopied(false), 2000);
   };
   
-  // Emoji Listener
+  // Unified Event Listener
   useEffect(() => {
     if (!game?.id) return;
-    const channel = supabase.channel(`lobby_events_${game.id}`)
+    const channel = supabase.channel(`game_events_${game.id}`)
       .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
         const newEmoji = { 
           id: Date.now() + Math.random(), 
@@ -152,9 +152,13 @@ export default function HostPage() {
         setFloatingEmojis((prev: any[]) => [...prev, newEmoji]);
         setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 3000);
       })
+      .on('broadcast', { event: 'PLAYER_UPDATE' }, () => {
+        // Instant refresh players on avatar/team change
+        refreshPlayers();
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [game?.id]);
+  }, [game?.id, refreshPlayers]);
 
   // Redirect to results page when game is over
   useEffect(() => {

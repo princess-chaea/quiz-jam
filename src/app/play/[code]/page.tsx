@@ -49,6 +49,16 @@ function StudentPlayContent() {
         .eq("id", me.id);
       
       if (error) throw error;
+      
+      // Broadcast player update so Host/others see it instantly
+      if (channelRef.current) {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'PLAYER_UPDATE',
+          payload: { id: me.id, avatar_id: nextId }
+        });
+      }
+
       await refresh();
     } catch (err) {
       console.error("Avatar update failed:", err);
@@ -392,9 +402,9 @@ function StudentPlayContent() {
                         <span className="text-white font-black text-xs">캐릭터 바꾸기</span>
                      </div>
                    </div>
-                   <div className="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-3 rounded-2xl animate-pulse shadow-lg z-10">
-                     <Zap size={24} fill="white" />
-                   </div>
+                    <div className="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-3 rounded-2xl shadow-lg z-10">
+                      <RefreshCw size={24} className={cn(changingAvatar && "animate-spin")} />
+                    </div>
                  </div>
                 <h1 className="text-4xl font-jua text-indigo-900 mb-4">시작을 기다리고 있어요!</h1>
                 <p className="text-gray-500 font-bold mb-8">곧 퀴즈가 시작됩니다!</p>
