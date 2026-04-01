@@ -51,7 +51,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
 
   const showAlert = ({ title, message, description }: { title?: string, message: string, description?: string }) => {
     return new Promise<boolean>((resolve) => {
-      setDialogs((prev) => [
+      setDialogs((prev: DialogConfig[]) => [
         ...prev,
         { id: Math.random().toString(), type: "alert", title, message, description, resolve },
       ]);
@@ -66,7 +66,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     cancelLabel?: string 
   }) => {
     return new Promise<boolean>((resolve) => {
-      setDialogs((prev) => [
+      setDialogs((prev: DialogConfig[]) => [
         ...prev,
         { id: Math.random().toString(), type: "confirm", title, message, description, confirmLabel, cancelLabel, resolve },
       ]);
@@ -81,7 +81,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   }) => {
     setPromptValue(defaultValue);
     return new Promise<string | null>((resolve) => {
-      setDialogs((prev) => [
+      setDialogs((prev: DialogConfig[]) => [
         ...prev,
         { id: Math.random().toString(), type: "prompt", title, message, description, defaultValue, resolve },
       ]);
@@ -89,7 +89,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   };
 
   const closeDialog = (id: string, result: any) => {
-    setDialogs((prev) => {
+    setDialogs((prev: DialogConfig[]) => {
       const dialog = prev.find((d) => d.id === id);
       if (dialog) {
         dialog.resolve(result);
@@ -102,7 +102,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     <DialogContext.Provider value={{ showAlert, showConfirm, showPrompt }}>
       {children}
       
-      {dialogs.map((dialog) => (
+      {dialogs.map((dialog: DialogConfig) => (
         <div key={dialog.id} className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden animate-pop border border-gray-100">
             <div className="p-6 flex flex-col items-center text-center">
