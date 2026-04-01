@@ -64,7 +64,7 @@ export default function LibraryPage() {
 
   const handleCopyQuiz = async (quiz: any) => {
     if (!user) {
-      await showAlert("로그인이 필요합니다.");
+      await showAlert({ message: "로그인이 필요합니다." });
       router.push("/");
       return;
     }
@@ -87,10 +87,10 @@ export default function LibraryPage() {
 
       if (error) throw error;
       
-      await showAlert("내 퀴즈로 복사되었습니다! 대시보드로 이동합니다.");
+      await showAlert({ message: "내 퀴즈로 복사되었습니다! 대시보드로 이동합니다." });
       router.push("/dashboard");
     } catch (err) {
-      await showAlert("복사 실패: " + (err as Error).message);
+      await showAlert({ message: "복사 실패: " + (err as Error).message });
     } finally {
       setCopyingId(null);
     }

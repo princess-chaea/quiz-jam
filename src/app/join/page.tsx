@@ -38,7 +38,7 @@ export default function JoinPage() {
   }, []);
 
   const handleJoinGame = async () => {
-    if (!nickname || !quizCode) return showAlert("이름과 퀴즈 코드를 입력해주세요.");
+    if (!nickname || !quizCode) return showAlert({ message: "이름과 퀴즈 코드를 입력해주세요." });
     const cleanNickname = nickname.trim();
     const cleanCode = quizCode.toUpperCase().trim();
 

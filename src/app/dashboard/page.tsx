@@ -133,7 +133,10 @@ export default function Dashboard() {
   };
 
   const handleCreateQuiz = async () => {
-    const title = await showPrompt("새로운 퀴즈 제목을 입력하세요:", "제목 없는 퀴즈");
+    const title = await showPrompt({ 
+      message: "새로운 퀴즈 제목을 입력하세요:", 
+      defaultValue: "제목 없는 퀴즈" 
+    });
     if (!title) return;
 
     try {
@@ -150,12 +153,12 @@ export default function Dashboard() {
       if (error) throw error;
       router.push(`/dashboard/edit/${data.id}`);
     } catch (err) {
-      await showAlert("퀴즈 생성 실패: " + (err as Error).message);
+      await showAlert({ message: "퀴즈 생성 실패: " + (err as Error).message });
     }
   };
 
   const handleDeleteQuiz = async (id: string) => {
-    const confirmed = await showConfirm("정말 이 퀴즈를 삭제하시겠습니까?");
+    const confirmed = await showConfirm({ message: "정말 이 퀴즈를 삭제하시겠습니까?" });
     if (!confirmed) return;
 
     try {
@@ -167,7 +170,7 @@ export default function Dashboard() {
       if (error) throw error;
       setQuizzes(quizzes.filter(q => q.id !== id));
     } catch (err) {
-      await showAlert("삭제 실패: " + (err as Error).message);
+      await showAlert({ message: "삭제 실패: " + (err as Error).message });
     }
   };
 
@@ -195,7 +198,7 @@ export default function Dashboard() {
       if (error) throw error;
       router.push(`/host/${code}`);
     } catch (err) {
-      await showAlert("게임 생성 실패: " + (err as Error).message);
+      await showAlert({ message: "게임 생성 실패: " + (err as Error).message });
     }
   };
 

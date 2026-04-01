@@ -45,7 +45,7 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
 
   const handleSave = async () => {
     if (!hasChanges) {
-      await showAlert("변경된 내용이 없습니다.");
+      await showAlert({ message: "변경된 내용이 없습니다." });
       return;
     }
 
@@ -65,7 +65,7 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
       await refreshProfile();
       onClose();
     } catch (err: any) {
-      await showAlert("저장 실패: " + err.message);
+      await showAlert({ message: "저장 실패: " + err.message });
     } finally {
       setSaving(false);
     }
@@ -88,7 +88,7 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
       router.push("/");
       router.refresh();
     } catch (err: any) {
-      await showAlert("탈퇴 처리 중 오류가 발생했습니다: " + err.message);
+      await showAlert({ message: "탈퇴 처리 중 오류가 발생했습니다: " + err.message });
     } finally {
       setDeleting(false);
     }
@@ -112,7 +112,7 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
       const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
       setAvatarUrl(data.publicUrl);
     } catch (error: any) {
-      await showAlert('업로드 실패: ' + error.message);
+      await showAlert({ message: '업로드 실패: ' + error.message });
     } finally {
       setUploading(false);
     }

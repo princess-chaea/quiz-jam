@@ -35,7 +35,7 @@ export default function HostPage() {
   const [teamTarget, setTeamTarget] = useState<any | null>(null);
 
   const handleStartGame = async () => {
-    if (!game || players.length === 0) return showAlert("최소 한 명의 플레이어가 필요합니다.");
+    if (!game || players.length === 0) return showAlert({ title: "알림", message: "최소 한 명의 플레이어가 필요합니다." });
     
     setStarting(true);
     try {
@@ -51,7 +51,7 @@ export default function HostPage() {
       
       await refresh();
     } catch (err) {
-      showAlert("게임 시작 실패: " + (err as Error).message);
+      showAlert({ title: "오류", message: "게임 시작 실패: " + (err as Error).message });
     } finally {
       setStarting(false);
     }
@@ -91,7 +91,7 @@ export default function HostPage() {
       setKickTarget(null);
     } catch (err) {
       console.error("강퇴 에러:", err);
-      showAlert("강퇴 실패: " + (err as Error).message);
+      showAlert({ message: "강퇴 실패: " + (err as Error).message });
       // On error, refresh to restore the potentially wrongly removed player
       await refresh();
     }
@@ -108,14 +108,14 @@ export default function HostPage() {
       if (error) throw error;
       setTeamTarget(null);
     } catch (err) {
-      showAlert("팀 변경 실패: " + (err as Error).message);
+      showAlert({ message: "팀 변경 실패: " + (err as Error).message });
     }
   };
 
   const handleExit = async () => {
-    const confirmed = await showConfirm(
-      "정말로 게임을 종료하고 나가시겠습니까? \n\n'확인'을 누르면 게임이 완전히 종료되고 모든 학생들도 퇴장 처리됩니다."
-    );
+    const confirmed = await showConfirm({
+      message: "정말로 게임을 종료하고 나가시겠습니까? \n\n'확인'을 누르면 게임이 완전히 종료되고 모든 학생들도 퇴장 처리됩니다."
+    });
     
     // confirm returns true for 'Confirm' button, false for 'Cancel' button.
     if (confirmed) {

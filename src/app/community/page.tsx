@@ -86,11 +86,11 @@ export default function CommunityPage() {
 
   const handleCreatePost = async () => {
     if (!user) {
-      await showAlert("로그인이 필요합니다.");
+      await showAlert({ message: "로그인이 필요합니다." });
       return;
     }
     if (!newTitle.trim() || !newContent.trim()) {
-      await showAlert("제목과 내용을 모두 입력해주세요.");
+      await showAlert({ message: "제목과 내용을 모두 입력해주세요." });
       return;
     }
     
@@ -104,7 +104,7 @@ export default function CommunityPage() {
     }]);
     
     if (error) {
-      await showAlert("등록 실패: " + error.message);
+      await showAlert({ message: "등록 실패: " + error.message });
     } else {
       setIsWriteModalOpen(false);
       setIsNotice(false);
@@ -115,12 +115,12 @@ export default function CommunityPage() {
   };
 
   const handleDeletePost = async (postId: string) => {
-    const confirmed = await showConfirm("정말로 삭제하시겠습니까?");
+    const confirmed = await showConfirm({ message: "정말로 삭제하시겠습니까?" });
     if (!confirmed) return;
     
     const { error } = await supabase.from("posts").delete().eq("id", postId);
     if (error) {
-      await showAlert("삭제 실패: " + error.message);
+      await showAlert({ message: "삭제 실패: " + error.message });
     } else {
       if (activePost?.id === postId) setActivePost(null);
       fetchPosts();
@@ -139,7 +139,7 @@ export default function CommunityPage() {
 
   const handleAddComment = async () => {
     if (!user) {
-      await showAlert("로그인이 필요합니다.");
+      await showAlert({ message: "로그인이 필요합니다." });
       return;
     }
     if (!newComment.trim()) return;
@@ -152,7 +152,7 @@ export default function CommunityPage() {
     }]);
     
     if (error) {
-      await showAlert("댓글 작성 실패: " + error.message);
+      await showAlert({ message: "댓글 작성 실패: " + error.message });
     } else {
       setNewComment("");
       fetchComments(activePost.id);
@@ -160,7 +160,7 @@ export default function CommunityPage() {
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    const confirmed = await showConfirm("댓글을 삭제하시겠습니까?");
+    const confirmed = await showConfirm({ message: "댓글을 삭제하시겠습니까?" });
     if (!confirmed) return;
     const { error } = await supabase.from("comments").delete().eq("id", commentId);
     if (!error) fetchComments(activePost.id);

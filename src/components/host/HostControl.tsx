@@ -56,12 +56,12 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     // If prematurely ending, ask for confirmation
     if (timeLeft > 0 && answersRef.current.length < playersRef.current.length) {
       const remaining = playersRef.current.length - answersRef.current.length;
-      const confirmed = await showConfirm(
-        "아직 제출하지 않은 학생이 있습니다.",
-        `${remaining}명의 학생이 정답을 제출하지 않았습니다. 정말 마감할까요?`,
-        "마감하기",
-        "더 기다리기"
-      );
+      const confirmed = await showConfirm({
+        message: "아직 제출하지 않은 학생이 있습니다.",
+        description: `${remaining}명의 학생이 정답을 제출하지 않았습니다. 정말 마감할까요?`,
+        okText: "마감하기",
+        cancelText: "더 기다리기"
+      });
       if (!confirmed) return;
     }
 
@@ -411,7 +411,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   };
 
   const handleForceNext = async () => {
-    const confirmed = await showConfirm("누군가 점수를 바꾸고 있어요. 그래도 다음으로 넘어갈까요?");
+    const confirmed = await showConfirm({ message: "누군가 점수를 바꾸고 있어요. 그래도 다음으로 넘어갈까요?" });
     if (!confirmed) return;
 
     // Use a dedicated flag or just don't clear swapper status yet
@@ -447,7 +447,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       .eq("id", game.id);
 
     if (error) {
-      alert("이동 실패: " + error.message);
+      await showAlert({ message: "이동 실패: " + error.message });
       throw error;
     }
 
@@ -466,7 +466,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   };
 
   const handleExitGame = async () => {
-    const confirmed = await showConfirm("여기까지 진행하고 최종 결과를 볼까요?");
+    const confirmed = await showConfirm({ message: "여기까지 진행하고 최종 결과를 볼까요?" });
     if (!confirmed) return;
     try {
       setCalculating(true);
@@ -481,7 +481,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   const handleHintStage = async (stage: number) => {
     if (game.current_hint_stage >= stage) return;
     let message = stage === 1 ? "힌트(글자 수)를 보여줄까요?" : "힌트(초성)를 보여줄까요?";
-    const confirmed = await showConfirm(message);
+    const confirmed = await showConfirm({ message });
     if (!confirmed) return;
 
     const { error } = await supabase.from("games").update({ current_hint_stage: stage }).eq("id", game.id);

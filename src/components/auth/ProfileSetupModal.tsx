@@ -23,7 +23,7 @@ export function ProfileSetupModal() {
 
   const handleSave = async () => {
     if (!schoolName.trim() || !name.trim()) {
-      await showAlert("학교 이름과 선생님 성함을 모두 입력해주세요.");
+      await showAlert({ message: "학교 이름과 선생님 성함을 모두 입력해주세요." });
       return;
     }
     setSaving(true);
@@ -36,7 +36,7 @@ export function ProfileSetupModal() {
       if (error) throw error;
       await refreshProfile();
     } catch (err: any) {
-      await showAlert("저장 실패: " + err.message);
+      await showAlert({ message: "저장 실패: " + err.message });
     } finally {
       setSaving(false);
     }

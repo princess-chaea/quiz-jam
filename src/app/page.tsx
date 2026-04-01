@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Footer } from "@/components/layout/Footer";
+import { useDialog } from "@/components/ui/DialogProvider";
 
 const PREVIEW_IMAGES = [
   "/landing/preview1.png",
@@ -68,6 +69,7 @@ function TeacherPreviewSlider() {
 export default function TeacherLanding() {
   const router = useRouter();
   const { user, loading, signInWithGoogle } = useAuth();
+  const { showAlert } = useDialog();
 
   // Auto-redirect logged-in teachers to dashboard
   useEffect(() => {
@@ -81,7 +83,7 @@ export default function TeacherLanding() {
       await signInWithGoogle();
       // After login, useEffect above will redirect
     } catch (err) {
-      alert("로그인 실패: " + (err as Error).message);
+      showAlert({ message: "로그인 실패: " + (err as Error).message });
     }
   };
 

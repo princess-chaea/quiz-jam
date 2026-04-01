@@ -75,7 +75,7 @@ function StudentPlayContent() {
       console.log("[Submit] Answer successfully submitted/updated:", res.data);
     } catch (err: any) {
       console.error("Submit failed:", err);
-      showAlert("정답 제출 중 오류가 발생했습니다.");
+      showAlert({ message: "정답 제출 중 오류가 발생했습니다." });
     }
   }, [game, players, name, showAlert]);
 

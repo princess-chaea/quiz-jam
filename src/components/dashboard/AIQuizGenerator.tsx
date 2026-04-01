@@ -263,15 +263,21 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
   };
 
   const handleClose = async () => {
-    if (loading) {
-      const confirmClose = window.confirm("문항 생성 중입니다. 정말 닫으시겠습니까?");
-      if (!confirmClose) return;
-    }
-    if (preview && preview.length > 0) {
-      const confirmClose = window.confirm("생성된 문항이 있습니다. 퀴즈에 추가하지 않고 닫으시겠습니까?");
-      if (!confirmClose) return;
-    }
-    onClose();
+    const canClose = async () => {
+      if (loading) {
+        return await showConfirm({ message: "문항 생성 중입니다. 정말 닫으시겠습니까?" });
+      }
+      if (preview && preview.length > 0) {
+        return await showConfirm({ message: "생성된 문항이 있습니다. 퀴즈에 추가하지 않고 닫으시겠습니까?" });
+      }
+      return true;
+    };
+
+    const runClose = async () => {
+      if (await canClose()) onClose();
+    };
+
+    runClose();
   };
 
   return (

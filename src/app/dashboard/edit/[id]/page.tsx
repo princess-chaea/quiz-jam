@@ -97,7 +97,7 @@ export default function QuizEditor() {
       setQuiz(dataWithIds);
     } catch (err) {
       console.error("퀴즈 가져오기 실패:", err);
-      await showAlert("퀴즈를 불러올 수 없습니다.");
+      await showAlert({ message: "퀴즈를 불러올 수 없습니다." });
       router.push("/dashboard");
     } finally {
       setLoading(false);
@@ -121,13 +121,13 @@ export default function QuizEditor() {
                           parsedDraft.title !== quiz?.title;
 
         if (hasChanges) {
-          const restore = await showConfirm(
-            "저장되지 않은 초안이 있습니다.\n이전에 수정 중이던 내용을 불러오시겠습니까?"
-          );
+          const restore = await showConfirm({
+            message: "저장되지 않은 초안이 있습니다.\n이전에 수정 중이던 내용을 불러오시겠습니까?"
+          });
           
           if (restore) {
             setQuiz(parsedDraft);
-            await showAlert("초안이 성공적으로 복구되었습니다.");
+            await showAlert({ message: "초안이 성공적으로 복구되었습니다." });
           } else {
              localStorage.removeItem(draftKey);
           }
@@ -239,7 +239,7 @@ export default function QuizEditor() {
 
   const handleSave = async (redirect = false) => {
     if (!quiz.title.trim()) {
-      await showAlert("퀴즈 제목을 입력해주세요.");
+      await showAlert({ message: "퀴즈 제목을 입력해주세요." });
       return;
     }
     setSaving(true);
@@ -262,10 +262,10 @@ export default function QuizEditor() {
       localStorage.removeItem(`quiz_draft_${id}`);
       setIsDirty(false);
       
-      await showAlert("저장되었습니다!");
+      await showAlert({ message: "저장되었습니다!" });
       if (redirect) router.push("/dashboard");
     } catch (err) {
-      await showAlert("저장 실패: " + (err as Error).message);
+      await showAlert({ message: "저장 실패: " + (err as Error).message });
     } finally {
       setSaving(false);
     }
