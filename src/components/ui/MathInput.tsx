@@ -62,7 +62,9 @@ export function MathInput({
   const mfRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastValueRef = useRef<string | undefined>(undefined);
+  const { activeField, openKeypad } = useMathKeypad();
   const [isReady, setIsReady] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
