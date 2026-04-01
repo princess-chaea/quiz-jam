@@ -18,9 +18,18 @@ interface DialogConfig {
 }
 
 interface DialogContextType {
-  showAlert: (message: string, description?: string) => Promise<boolean>;
-  showConfirm: (message: string, description?: string, confirmLabel?: string, cancelLabel?: string) => Promise<boolean>;
-  showPrompt: (message: string, defaultValue?: string, description?: string) => Promise<string | null>;
+  showAlert: (options: { message: string; description?: string }) => Promise<boolean>;
+  showConfirm: (options: { 
+    message: string; 
+    description?: string; 
+    confirmLabel?: string; 
+    cancelLabel?: string;
+  }) => Promise<boolean>;
+  showPrompt: (options: { 
+    message: string; 
+    description?: string; 
+    defaultValue?: string;
+  }) => Promise<string | null>;
 }
 
 const DialogContext = createContext<DialogContextType | undefined>(undefined);
@@ -37,7 +46,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const [dialogs, setDialogs] = useState<DialogConfig[]>([]);
   const [promptValue, setPromptValue] = useState("");
 
-  const showAlert = (message: string, description?: string) => {
+  const showAlert = ({ message, description }: { message: string, description?: string }) => {
     return new Promise<boolean>((resolve) => {
       setDialogs((prev) => [
         ...prev,
@@ -46,7 +55,12 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const showConfirm = (message: string, description?: string, confirmLabel?: string, cancelLabel?: string) => {
+  const showConfirm = ({ message, description, confirmLabel, cancelLabel }: { 
+    message: string, 
+    description?: string, 
+    confirmLabel?: string, 
+    cancelLabel?: string 
+  }) => {
     return new Promise<boolean>((resolve) => {
       setDialogs((prev) => [
         ...prev,
@@ -55,7 +69,11 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const showPrompt = (message: string, defaultValue: string = "", description?: string) => {
+  const showPrompt = ({ message, defaultValue = "", description }: { 
+    message: string, 
+    defaultValue?: string, 
+    description?: string 
+  }) => {
     setPromptValue(defaultValue);
     return new Promise<string | null>((resolve) => {
       setDialogs((prev) => [

@@ -89,7 +89,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
 
     for (const file of newFiles) {
       if (file.size > 20 * 1024 * 1024) {
-        await showAlert(`'${file.name}' 파일 용량이 너무 큽니다. 20MB 이하의 파일만 업로드할 수 있습니다.`);
+        await showAlert({ message: `'${file.name}' 파일 용량이 너무 큽니다. 20MB 이하의 파일만 업로드할 수 있습니다.` });
         continue;
       }
       validFiles.push(file);
@@ -137,11 +137,11 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
 
   const handleGenerate = async () => {
     if (!text.trim() && files.length === 0) {
-      await showAlert("학습 자료를 입력하거나 파일을 첨부해주세요.");
+      await showAlert({ message: "학습 자료를 입력하거나 파일을 첨부해주세요." });
       return;
     }
     if (types.length === 0) {
-      await showAlert("최소 1개의 문제 유형을 선택해주세요.");
+      await showAlert({ message: "최소 1개의 문제 유형을 선택해주세요." });
       return;
     }
     setLoading(true);
@@ -244,7 +244,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
         errorMsg = "현재 인공지능 서버 사용량이 많아 응답이 지연되고 있습니다. 약 10~20초 후 다시 시도해 주세요.\n(팁: 파일 용량이 크면 처리 시간이 더 길어질 수 있습니다.)";
       }
 
-      await showAlert("문항 생성 실패: " + errorMsg);
+      await showAlert({ message: "문항 생성 실패: " + errorMsg });
     } finally {
       setLoading(false);
     }

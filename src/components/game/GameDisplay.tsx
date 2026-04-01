@@ -250,11 +250,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   };
 
   const handleRetractClick = async () => {
-    const confirmed = await showConfirm(
-      "답안을 수정하시겠습니까?",
-      "수정 버튼을 누르면 현재 제출된 정답이 무효화되고 다시 입력할 수 있습니다.",
-      "수정하기", "취소"
-    );
+    const confirmed = await showConfirm({
+      message: "답안을 수정하시겠습니까?",
+      description: "수정 버튼을 누르면 현재 제출된 정답이 무효화되고 다시 입력할 수 있습니다.",
+      confirmLabel: "수정하기", 
+      cancelLabel: "취소"
+    });
     if (confirmed && onRetract) {
       onRetract();
       setSubmitted(false);
