@@ -42,6 +42,7 @@ interface MathInputProps {
   multiline?: boolean;
   showScrollbar?: boolean; // New prop to force scrollbar
   forceMathKeypad?: boolean; // New prop to force math keypad for students
+  isFirstQuestion?: boolean; // New prop to control keyboard hint visibility
 }
 
 export function MathInput({ 
@@ -58,6 +59,7 @@ export function MathInput({
   multiline = false,
   showScrollbar = false,
   forceMathKeypad = false,
+  isFirstQuestion = false,
 }: MathInputProps) {
   const mfRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -68,15 +70,18 @@ export function MathInput({
   const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
-    if (!isTeacher) {
-      const dismissed = localStorage.getItem("quiz-jam-focus-help-dismissed");
-      if (!dismissed) {
-        // Show after a short delay
-        const timer = setTimeout(() => setShowHelp(true), 1500);
+    if (!isTeacher && isFirstQuestion) {
+      const shownThisSession = sessionStorage.getItem("quiz-jam-keypad-hint-shown");
+      if (!shownThisSession) {
+        setShowHelp(true);
+        const timer = setTimeout(() => {
+          setShowHelp(false);
+          sessionStorage.setItem("quiz-jam-keypad-hint-shown", "true");
+        }, 5000);
         return () => clearTimeout(timer);
       }
     }
-  }, [isTeacher]);
+  }, [isTeacher, isFirstQuestion]);
 
   const dismissHelp = () => {
     setShowHelp(false);
@@ -463,9 +468,9 @@ export function MathInput({
           width: "100%", 
           background: "transparent",
           border: "none",
-          fontSize: isTeacher ? "1.125rem" : "2.25rem",
+          fontSize: isTeacher ? "1.125rem" : "1.875rem",
           display: 'block',
-          minHeight: isTeacher ? "3rem" : "5rem",
+          minHeight: isTeacher ? "3rem" : "4.5rem",
         }}
         multiline={multiline ? "true" : "false"}
         math-virtual-keyboard-policy="manual"
@@ -498,23 +503,12 @@ export function MathInput({
           </button>
 
           {showHelp && (
-            <div className="absolute right-0 bottom-full mb-3 z-50 animate-tip-pop pointer-events-auto">
+            <div className="absolute right-0 bottom-full mb-3 z-50 animate-tip-pop pointer-events-none">
               <div className="bg-indigo-600 text-white px-4 py-3 rounded-2xl shadow-2xl min-w-[180px] relative">
-                <p className="text-xs font-black leading-snug pr-4">
-                  입력이 되지 않을 때<br/>
-                  여기를 눌러주세요!
+                <p className="text-xs font-black leading-snug">
+                  수학 문제를 풀 때<br/>
+                  사용해요!
                 </p>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    dismissHelp();
-                  }}
-                  className="absolute top-2 right-2 text-white/50 hover:text-white p-1"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
                 {/* Arrow */}
                 <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-indigo-600 rotate-45" />
               </div>

@@ -57,8 +57,16 @@ export function PlayerBar({ players, currentNickname, submissions, className }: 
             className={cn(
               "flex items-center gap-2 px-3 py-1.5 rounded-2xl border transition-all shrink-0 min-w-[120px]",
               isMe 
-                ? "bg-white border-indigo-500 ring-4 ring-indigo-400/50 shadow-lg shadow-indigo-100" 
-                : "bg-white border-gray-100 text-gray-700 shadow-sm"
+                ? (player.team === 'RED' ? "bg-red-600 border-red-700 ring-4 ring-red-400/50 shadow-lg shadow-red-100 text-white" :
+                   player.team === 'BLUE' ? "bg-blue-600 border-blue-700 ring-4 ring-blue-400/50 shadow-lg shadow-blue-100 text-white" :
+                   player.team === 'GREEN' ? "bg-green-600 border-green-700 ring-4 ring-green-400/50 shadow-lg shadow-green-100 text-white" :
+                   player.team === 'YELLOW' ? "bg-yellow-500 border-yellow-600 ring-4 ring-yellow-400/50 shadow-lg shadow-yellow-100 text-indigo-900" :
+                   "bg-indigo-600 border-indigo-700 ring-4 ring-indigo-400/50 shadow-lg shadow-indigo-100 text-white") 
+                : (player.team === 'RED' ? "bg-red-500 text-white border-red-600" :
+                   player.team === 'BLUE' ? "bg-blue-500 text-white border-blue-600" :
+                   player.team === 'GREEN' ? "bg-green-500 text-white border-green-600" :
+                   player.team === 'YELLOW' ? "bg-yellow-400 text-indigo-900 border-yellow-500" :
+                   "bg-white border-gray-100 text-gray-700 shadow-sm")
             )}
           >
             <div className="relative">
@@ -74,7 +82,7 @@ export function PlayerBar({ players, currentNickname, submissions, className }: 
                   <img 
                     src={`/avatars/avatar_${player.avatar_id}.png`} 
                     alt="" 
-                    className="w-full h-full object-cover p-0.5"
+                    className="w-full h-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                       (e.target as HTMLImageElement).parentElement!.innerText = player.nickname[0];
@@ -94,12 +102,12 @@ export function PlayerBar({ players, currentNickname, submissions, className }: 
             <div className="flex flex-col min-w-0 pr-1">
               <span className={cn(
                 "text-[11px] font-black truncate max-w-[80px] leading-tight",
-                isMe ? "text-indigo-600" : "text-indigo-900"
+                isMe ? "text-white" : "text-indigo-900"
               )}>{player.nickname}</span>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className={cn(
                   "text-[10px] font-black px-1.5 py-0.5 rounded-lg",
-                  isMe ? "bg-indigo-50 text-indigo-600 border border-indigo-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                  isMe ? "bg-white/20 text-white border border-white/30" : "bg-emerald-50 text-emerald-600 border border-emerald-100"
                 )}>
                   {player.score.toLocaleString()}
                 </span>

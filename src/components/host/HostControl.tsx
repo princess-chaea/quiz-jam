@@ -635,17 +635,25 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     if (game.status !== 'PLAYING') return;
     
     const calculateTimeLeft = () => {
-      const limit = currentQuestion?.timeLimit || 20;
+      const q = game.options?.questions?.[game.current_q_index];
+      const limit = q?.timeLimit || 20;
       const startedAt = game.options?.current_q_started_at;
+      
       if (!startedAt) return limit;
       
-      const start = new Date(startedAt).getTime();
-      const now = new Date().getTime();
-      const elapsed = Math.floor((now - start) / 1000);
-      return Math.max(0, limit - elapsed);
+      try {
+        const start = new Date(startedAt).getTime();
+        const now = new Date().getTime();
+        const elapsed = Math.floor((now - start) / 1000);
+        return Math.max(0, limit - elapsed);
+      } catch (e) {
+        return limit;
+      }
     };
 
-    setTimeLeft(calculateTimeLeft());
+    // Initial sync
+    const initial = calculateTimeLeft();
+    setTimeLeft(initial);
     
     const timer = setInterval(() => {
       const remaining = calculateTimeLeft();
@@ -669,7 +677,11 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       if (remaining <= 0) {
         clearInterval(timer);
         // Only host triggers the finish round
-        setTimeout(() => { if (finishRoundRef.current) finishRoundRef.current(); }, 1500);
+        setTimeout(() => { 
+          if (finishRoundRef.current && gameRef.current.status === 'PLAYING') {
+            finishRoundRef.current(); 
+          }
+        }, 1500);
       }
     }, 1000);
 
@@ -1245,6 +1257,17 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         submissions={answers.filter(a => a.answer !== '(시간초과)').map(a => a.player_id)}
         className="bg-indigo-50/90 border-t border-indigo-200"
       />
+
+      {/* Floating Emojis */}
+      {floatingEmojis.map((e: { id: string | number; emoji: string; left: number }) => (
+        <div
+          key={e.id}
+          className="fixed bottom-0 pointer-events-none animate-float-up text-6xl z-[1000] drop-shadow-2xl"
+          style={{ left: `${e.left}%` }}
+        >
+          {e.emoji}
+        </div>
+      ))}
     </div>
   );
 }

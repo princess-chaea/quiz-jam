@@ -181,6 +181,11 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       if (showScoreTab && sidebarRef.current && !sidebarRef.current.contains(target)) {
         setShowScoreTab(false);
       }
+      // Also hide focus help if active and clicking outside the math input area
+      if (showFocusHelp) {
+        setShowFocusHelp(false);
+        sessionStorage.setItem("quiz_jam_focus_help_dismissed", "true");
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
 
@@ -514,8 +519,13 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                 return (
                   <div key={p.id} className={cn("flex items-center justify-between p-2 rounded-xl border transition-all", p.id===player.id ? "bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100" : "bg-slate-50 border-slate-100")}>
                     <div className="flex items-center gap-2">
-                      <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black", rank===1 ? "bg-yellow-400 text-white" : rank===2 ? "bg-slate-300 text-white" : rank===3 ? "bg-orange-300 text-white" : "bg-slate-200 text-slate-500")}>{rank}</span>
-                      <span className="font-bold text-sm text-slate-700 truncate max-w-[100px]">{p.nickname} {p.id===player.id && "(나)"}</span>
+                      <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0", rank===1 ? "bg-yellow-400 text-white" : rank===2 ? "bg-slate-300 text-white" : rank===3 ? "bg-orange-300 text-white" : "bg-slate-200 text-slate-500")}>{rank}</span>
+                      {p.character && (
+                        <div className="w-6 h-6 rounded-full overflow-hidden bg-white border border-slate-200 shrink-0">
+                          <img src={p.character} alt="avatar" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <span className="font-bold text-sm text-slate-700 truncate max-w-[80px]">{p.nickname} {p.id===player.id && "(나)"}</span>
                     </div>
                     <span className="font-black text-indigo-600 text-sm">{(p.score||0).toLocaleString()}</span>
                   </div>
@@ -526,10 +536,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         </div>
       </div>
 
-      <div className="w-full max-w-4xl bg-white rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl p-4 md:p-10 border-2 border-indigo-50 flex flex-col relative overflow-hidden h-full max-h-[95vh] focus-within:ring-0">
-        <div className="absolute top-0 left-0 w-full h-2 bg-slate-100 overflow-hidden rounded-t-full">
-          <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${currentProgress}%` }} />
-        </div>
+      <div className="w-full max-w-4xl bg-white rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl p-4 md:p-8 border-2 border-indigo-50 flex flex-col relative overflow-hidden h-full max-h-[92vh] focus-within:ring-0">
 
         <div className="flex items-center justify-between mb-4 px-2 pt-2">
           <div className="bg-indigo-50 px-4 py-2 rounded-2xl flex items-center gap-3 border border-indigo-100">
@@ -608,8 +615,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                         })}
                       </div>
                     ) : (
-                      <div className="relative border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all p-2 flex items-center">
-                        <MathInput value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-xl md:text-2xl font-bold p-2" template={currentQuestion.template} focusOnMount={true} />
+                      <div className="relative border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all p-1.5 flex items-center">
+                        <MathInput value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-xl md:text-2xl font-bold p-1" template={currentQuestion.template} focusOnMount={true} isFirstQuestion={game.current_q_index === 0} />
                         
                         {showFocusHelp && (
                           <div className="absolute right-0 bottom-full mb-4 animate-bounce z-50">
@@ -644,7 +651,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                         </button>
                       </div>
                     )}
-                    <Button size="xl" className="w-full py-6 md:py-8 text-2xl md:text-3xl shadow-lg mt-auto" onClick={() => handleSubmit()}>정답 제출하기</Button>
+                    <Button size="xl" className="w-full py-5 md:py-6 text-xl md:text-2xl shadow-lg mt-auto" onClick={() => handleSubmit()}>정답 제출하기</Button>
                   </div>
                 )}
               </div>
