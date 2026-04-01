@@ -104,8 +104,11 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         let points = 0;
         let event = 'none';
 
-        const probs = game.options?.probabilities || { double: 5, swap: 5, strike: 5, shield: 5, cut: 5, donate: 5 };
+        const options = game.options || {};
+        const probs = options.probabilities || { double: 5, swap: 5, strike: 5, shield: 5, cut: 5, donate: 5 };
         const p = (key: string) => {
+          // If the effect is explicitly disabled in options, probability is 0
+          if (options[key] === false) return 0;
           const val = probs[key];
           return (val !== undefined ? val : 5) / 100;
         };
@@ -119,38 +122,27 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             acquiredEvents.push('strike_bonus');
           }
 
-          const probs = game.options?.probabilities || { double: 5, swap: 5, strike: 5, shield: 5, cut: 5, donate: 5 };
-          const p = (key: string) => (probs[key] !== undefined ? probs[key] : 5) / 100;
-
-          // Independent chances for each item
-          if (Math.random() < p('double')) {
+          // Independent chances for each item, only if enabled in options
+          if (options.double !== false && Math.random() < p('double')) {
             points *= 2;
             acquiredEvents.push('double');
           }
-          if (Math.random() < p('swap')) acquiredEvents.push('swap');
-          if (Math.random() < p('strike')) acquiredEvents.push('strike');
-          if (Math.random() < p('shield')) acquiredEvents.push('shield');
+          if (options.swap !== false && Math.random() < p('swap')) acquiredEvents.push('swap');
+          if (options.strike !== false && Math.random() < p('strike')) acquiredEvents.push('strike');
+          if (options.shield !== false && Math.random() < p('shield')) acquiredEvents.push('shield');
 
           if (acquiredEvents.length === 0) event = 'none';
           else {
-            // Check for combine super bonus if strike + double
-            if (acquiredEvents.includes('strike_bonus') && acquiredEvents.includes('double')) {
-              // already pushes both, keep them or combine? User wants multiple anyway.
-            }
             event = acquiredEvents.join(',');
           }
         } else {
-          // Negative effects (Independent chance too)
+          // Negative effects (Independent chance too, only if enabled)
           const negativeEvents: string[] = [];
-          const probs = game.options?.probabilities || { double: 5, swap: 5, strike: 5, shield: 5, cut: 5, donate: 5 };
-          const p = (key: string) => (probs[key] !== undefined ? probs[key] : 5) / 100;
 
-          if (Math.random() < p('cut')) negativeEvents.push('cut');
-          if (Math.random() < p('donate')) negativeEvents.push('donate');
+          if (options.cut !== false && Math.random() < p('cut')) negativeEvents.push('cut');
+          if (options.donate !== false && Math.random() < p('donate')) negativeEvents.push('donate');
 
           if (negativeEvents.length > 0) {
-            // Each negative item can be blocked by a single shield? 
-            // For simplicity, if shield exists, it blocks the first one and is consumed.
             let currentBuffs = [...(player.buffs || [])];
             const finalNegEvents = negativeEvents.map(evt => {
               if (currentBuffs.includes('SHIELD')) {
@@ -158,7 +150,6 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                 return evt + '_blocked';
               }
               if (evt === 'cut') points -= basePoints;
-              // Remove fixed -10 here, we'll calculate based on targets later
               return evt;
             });
             event = finalNegEvents.join(',');
@@ -700,33 +691,44 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     const channel = supabase
       .channel(`answers:${game.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'answers', filter: `game_id=eq.${game.id}` },
-        async () => {
+        async (payload: any) => {
           // CRITICAL PROTECTION: Do not overwrite Host results with DB updates while in RESULT mode OR calculating.
-          // We calculate locally to ensure immediate icons/points; DB sync is for late-comers or refreshes.
           if (gameRef.current.status !== 'RESULT' && !calculating) {
-            const { data } = await supabase.from("answers").select("*").eq("game_id", game.id).eq("q_index", gameRef.current.current_q_index);
+            // Optimization: If it's a simple INSERT/UPDATE for the current question, we can update local state
+            // without a full re-fetch, but for robustness we re-fetch briefly.
+            const { data } = await supabase.from("answers")
+              .select("*")
+              .eq("game_id", game.id)
+              .eq("q_index", gameRef.current.current_q_index);
+            
             if (data) setAnswers(processAnswers(data));
           }
         }).subscribe();
 
     const fetchAnswers = async () => {
-      // If we're entering a new question in PLAYING mode, start fresh
-      if (gameRef.current.status === 'PLAYING' && !calculating) {
-        const { data } = await supabase.from("answers").select("*").eq("game_id", game.id).eq("q_index", gameRef.current.current_q_index);
+      // Use the component's 'game' prop directly here during the initial interval check 
+      // to ensure consistency if gameRef hasn't updated yet.
+      if (game.status === 'PLAYING' && !calculating) {
+        const { data } = await supabase.from("answers")
+          .select("*")
+          .eq("game_id", game.id)
+          .eq("q_index", game.current_q_index);
+        
         if (data) setAnswers(processAnswers(data));
       }
-      // Note: We DO NOT poll during RESULT mode anymore because HostControl has already 
-      // computed the final results locally. Polling risks overwriting them with stale
-      // DB data if the update failed or was delayed.
     };
 
     fetchAnswers();
+    // Safety polling reduced to 1.5s for prompter submission counting
     const interval = setInterval(() => {
       if (gameRef.current.status === 'PLAYING' && !calculating) fetchAnswers();
-    }, 2000);
+    }, 1500);
 
-    return () => { supabase.removeChannel(channel); clearInterval(interval); };
-  }, [game.id, game.current_q_index]);
+    return () => { 
+      supabase.removeChannel(channel); 
+      clearInterval(interval); 
+    };
+  }, [game.id, game.current_q_index, game.status]); // Added game.status dependency for better transition handling
 
 
   // 4. Final Early Return Correct Placement

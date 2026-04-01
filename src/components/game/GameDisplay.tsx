@@ -51,9 +51,18 @@ function SegmentedInput({ value, length, onChange, onEnter, autoFocus, firstRef 
     }
   };
 
+  const forceFocus = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    hiddenInputRef.current?.focus();
+    if (hiddenInputRef.current) {
+      const len = hiddenInputRef.current.value.length;
+      hiddenInputRef.current.setSelectionRange(len, len);
+    }
+  };
+
   return (
     <div 
-      className="flex gap-1 bg-white p-2 rounded-xl shadow-sm border border-slate-200 relative cursor-text"
+      className="flex gap-1 bg-white p-1.5 md:p-2 rounded-xl shadow-sm border border-slate-200 relative cursor-text group/seg"
       onClick={handleClick}
     >
       {/* Hidden native input for IME support - improved styling for Korean */}
@@ -74,7 +83,7 @@ function SegmentedInput({ value, length, onChange, onEnter, autoFocus, firstRef 
         <div
           key={i}
           className={cn(
-            "w-10 h-12 bg-slate-50 border-2 rounded-lg flex items-center justify-center font-black text-indigo-600 text-xl transition-all relative",
+            "w-8 h-10 md:w-10 md:h-12 bg-slate-50 border-2 rounded-lg flex items-center justify-center font-black text-indigo-600 text-lg md:text-xl transition-all relative",
             isFocused && value.length === i ? "border-indigo-500 bg-indigo-50/30 ring-2 ring-indigo-200" : "border-indigo-100",
             value[i] ? "border-indigo-200 bg-white" : ""
           )}
@@ -82,10 +91,20 @@ function SegmentedInput({ value, length, onChange, onEnter, autoFocus, firstRef 
           {value[i] || ""}
           {/* Custom blinking cursor for the active box */}
           {isFocused && value.length === i && (
-            <div className="absolute w-0.5 h-6 bg-indigo-500 animate-pulse" />
+            <div className="absolute w-0.5 h-5 md:h-6 bg-indigo-500 animate-pulse" />
           )}
         </div>
       ))}
+
+      {/* Focus Recovery Button ('>') */}
+      <button
+        type="button"
+        onClick={forceFocus}
+        className="absolute -right-8 top-1/2 -translate-y-1/2 w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black shadow-sm border border-indigo-200 hover:bg-indigo-600 hover:text-white transition-all opacity-0 group-hover/seg:opacity-100 md:opacity-100"
+        title="키보드가 입력되지 않을 때 클릭하세요"
+      >
+        &gt;
+      </button>
     </div>
   );
 }
@@ -101,6 +120,7 @@ interface GameDisplayProps {
 }
 
 export function GameDisplay({ game, player, players, onSubmit, refresh, result, onRetract }: GameDisplayProps) {
+  const { showConfirm } = useDialog();
   const [answer, setAnswer] = useState("");
   const [blankAnswers, setBlankAnswers] = useState<Record<number, string>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -374,6 +394,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           firstBlankRef.current.focus();
           const val = firstBlankRef.current.value;
           firstBlankRef.current.value = "";
+          firstBlankRef.current.value = val;
           firstBlankRef.current.value = val;
         }
       };
@@ -756,17 +777,17 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                             onClick={() => setPendingSwapTarget(null)}
                             disabled={isSwapExecuting}
                           >
-                               취소
-                           </Button>
-                           <Button 
-                             variant="primary" 
-                             size="xl" 
-                             className="flex-1 py-6 rounded-3xl shadow-lg text-xl"
-                             onClick={() => handleSwapSelection(pendingSwapTarget.id, pendingSwapTarget.nickname)}
-                             disabled={isSwapExecuting}
-                           >
-                                바꾸기
-                           </Button>
+                                취소
+                            </Button>
+                            <Button 
+                              variant="primary" 
+                              size="xl" 
+                              className="flex-1 py-6 rounded-3xl shadow-lg text-xl"
+                              onClick={() => handleSwapSelection(pendingSwapTarget.id, pendingSwapTarget.nickname)}
+                              disabled={isSwapExecuting}
+                            >
+                                 바꾸기
+                            </Button>
                         </div>
                     </div>
                   ) : (
@@ -877,7 +898,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       )}
 
       <div className={cn(
-        "bg-white p-8 rounded-3xl shadow-2xl border-b-8 border-indigo-200 relative overflow-hidden",
+        "bg-white p-5 md:p-8 rounded-3xl shadow-2xl border-b-8 border-indigo-200 relative overflow-hidden flex flex-col max-h-[90vh]",
         player.team === 'RED' && "ring-4 ring-inset ring-red-400/20",
         player.team === 'BLUE' && "ring-4 ring-inset ring-blue-400/20",
         player.team === 'GREEN' && "ring-4 ring-inset ring-green-400/20",
@@ -894,7 +915,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           </div>
         )}
 
-        <div className="flex justify-between items-end mb-8 mt-2">
+        <div className="flex justify-between items-end mb-6 mt-2 relative z-10 shrink-0">
           <div className="flex items-center gap-3">
              <img src="/logo.png" className="w-10 h-10 object-contain" alt="Quiz Jam" />
              <div className="flex flex-col gap-1">
@@ -917,22 +938,23 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             timeLeft <= 5 ? "text-red-500 scale-110" : "text-gray-400"
           )}>
              <span className="text-xs font-black uppercase tracking-widest">Time Remaining</span>
-             <div className="flex items-center gap-3 font-black text-4xl">
-               <Clock size={32} className={cn(timeLeft <= 5 && "animate-pulse")} />
+             <div className="flex items-center gap-3 font-black text-3xl md:text-4xl">
+               <Clock size={28} className={cn(timeLeft <= 5 && "animate-pulse")} />
                <span>{timeLeft}s</span>
              </div>
           </div>
         </div>
 
         <div className={cn(
-          "font-black text-slate-800 mb-10 break-keep w-full whitespace-pre-wrap transition-all duration-300",
+          "font-black text-slate-800 mb-4 break-keep w-full whitespace-pre-wrap transition-all duration-300 overflow-y-auto pr-2 custom-scrollbar shrink-0",
           (currentQuestion?.q?.length || 0) > 200 ? "text-lg md:text-xl leading-relaxed" :
           (currentQuestion?.q?.length || 0) > 120 ? "text-xl md:text-2xl leading-relaxed" : 
           (currentQuestion?.q?.length || 0) > 60 ? "text-2xl md:text-3xl leading-snug" : 
-          "text-3xl md:text-4xl leading-tight"
+          "text-3xl md:text-4xl leading-tight",
+          game.current_hint_stage > 0 ? "max-h-[120px] md:max-h-[160px]" : "max-h-[250px] md:max-h-[300px]"
         )}>
           {currentQuestion?.type === "BLANK" ? (
-            "빈칸에 들어갈 알맞은 단어를 입력해주세요! 정답을 맞히면 점수를 얻을 수 있습니다!" 
+            "빈칸에 들어갈 알맞은 단어를 입력해주세요!" 
           ) : currentQuestion?.q ? (
             <ReactMarkdown 
               remarkPlugins={[remarkMath]} 
@@ -949,30 +971,30 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         </div>
 
         {(game.current_hint_stage > 0 && !submitted && timeLeft > 0 && (currentQuestion?.type === "SHORT_ANSWER" || currentQuestion?.type === "BLANK")) && (
-          <div className="mb-10 p-6 bg-indigo-50 rounded-[2rem] border-2 border-indigo-100 flex flex-col items-center animate-in slide-in-from-top-2 duration-300 shadow-inner">
-            <span className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-              <Zap size={14} className="fill-indigo-400" /> 
-              Teacher's Hint ({currentQuestion?.type !== "BLANK" && game.current_hint_stage === 1 ? '글자 수 힌트' : '초성 힌트가 공개되었습니다!'})
+          <div className="mb-4 p-3 md:p-4 bg-indigo-50 rounded-3xl border-2 border-indigo-100 flex flex-col items-center animate-in slide-in-from-top-2 duration-300 shadow-inner shrink-0">
+            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1 md:mb-2 flex items-center gap-2">
+              <Zap size={12} className="fill-indigo-400" /> 
+              Teacher's Hint ({currentQuestion?.type !== "BLANK" && game.current_hint_stage === 1 ? '글자 수 힌트' : '초성 힌트'})
             </span>
             
-            <div className="flex flex-col gap-6 w-full">
+            <div className="flex flex-col gap-4 w-full">
               {currentQuestion?.type === "BLANK" ? (
                 <div className="flex flex-wrap gap-4 justify-center">
-                  {currentQuestion.q.split(/\s+/).filter(Boolean).map((word: string, wordIdx: number) => {
-                    const isBlank = currentQuestion.blanks?.includes(wordIdx);
-                    if (!isBlank) return null;
+                  {currentQuestion.blanks.map((wordIdx: number, i: number) => {
+                    const word = currentQuestion.q.split(/\s+/).filter(Boolean)[wordIdx];
+                    if (!word) return null;
                     return (
-                      <div key={wordIdx} className="flex flex-col items-center gap-2">
+                      <div key={wordIdx} className="flex flex-col items-center gap-1">
                         {currentQuestion.blanks.length > 1 && (
-                          <span className="text-[10px] font-black bg-indigo-200 text-indigo-700 px-2 py-0.5 rounded-full uppercase">
-                            {currentQuestion.blanks.indexOf(wordIdx) + 1}번째 빈칸 초성 힌트
+                          <span className="text-[9px] font-black bg-indigo-200 text-indigo-700 px-2 py-0.5 rounded-full uppercase">
+                            {i + 1}번째 빈칸
                           </span>
                         )}
-                        <div className="flex flex-wrap justify-center gap-2">
-                          {word.split('').map((char: string, i: number) => (
+                        <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
+                          {word.split('').map((char: string, j: number) => (
                             <div 
-                              key={i}
-                              className="w-10 h-12 md:w-12 md:h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-2xl font-black shadow-indigo-200 scale-110 animate-pop"
+                              key={j}
+                              className="w-7 h-9 md:w-9 md:h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg md:text-xl font-black shadow-sm"
                             >
                               {getChoseong(char)}
                             </div>
@@ -983,7 +1005,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                   })}
                 </div>
               ) : (
-                <div className="flex flex-wrap justify-center gap-3">
+                <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
                   {currentQuestion?.a.split('').map((char: string, i: number) => {
                     const showChoseong = game.current_hint_stage >= 2;
                     const displayChar = showChoseong ? getChoseong(char) : (char === ' ' ? ' ' : '');
@@ -992,9 +1014,9 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                       <div
                         key={i}
                         className={cn(
-                          "w-10 h-12 md:w-12 md:h-14 rounded-2xl flex items-center justify-center text-2xl font-black transition-all shadow-sm",
+                          "w-7 h-9 md:w-9 md:h-11 rounded-xl flex items-center justify-center text-lg md:text-xl font-black transition-all shadow-sm",
                           showChoseong && char !== ' '
-                            ? "bg-indigo-600 text-white shadow-indigo-200 scale-110"
+                            ? "bg-indigo-600 text-white"
                             : char === ' ' ? "bg-transparent border-none" : "bg-white text-indigo-200 border-2 border-indigo-100"
                         )}
                       >
@@ -1010,37 +1032,43 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
         {(timeLeft > 0) ? (
           internalSubmitted ? (
-            <div className="flex flex-col items-center gap-8 py-12 animate-in fade-in zoom-in duration-500">
-               <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-500 text-5xl shadow-inner animate-bounce">
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 py-4 animate-in fade-in zoom-in duration-500 overflow-y-auto">
+               <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-500 text-4xl shadow-inner animate-bounce shrink-0">
                  ✅
                </div>
                <div className="text-center space-y-2">
-                 <h3 className="text-4xl font-black text-slate-800">정답을 제출했습니다!</h3>
-                 <p className="text-slate-500 font-bold text-lg">다른 친구들이 문제를 모두 풀 때까지 조금만 기다려주세요.<br />선생님이 다음 화면으로 넘겨주실 거예요!</p>
+                 <h3 className="text-3xl font-black text-slate-800">정답을 제출했습니다!</h3>
+                 <p className="text-slate-500 font-bold text-base md:text-lg">선생님이 다음 화면으로 넘겨주실 때까지<br />잠시만 기다려주세요!</p>
                </div>
-               <Button 
-                 variant="outline" 
-                 size="xl"
-                 className="mt-8 px-12 py-6 border-2 border-indigo-200 text-indigo-500 hover:bg-indigo-50 hover:border-indigo-300 rounded-[2rem] font-black text-xl shadow-xl transition-all active:scale-95"
-                 onClick={() => {
-                    setInternalSubmitted(false);
-                    setSubmitted(false);
-                    onRetract?.();
-                 }}
-               >
-                 답안 다시 작성하기
-               </Button>
+               <div className="absolute top-4 right-4">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="text-slate-400 hover:text-indigo-600 font-bold flex items-center gap-1"
+                    onClick={async () => {
+                       const confirmed = await showConfirm("답안을 수정하시겠습니까?\n기존에 제출한 답안이 삭제됩니다.");
+                       if (confirmed) {
+                         setInternalSubmitted(false);
+                         setSubmitted(false);
+                         onRetract?.();
+                       }
+                    }}
+                  >
+                    <RefreshCw size={14} />
+                    답안 수정
+                  </Button>
+               </div>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="flex-1 flex flex-col min-h-0">
               {currentQuestion?.type === "MULTIPLE_CHOICE" && currentQuestion.options ? (
-                 <div className="grid grid-cols-2 gap-4">
+                 <div className="grid grid-cols-2 gap-3 md:gap-4 overflow-y-auto custom-scrollbar p-1">
                    {currentQuestion.options.map((opt: string, idx: number) => (
                      <Button
                        key={idx}
                        size="xl"
                        variant="ghost"
-                       className="py-12 whitespace-normal break-keep text-2xl hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 transition-all font-black text-slate-700 border-2 flex items-center gap-3 [&_p]:m-0 [&_p]:inline"
+                       className="py-8 md:py-12 whitespace-normal break-keep text-xl md:text-2xl hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 transition-all font-black text-slate-700 border-2 flex items-center gap-3 [&_p]:m-0 [&_p]:inline"
                        onClick={() => {
                           setAnswer(opt);
                           setSubmitted(true);
@@ -1058,7 +1086,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                    ))}
                  </div>
               ) : currentQuestion?.type === "OX" ? (
-                 <div className="grid grid-cols-2 gap-6">
+                 <div className="grid grid-cols-2 gap-4 md:gap-6 py-4">
                    {["O", "X"].map(opt => (
                      <button
                        key={opt}
@@ -1069,7 +1097,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                           onSubmit(opt);
                        }}
                        className={cn(
-                         "py-16 rounded-[2.5rem] border-4 font-black text-7xl transition-all shadow-xl",
+                         "py-12 md:py-16 rounded-[2.5rem] border-4 font-black text-6xl md:text-7xl transition-all shadow-xl",
                          opt === "O" ? "border-emerald-100 bg-emerald-50 text-emerald-500 hover:bg-emerald-100 hover:border-emerald-200" : "border-red-100 bg-red-50 text-red-500 hover:bg-red-100 hover:border-red-200"
                        )}
                      >
@@ -1078,8 +1106,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                    ))}
                  </div>
               ) : currentQuestion?.type === "BLANK" ? (
-                 <div className="space-y-6">
-                   <div className="p-8 bg-slate-50 rounded-[2rem] border-2 border-slate-100 flex flex-wrap gap-x-2 gap-y-8 items-center justify-center min-h-[160px]">
+                 <div className="space-y-4 flex flex-col flex-1 min-h-0">
+                   <div className="p-4 md:p-8 bg-slate-50 rounded-[2rem] border-2 border-slate-100 flex flex-wrap gap-x-2 gap-y-4 md:gap-y-8 items-center justify-center min-h-[100px] md:min-h-[160px] overflow-y-auto max-h-[30vh]">
                       {currentQuestion.q.split(/\s+/).filter(Boolean).map((word: string, wordIdx: number) => {
                         const blanks = currentQuestion.blanks || [];
                         const blankIndex = blanks.indexOf(wordIdx);
@@ -1105,12 +1133,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                             </div>
                           );
                         }
-                        return <span key={wordIdx} className="text-2xl font-black text-slate-400 px-1">{word}</span>;
+                        return <span key={wordIdx} className="text-xl md:text-2xl font-black text-slate-400 px-0.5 md:px-1">{word}</span>;
                       })}
                    </div>
                     <Button 
                       size="xl" 
-                      className="w-full py-8 text-3xl shadow-lg shadow-indigo-200"
+                      className="w-full py-6 md:py-8 text-2xl md:text-3xl shadow-lg shadow-indigo-200 shrink-0"
                       onClick={() => {
                         setInternalSubmitted(true);
                         handleSubmit();
@@ -1120,14 +1148,14 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                     </Button>
                  </div>
               ) : (
-                 <>
-                     <div className="w-full border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all overflow-visible relative">
+                 <div className="space-y-4 md:space-y-6 flex flex-col flex-1 min-h-0">
+                     <div className="w-full border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all overflow-visible relative shrink-0">
                         <MathInput
                           value={answer}
                           onChange={handleAnswerChange}
                           onEnter={() => handleSubmit(answer)}
                           className="w-full p-2 text-xl md:text-2xl font-bold bg-transparent"
-                          placeholder="정답을 여기에 입력하고 엔터를 눌러주세요!"
+                          placeholder="정답을 입력해주세요!"
                           template={currentQuestion?.template}
                           focusOnMount={true}
                           level={game.options?.level || 'elementary'}
@@ -1136,7 +1164,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                      </div>
                      <Button 
                        size="xl" 
-                       className="w-full py-8 text-3xl shadow-lg shadow-indigo-200"
+                       className="w-full py-6 md:py-8 text-2xl md:text-3xl shadow-lg shadow-indigo-200 shrink-0"
                        onClick={() => {
                          setInternalSubmitted(true);
                          handleSubmit();
@@ -1144,19 +1172,19 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                      >
                        정답 제출하기
                      </Button>
-                 </>
+                 </div>
               )}
             </div>
           )
         ) : (
-          <div className="py-12 flex flex-col items-center gap-4 text-indigo-400 animate-pulse">
-            <div className="text-8xl">
+          <div className="flex-1 py-8 flex flex-col items-center justify-center gap-4 text-indigo-400 animate-pulse">
+            <div className="text-7xl">
               {timeLeft === 0 && !internalSubmitted ? "⌛" : 
                timeLeft === 0 && internalSubmitted ? "✅" : ""}
             </div>
-            <p className="text-2xl font-black text-center">
+            <p className="text-xl md:text-2xl font-black text-center max-w-sm">
               {timeLeft === 0 && !internalSubmitted ? "시간이 다 되었습니다! 정답을 제출할 수 없어요." : 
-               timeLeft === 0 && internalSubmitted ? "시간이 다 되었습니다! 이제 친구들의 정답을 확인해볼까요? 잠시만 기다려주세요..." : "다른 친구들이 문제를 모두 풀 때까지 조금만 기다려주세요! 정답을 제출하지 못했다면 다음 기회를 노려보아요..."}
+               timeLeft === 0 && internalSubmitted ? "시간이 종료되었습니다! 결과를 기다려주세요..." : "문제가 종료되었습니다!"}
             </p>
           </div>
         )}
