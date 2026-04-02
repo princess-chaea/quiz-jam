@@ -124,9 +124,22 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     setTimeout(() => { setIsSwapExecuting(false); }, 5000);
   };
 
-  // Realtime Listeners
+  // Realtime Listeners & State Sync
   useEffect(() => {
     if (!game?.id || !player.id) return;
+
+    // 1. Initial State Sync from persistent DB state (to prevent race conditions)
+    if (game.status === 'RESULT') {
+      const swapState = game.options?.swapState;
+      if (swapState) {
+        if (String(swapState.currentSwapperId) === String(player.id)) {
+          setIsMyTurnToSwap(true);
+        } else {
+          setIsMyTurnToSwap(false);
+        }
+        setActiveSwapperName(swapState.currentSwapperNickname);
+      }
+    }
     
     const channel = supabase.channel(`game_events_${game.id}`)
       .on('broadcast', { event: 'START_SWAP' }, ({ payload }: { payload: any }) => {
@@ -169,6 +182,10 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 3000);
       })
       .on('broadcast', { event: 'GAME_UPDATE' }, () => {
+        refresh();
+      })
+      .on('broadcast', { event: 'ROUND_RESULTS_READY' }, ({ payload }: { payload: any }) => {
+        console.log("[Student] Round results ready broadcast received:", payload);
         refresh();
       })
       .subscribe();
@@ -388,7 +405,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
           <div className="bg-slate-50 rounded-[3rem] p-8 w-full flex flex-col items-center">
             <div className={cn("text-6xl md:text-8xl font-black mb-2", result.is_correct ? "text-indigo-600" : "text-red-500")}>
-              {result.points_added >= 0 ? `+${result.points_added}` : result.points_added}점
+              {((result.points_added ?? result.points_awarded ?? 0) >= 0) ? `+${result.points_added ?? result.points_awarded ?? 0}` : (result.points_added ?? result.points_awarded ?? 0)}점
             </div>
             
             {eventInfos.length > 0 && (

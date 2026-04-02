@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
@@ -27,7 +28,7 @@ interface HostControlProps {
 
 const processAnswers = (data: any[]) => {
   const map = new Map();
-  data.forEach((a) => map.set(a.player_id, a));
+  data.forEach((a: any) => map.set(a.player_id, a));
   return Array.from(map.values()).filter((a: any) => a.answer !== '(retracted)');
 };
 
@@ -91,8 +92,8 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       const currentPlayers = playersRef.current;
 
       // 2. Calculate base results
-      const calculatedResults = currentPlayers.map(player => {
-        const answer = currentAnswers.find(a => a.player_id === player.id);
+      const calculatedResults = currentPlayers.map((player: any) => {
+        const answer = currentAnswers.find((a: any) => a.player_id === player.id);
 
         // Calculate correctness locally based on question type
         let isCorrect = false;
@@ -213,7 +214,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           const donorTeam = res.player.team;
 
           // Find candidates: correct answer, NOT the donor, and NOT donor's teammate (if team mode)
-          const candidates = calculatedResults.filter(r => {
+          const candidates = calculatedResults.filter((r: any) => {
             if (!r.isCorrect) return false;
             if (r.player.id === res.player.id) return false;
             // Team mode exclusion
@@ -221,34 +222,39 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             return true;
           });
 
-          // Pick up to 3 random candidates
-          const targets = candidates.sort(() => 0.5 - Math.random()).slice(0, 3);
+          if (candidates.length > 0) {
+            // Pick up to 3 random candidates
+            const targets = candidates.sort(() => 0.5 - Math.random()).slice(0, 3);
 
-          // Donor loses 10 points per recipient
-          res.points -= (10 * targets.length);
+            // Donor loses 10 points per recipient
+            res.points -= (10 * targets.length);
 
-          targets.forEach(t => {
-            // Each target gains 10 points
-            t.points += 10;
-            const donorInfo = `gift:${donorNick}`;
-            if (t.event === 'none') {
-              t.event = donorInfo;
-            } else {
-              // Append to existing events (comma-separated)
-              t.event = t.event + `,${donorInfo}`;
-            }
-          });
+            targets.forEach((t: any) => {
+              // Each target gains 10 points
+              t.points += 10;
+              const donorInfo = `gift:${donorNick}`;
+              if (t.event === 'none') {
+                t.event = donorInfo;
+              } else {
+                // Append to existing events (comma-separated)
+                t.event = t.event + `,${donorInfo}`;
+              }
+            });
+          } else {
+            // No correct answers to donate to? Remove donate from events
+            res.event = res.event.split(',').filter((e: string) => e !== 'donate').join(',') || 'none';
+          }
         }
       });
 
       const finalResults = [...calculatedResults];
 
       // Update local answers state immediately so UI updates
-      const updatedAnswers = finalResults.map(res => ({
+      const updatedAnswers = finalResults.map((res: any) => ({
         player_id: res.player.id,
         q_index: qIndex,
         is_correct: res.isCorrect,
-        points_awarded: res.points,
+        points_added: res.points,
         event: res.event,
         answer: res.rawAnswer
       }));
@@ -263,7 +269,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           player_id: res.player.id,
           q_index: qIndex,
           is_correct: res.isCorrect,
-          points_awarded: res.points,
+          points_added: res.points,
           event: res.event,
           answer: res.rawAnswer
         };
@@ -307,7 +313,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       ]);
 
       // 4. Handle Broadcasts (Shield Block, etc.)
-      const blockedResults = finalResults.filter(r => r.event.includes('_blocked'));
+      const blockedResults = finalResults.filter((r: any) => r.event.includes('_blocked'));
       if (blockedResults.length > 0) {
         const eventChannel = supabase.channel(`game_swaps_${game.id}`);
         eventChannel.subscribe(async (status) => {
@@ -345,11 +351,11 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       }
 
       // 6. Broadcast Results Ready (to trigger student re-fetch)
-      const resultChannel = supabase.channel(`game_results_${game.id}`);
-      resultChannel.subscribe(async (status) => {
+      const eventChannel = supabase.channel(`game_events_${game.id}`);
+      eventChannel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           console.log("[Host] Broadcasting ROUND_RESULTS_READY");
-          await resultChannel.send({
+          await eventChannel.send({
             type: 'broadcast',
             event: 'ROUND_RESULTS_READY',
             payload: { q_index: qIndex, results: updatedAnswers }
@@ -377,7 +383,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             .eq("id", game.id);
 
           // 8. BROADCAST immediate refresh for all players
-          await resultChannel.send({
+          await eventChannel.send({
             type: 'broadcast',
             event: 'GAME_UPDATE',
             payload: { status: "RESULT", q_index: qIndex }
@@ -386,14 +392,14 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           // If there are swappers, trigger the first one explicitly via broadcast
           if (swappers.length > 0) {
             console.log("[Host] Broadcasting FIRST swap start:", swappers[0].nickname);
-            await resultChannel.send({
+            await eventChannel.send({
               type: 'broadcast',
               event: 'START_SWAP',
               payload: { playerId: swappers[0].id, nickname: swappers[0].nickname }
             });
           }
 
-          setTimeout(() => supabase.removeChannel(resultChannel), 3000);
+          setTimeout(() => supabase.removeChannel(eventChannel), 3000);
         }
       });
 
@@ -633,15 +639,15 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
   useEffect(() => {
     if (game.status !== 'PLAYING') {
-      setTimeLeft(game.options?.timeLimit || 20);
+      setTimeLeft(currentQuestion?.timeLimit || game.options?.timeLimit || 20);
       return;
     }
 
-    const limit = game.options?.timeLimit || 20;
+    const limit = currentQuestion?.timeLimit || game.options?.timeLimit || 20;
     const startedAt = game.options?.current_q_started_at;
 
     const syncTime = () => {
-      const limit = game.options?.timeLimit || 20;
+      const limit = currentQuestion?.timeLimit || game.options?.timeLimit || 20;
       if (!startedAt) return limit;
       const start = new Date(startedAt).getTime();
       const now = new Date().getTime();
@@ -701,25 +707,25 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               if (eventType === 'INSERT') {
                 // If it's a new answer and it matches the current question index
                 if (newRecord.q_index === gameRef.current.current_q_index && newRecord.answer !== '(retracted)') {
-                  const exists = prev.some(a => a.player_id === newRecord.player_id);
+                  const exists = prev.some((a: any) => a.player_id === newRecord.player_id);
                   if (exists) {
-                    return prev.map(a => a.player_id === newRecord.player_id ? newRecord : a);
+                    return prev.map((a: any) => a.player_id === newRecord.player_id ? newRecord : a);
                   }
                   return [...prev, newRecord];
                 }
               } else if (eventType === 'UPDATE') {
                 if (newRecord.q_index === gameRef.current.current_q_index) {
                   if (newRecord.answer === '(retracted)') {
-                    return prev.filter(a => a.player_id !== newRecord.player_id);
+                    return prev.filter((a: any) => a.player_id !== newRecord.player_id);
                   }
                   const exists = prev.some(a => a.player_id === newRecord.player_id);
                   if (exists) {
-                    return prev.map(a => a.player_id === newRecord.player_id ? newRecord : a);
+                    return prev.map((a: any) => a.player_id === newRecord.player_id ? newRecord : a);
                   }
                   return [...prev, newRecord];
                 }
               } else if (eventType === 'DELETE') {
-                return prev.filter(a => a.id !== oldRecord.id);
+                return prev.filter((a: any) => a.id !== oldRecord.id);
               }
               return prev;
             });
@@ -727,8 +733,8 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         }).subscribe();
 
     const fetchAnswers = async () => {
-      // If we are in the middle of a question, fetch current answers
-      if (gameRef.current.status === 'PLAYING' && !calculating) {
+      // Fetch answers when PLAYING or in RESULT screen
+      if ((gameRef.current.status === 'PLAYING' || gameRef.current.status === 'RESULT') && !calculating) {
         const { data } = await supabase.from("answers")
           .select("*")
           .eq("game_id", game.id)
@@ -748,7 +754,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     fetchAnswers();
 
     const interval = setInterval(() => {
-      if (gameRef.current.status === 'PLAYING' && !calculating) fetchAnswers();
+      if ((gameRef.current.status === 'PLAYING' || gameRef.current.status === 'RESULT') && !calculating) fetchAnswers();
     }, 2500); 
 
     return () => { 
@@ -847,7 +853,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               <div className="flex gap-3">
                 <div className="bg-white/5 px-6 py-2 rounded-2xl border border-white/5 text-center min-w-[100px]">
                   <div className="text-[10px] font-bold opacity-50 uppercase">정답자</div>
-                  <div className="text-2xl font-black text-green-400">{answers.filter(a => a.is_correct).length}명</div>
+                  <div className="text-2xl font-black text-green-400">{answers.filter((a: any) => a.is_correct).length}명</div>
                 </div>
                 <div className="bg-white/5 px-6 py-2 rounded-2xl border border-white/5 text-center min-w-[100px]">
                   <div className="text-[10px] font-bold opacity-50 uppercase">참여도</div>
@@ -858,7 +864,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               {/* Team Scores Mini List */}
               {(() => {
                 const teamScores: Record<string, number> = {};
-                players.forEach(p => {
+                players.forEach((p: any) => {
                   if (p.team) {
                     teamScores[p.team] = (teamScores[p.team] || 0) + p.score;
                   }
@@ -891,8 +897,8 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {[...players].sort((a, b) => (b.score || 0) - (a.score || 0)).map((player, idx, sortedPlayers) => {
-                  const ans = answers.find(a => a.player_id === player.id);
+                {[...players].sort((a, b) => (b.score || 0) - (a.score || 0)).map((player: any, idx: number, sortedPlayers: any[]) => {
+                  const ans = answers.find((a: any) => a.player_id === player.id);
                   let rank = idx + 1;
                   if (idx > 0 && (player.score || 0) === (sortedPlayers[idx - 1].score || 0)) {
                     rank = sortedPlayers.findIndex(p => (p.score || 0) === (player.score || 0)) + 1;
@@ -1265,14 +1271,14 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
       {/* Player Status Bar - Sorted by Score */}
       <PlayerBar
-        players={[...players].sort((a, b) => (b.score || 0) - (a.score || 0))}
-        submissions={answers.filter(a => a.answer !== '(시간초과)').map(a => a.player_id)}
+        players={[...players].sort((a: any, b: any) => (b.score || 0) - (a.score || 0))}
+        submissions={answers.filter((a: any) => a.answer !== '(시간초과)').map((a: any) => a.player_id)}
         className="bg-indigo-50/90 border-t border-indigo-200"
       />
 
       {/* Floating Emojis Container */}
       <div className="fixed inset-0 pointer-events-none z-[200] overflow-hidden">
-        {floatingEmojis.map(emoji => (
+        {floatingEmojis.map((emoji: any) => (
           <div
             key={emoji.id}
             className="absolute bottom-0 text-5xl animate-float-up opacity-0"
