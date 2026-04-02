@@ -444,13 +444,13 @@ export function MathInput({
           min-height: 0 !important;
         }
         math-field::part(container) {
-          padding: 0 4.5rem 0 0.5rem !important; 
+          padding: 2px 4.5rem 2px 0.5rem !important; 
           overflow: visible !important;
           cursor: text !important;
           min-height: 0 !important;
           display: flex !important;
           align-items: center !important;
-          line-height: 1.2 !important;
+          line-height: 1 !important;
         }
         math-field .ML__base {
           display: flex !important;

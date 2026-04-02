@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { 
   Trophy, Clock, Check, X, RefreshCw, Zap, Gift, 
   Shield, TrendingUp, ChevronLeft, ChevronRight, Scissors, Keyboard, Layers,
-  User
+  User, HelpCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import ReactMarkdown from 'react-markdown';
@@ -16,6 +16,7 @@ import 'katex/dist/katex.min.css';
 import { MathInput } from '@/components/ui/MathInput';
 import { SegmentedInput } from '@/components/game/SegmentedInput';
 import { IntroOverlay } from '@/components/game/IntroOverlay';
+import { GameHelpModal } from '@/components/game/GameHelpModal';
 
 interface GameDisplayProps {
   game: any;
@@ -60,7 +61,9 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const [rankingTab, setRankingTab] = useState<'individual' | 'team'>('individual');
   const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
   const [showIntro, setShowIntro] = useState(false);
-  
+  const [showHelp, setShowHelp] = useState(false);
+  const [hintStage, setHintStage] = useState<number>(game.current_hint_stage || 0);
+
   const totalQuestions = game.options?.questions?.length || 0;
   const currentQuestion = game.options?.questions[game.current_q_index];
   
@@ -129,9 +132,9 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     if (!game?.id || !player.id) return;
 
     // 1. Initial State Sync from persistent DB state (to prevent race conditions)
-    if (game.status === 'RESULT') {
+    // 1. Initial State Sync
+    if (game.status === 'RESULT' || game.status === 'PLAYING') {
       const swapState = game.options?.swapState;
-      console.log("[Student] Syncing swapState from DB:", swapState);
       if (swapState && swapState.currentSwapperId) {
         setActiveSwapperName(swapState.currentSwapperNickname);
         if (String(swapState.currentSwapperId) === String(player.id)) {
@@ -143,6 +146,10 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       } else {
         setActiveSwapperName(null);
         setIsMyTurnToSwap(false);
+      }
+      // Sync hint stage
+      if (game.current_hint_stage !== undefined) {
+        setHintStage(game.current_hint_stage);
       }
     }
     
@@ -188,12 +195,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         setFloatingEmojis((prev: any[]) => [...prev, newEmoji]);
         setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 3000);
       })
-      .on('broadcast', { event: 'GAME_UPDATE' }, () => {
-        refresh();
+      .on('broadcast', { event: 'HINT_REVEAL' }, ({ payload }: { payload: any }) => {
+        setHintStage(payload.stage);
       })
-      .on('broadcast', { event: 'ROUND_RESULTS_READY' }, ({ payload }: { payload: any }) => {
-        console.log("[Student] Round results ready broadcast received:", payload);
-        refresh();
+      .on('broadcast', { event: 'TIMER_SYNC' }, ({ payload }: { payload: any }) => {
+        // Teacher periodically syncs timer to handle drift
+        setTimeLeft(payload.timeLeft);
       })
       .subscribe();
 
@@ -267,12 +274,15 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       }
 
       const startTime = new Date(game.options.current_q_started_at).getTime();
-      const limit = (currentQuestion?.timeLimit || 20) * 1000;
+      let limit = (currentQuestion?.timeLimit || 20);
+      // Add 5 second buffer for Q1
+      if (game.current_q_index === 0) limit += 5;
+      const limitMs = limit * 1000;
       
       const updateTimer = () => {
         const now = Date.now();
         const elapsed = now - startTime;
-        const remaining = Math.max(0, Math.ceil((limit - elapsed) / 1000));
+        const remaining = Math.max(0, Math.ceil((limitMs - elapsed) / 1000));
         setTimeLeft(remaining);
       };
 
@@ -764,6 +774,33 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         </div>
 
         <div className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar px-2">
+            {/* Hint Banner (Realtime from Teacher) */}
+            {(hintStage === 1 || hintStage === 2) && (
+              <div className="mb-4 bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-3 flex flex-col gap-1.5 animate-in slide-in-from-top-4 shadow-sm border-dashed">
+                <div className="flex items-center gap-2 text-indigo-600">
+                  <div className="p-1.5 bg-white rounded-lg border border-indigo-100 ring-2 ring-indigo-500/10">
+                    <Zap size={16} className="fill-indigo-500" />
+                  </div>
+                  <span className="font-black text-sm uppercase tracking-tight italic">선생님의 힌트가 도착했어요!</span>
+                </div>
+                
+                <div className="flex flex-col gap-1 px-1">
+                  {hintStage >= 1 && (
+                    <div className="flex items-center gap-2 text-indigo-900 font-bold text-sm">
+                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full shrink-0" />
+                      <span>{currentQuestion.a.length}글자입니다.</span>
+                    </div>
+                  )}
+                  {hintStage >= 2 && (
+                    <div className="flex items-center gap-2 text-indigo-900 font-bold text-sm">
+                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full shrink-0" />
+                      <span>초성 힌트: <span className="p-1 bg-white border border-indigo-100 rounded-md shadow-sm ml-1 px-2 font-black text-indigo-600 font-mono">{getChoseong(currentQuestion.a)}</span></span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
           <div className={cn("font-black text-slate-800 break-keep leading-tight text-center py-1 md:py-2", getQuestionFontSize(currentQuestion.q))}>
             <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
               {processMathText(currentQuestion.type === "BLANK" ? 
@@ -850,6 +887,26 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       </div>
      
      {showIntro && <IntroOverlay onClose={() => setShowIntro(false)} />}
+
+      {/* Help FAB */}
+      <button 
+        onClick={() => setShowHelp(true)}
+        className="fixed left-6 bottom-6 z-40 p-4 bg-indigo-600 text-white rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all group"
+        title="게임 가이드 및 아이템 설명"
+      >
+        <HelpCircle size={28} />
+        <span className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-lg">
+          게임 가이드 보기
+        </span>
+      </button>
+
+      {/* Help Modal */}
+      {showHelp && (
+        <GameHelpModal 
+          onClose={() => setShowHelp(false)} 
+          probabilities={game.options?.probabilities}
+        />
+      )}
    </div>
  );
 }

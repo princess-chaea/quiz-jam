@@ -512,7 +512,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     const { error } = await supabase.from("games").update({ current_hint_stage: stage }).eq("id", game.id);
     if (!error) {
       // Broadcast hint reveal for immediate student-side reaction
-      const channel = supabase.channel(`game_realtime:${game.id}`);
+      const channel = supabase.channel(`game_events_${game.id}`);
       channel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           await channel.send({
@@ -520,7 +520,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             event: 'HINT_REVEAL',
             payload: { stage }
           });
-          setTimeout(() => supabase.removeChannel(channel), 1000);
+          // Do not close channel immediately if needed for other things, but here it's fine
         }
       });
     }
@@ -657,7 +657,10 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     const startedAt = game.options?.current_q_started_at;
 
     const syncTime = () => {
-      const limit = currentQuestion?.timeLimit || game.options?.timeLimit || 20;
+      let limit = currentQuestion?.timeLimit || game.options?.timeLimit || 20;
+      // Add 5 second buffer for the first question intro
+      if (game.current_q_index === 0) limit += 5;
+      
       if (!startedAt) return limit;
       const start = new Date(startedAt).getTime();
       const now = new Date().getTime();
