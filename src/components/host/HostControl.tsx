@@ -350,46 +350,48 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         currentSwapperIdRef.current = null;
       }
 
-      // 6. Broadcast Results Ready (to trigger student re-fetch)
-      const eventChannel = supabase.channel(`game_events_${game.id}`);
+      // 6. Update Game Status & Initial Swap State in DB (Done OUTSIDE subscription for reliability)
+      const swapState = {
+        queue: swappers,
+        currentSwapperId: swappers.length > 0 ? swappers[0].id : null,
+        currentSwapperNickname: swappers.length > 0 ? swappers[0].nickname : null
+      };
+
+      console.log("[Host] Saving initial swapState to DB:", swapState);
+
+      const newOptions = {
+        ...(game.options || {}),
+        swapState
+      };
+
+      // CRITICAL: Update DB status to RESULT immediately
+      const { error: statusErr } = await supabase.from("games")
+        .update({
+          status: "RESULT",
+          options: newOptions
+        })
+        .eq("id", game.id);
+      
+      if (statusErr) console.error("[Host] Status update failed:", statusErr);
+
+      // 7. Broadcast Results Ready (to trigger student re-fetch)
+      const eventChannel = supabase.channel(`game_events_${game.id}_final`);
       eventChannel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          console.log("[Host] Broadcasting ROUND_RESULTS_READY");
+          console.log("[Host] Broadcasting results and updates...");
+          
           await eventChannel.send({
             type: 'broadcast',
             event: 'ROUND_RESULTS_READY',
             payload: { q_index: qIndex, results: updatedAnswers }
           });
 
-          // 7. Update Game Status & Initial Swap State in DB
-          const swapState = {
-            queue: swappers,
-            currentSwapperId: swappers.length > 0 ? swappers[0].id : null,
-            currentSwapperNickname: swappers.length > 0 ? swappers[0].nickname : null
-          };
-
-          console.log("[Host] Saving initial swapState to DB:", swapState);
-
-          const newOptions = {
-            ...(game.options || {}),
-            swapState
-          };
-
-          await supabase.from("games")
-            .update({
-              status: "RESULT",
-              options: newOptions
-            })
-            .eq("id", game.id);
-
-          // 8. BROADCAST immediate refresh for all players
           await eventChannel.send({
             type: 'broadcast',
             event: 'GAME_UPDATE',
             payload: { status: "RESULT", q_index: qIndex }
           });
 
-          // If there are swappers, trigger the first one explicitly via broadcast
           if (swappers.length > 0) {
             console.log("[Host] Broadcasting FIRST swap start:", swappers[0].nickname);
             await eventChannel.send({
@@ -399,7 +401,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             });
           }
 
-          setTimeout(() => supabase.removeChannel(eventChannel), 3000);
+          setTimeout(() => supabase.removeChannel(eventChannel), 5000);
         }
       });
 
@@ -596,11 +598,6 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         }
         await advanceQueue();
         if (refreshPlayers) await refreshPlayers();
-      })
-      .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
-        const newEmoji = { id: Date.now() + Math.random(), emoji: payload.emoji, left: Math.random() * 80 + 10 };
-        setFloatingEmojis((prev: any[]) => [...prev, newEmoji]);
-        setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 3000);
       })
       .on('broadcast', { event: 'PLAYER_UPDATE' }, () => {
         if (refreshPlayers) refreshPlayers();

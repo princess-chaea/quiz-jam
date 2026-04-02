@@ -168,8 +168,8 @@ export function MathKeypad() {
         display: isOpen ? 'block' : 'none'
       }}
       className={cn(
-        "math-keypad-container fixed bottom-32 right-4 md:right-8 w-[350px] bg-white/95 backdrop-blur-xl rounded-[2.5rem] border border-white/50 shadow-[0_30px_60px_rgba(0,0,0,0.18)] overflow-hidden",
-        isOpen ? "animate-pop" : "hidden"
+        "math-keypad-container fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[350px] bg-white/95 backdrop-blur-xl rounded-[2.5rem] border border-white/50 shadow-[0_30px_60px_rgba(0,0,0,0.18)] overflow-hidden",
+        isOpen ? "animate-pop scale-100" : "hidden pointer-events-none scale-95"
       )}
     >
       <div 

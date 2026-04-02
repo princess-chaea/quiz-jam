@@ -399,7 +399,7 @@ export function MathInput({
 
   if (!isReady || !mounted) {
     return (
-      <div className={cn("relative w-full rounded-2xl bg-slate-50 border-2 border-slate-100 flex items-center justify-center py-2", containerClassName)}>
+      <div className={cn("relative w-full rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center py-1", containerClassName)}>
          <div className="flex flex-col items-center gap-2">
            <div className="w-6 h-6 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
            <p className="text-[10px] font-bold text-slate-400 italic">수식 편집기 로드 중...</p>
@@ -413,7 +413,7 @@ export function MathInput({
       ref={containerRef}
       onClick={() => mfRef.current && forceFocus(mfRef.current)}
       className={cn(
-        "relative flex flex-col justify-center w-full h-fit min-h-[3rem] rounded-2xl group/math bg-slate-50/50 border-2 border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text py-0", 
+        "relative flex flex-col justify-center w-full h-fit min-h-[2.5rem] rounded-xl group/math bg-slate-50/50 border border-slate-200 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text py-0", 
         (!multiline || showScrollbar) ? "overflow-x-auto custom-scrollbar" : "overflow-visible h-fit",
         containerClassName
       )}
@@ -428,7 +428,7 @@ export function MathInput({
           overflow: visible !important;
         }
         math-field::part(container) {
-          padding: 0 3rem 0 1rem !important; 
+          padding: 0 3rem 0 0.75rem !important; 
           overflow: visible !important;
           cursor: text !important;
           min-height: 100% !important;
@@ -440,7 +440,7 @@ export function MathInput({
           flex-wrap: ${multiline ? 'wrap' : 'nowrap'} !important;
           width: 100% !important;
           line-height: inherit !important;
-          padding: 4px 0 !important;
+          padding: 2px 0 !important;
         }
         math-field .ML__content {
           display: ${multiline ? 'block' : 'inline-block'} !important;
@@ -468,8 +468,8 @@ export function MathInput({
           width: "100%", 
           background: "transparent",
           border: "none",
-          minHeight: isTeacher ? "3rem" : "2.75rem",
-          padding: "0.5rem 0.75rem",
+          minHeight: isTeacher ? "2.5rem" : "2.2rem",
+          padding: "0.1rem 0.4rem",
           fontSize: isTeacher ? "1.125rem" : "1.5rem",
         }}
         multiline={multiline ? "true" : "false"}
