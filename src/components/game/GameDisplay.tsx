@@ -101,7 +101,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       }
 
       const channel = supabase.channel(`game_events_${game.id}`);
-      await channel.subscribe(async (status) => {
+      await channel.subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           await channel.send({
             type: 'broadcast',
@@ -165,8 +165,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       })
       .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
         const newEmoji = { id: Date.now() + Math.random(), emoji: payload.emoji, left: Math.random() * 80 + 10 };
-        setFloatingEmojis(prev => [...prev, newEmoji]);
-        setTimeout(() => setFloatingEmojis(prev => prev.filter(e => e.id !== newEmoji.id)), 3000);
+        setFloatingEmojis((prev: any[]) => [...prev, newEmoji]);
+        setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 3000);
       })
       .on('broadcast', { event: 'GAME_UPDATE' }, () => {
         refresh();
@@ -373,7 +373,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             
             {eventInfos.length > 0 && (
               <div className="flex flex-wrap justify-center gap-2">
-                {eventInfos.map((info, idx) => (
+                {eventInfos.map((info: any, idx: number) => (
                   <div key={idx} className={cn(
                     "flex items-center gap-2 px-4 py-2 rounded-2xl text-white font-black animate-bounce shadow-lg",
                     info!.color
@@ -393,7 +393,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             
             {eventInfos.length > 0 && (
                <div className="flex flex-col gap-1.5 mt-2 mb-6">
-                 {eventInfos.map((info, idx) => (
+                 {eventInfos.map((info: any, idx: number) => (
                    <div key={idx} className="bg-white/80 backdrop-blur px-4 py-2 rounded-xl border border-indigo-100 text-indigo-600 font-bold text-sm shadow-sm text-center">
                      ✨ {info!.desc}
                    </div>
@@ -427,7 +427,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           "fixed right-0 top-1/2 -translate-y-1/2 z-50 transition-transform duration-300 flex items-center",
           showScoreTab ? "translate-x-0" : "translate-x-[calc(100%-40px)]"
         )}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         <button onClick={() => setShowScoreTab(!showScoreTab)} className="w-10 h-24 bg-indigo-600 text-white rounded-l-2xl flex flex-col items-center justify-center gap-2 shadow-lg hover:bg-indigo-700 transition-colors">
           <Trophy size={18} />
