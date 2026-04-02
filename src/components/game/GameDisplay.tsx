@@ -5,7 +5,7 @@ import { useDialog } from '@/components/ui/DialogProvider';
 import { cn } from '@/lib/utils';
 import { 
   Trophy, Clock, Check, X, RefreshCw, Zap, Gift, 
-  Shield, TrendingUp, ChevronLeft, ChevronRight, Scissors, Keyboard
+  Shield, TrendingUp, ChevronLeft, ChevronRight, Scissors, Keyboard, Layers
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import ReactMarkdown from 'react-markdown';
