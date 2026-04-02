@@ -168,8 +168,8 @@ export function MathKeypad() {
         display: isOpen ? 'block' : 'none'
       }}
       className={cn(
-        "math-keypad-container fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[350px] bg-white/95 backdrop-blur-xl rounded-[2.5rem] border border-white/50 shadow-[0_30px_60px_rgba(0,0,0,0.18)] overflow-hidden",
-        isOpen ? "animate-pop scale-100" : "hidden pointer-events-none scale-95"
+        "math-keypad-container fixed top-2 left-1/2 -translate-x-1/2 w-[95%] max-w-[380px] bg-white/95 backdrop-blur-xl rounded-[2rem] border border-white/50 shadow-[0_20px_40px_rgba(0,0,0,0.15)] overflow-hidden",
+        isOpen ? "animate-in slide-in-from-top-4 duration-300 scale-100" : "hidden pointer-events-none scale-95"
       )}
     >
       <div 
@@ -192,7 +192,7 @@ export function MathKeypad() {
         </button>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="p-3 space-y-3">
         <div className="flex gap-1 bg-slate-100/80 p-1 rounded-2xl overflow-x-auto no-scrollbar">
           {[
             { id: 'num', label: '123' },
@@ -214,7 +214,7 @@ export function MathKeypad() {
           ))}
         </div>
 
-        <div className="grid grid-cols-4 gap-2 min-h-[220px]">
+        <div className="grid grid-cols-4 gap-1.5 min-h-[180px]">
           {activeTab === 'num' ? (
             <>
               {KEYPAD_PRESETS.num.map((key, idx) => (
@@ -278,7 +278,7 @@ function KeyButton({ label, onClick, className = "", isLatex = false }: { label:
       onClick={onClick}
       onMouseDown={(e) => e.preventDefault()}
       className={cn(
-        "h-12 bg-white hover:bg-indigo-50/50 rounded-xl border-b-4 border-slate-200 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center font-black text-slate-700 shadow-sm overflow-hidden",
+        "h-10 bg-white hover:bg-indigo-50/50 rounded-xl border-b-4 border-slate-200 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center font-black text-slate-700 shadow-sm overflow-hidden",
         className
       )}
     >

@@ -54,10 +54,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const [blankAnswers, setBlankAnswers] = useState<Record<number, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [internalSubmitted, setInternalSubmitted] = useState(false);
-  const [showMathHint, setShowMathHint] = useState(() => {
-    // Show only for the first question of the game
-    return game.current_q_index === 0 && !sessionStorage.getItem("quiz_jam_math_hint_dismissed");
-  });
   const [showScoreTab, setShowScoreTab] = useState(false);
   const [rankingTab, setRankingTab] = useState<'individual' | 'team'>('individual');
   const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
@@ -75,6 +71,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const [isMyTurnToSwap, setIsMyTurnToSwap] = useState(false);
   const [swapCommitted, setSwapCommitted] = useState(false);
   const [isSwapExecuting, setIsSwapExecuting] = useState(false);
+  const [showFirstQInstruction, setShowFirstQInstruction] = useState(false);
   const [activeSwapperName, setActiveSwapperName] = useState<string | null>(null);
   const [swapResultText, setSwapResultText] = useState<string | null>(null);
   const [pendingSwapTarget, setPendingSwapTarget] = useState<any>(null);
@@ -131,13 +128,18 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     // 1. Initial State Sync from persistent DB state (to prevent race conditions)
     if (game.status === 'RESULT') {
       const swapState = game.options?.swapState;
-      if (swapState) {
+      console.log("[Student] Syncing swapState from DB:", swapState);
+      if (swapState && swapState.currentSwapperId) {
+        setActiveSwapperName(swapState.currentSwapperNickname);
         if (String(swapState.currentSwapperId) === String(player.id)) {
           setIsMyTurnToSwap(true);
+          setSwapResultText(null);
         } else {
           setIsMyTurnToSwap(false);
         }
-        setActiveSwapperName(swapState.currentSwapperNickname);
+      } else {
+        setActiveSwapperName(null);
+        setIsMyTurnToSwap(false);
       }
     }
     
@@ -149,6 +151,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         if (swapperId === myId) {
           setIsMyTurnToSwap(true);
           setSwapResultText(null);
+          // Automatically open the score tab for the swapper so they can choose a target
+          setShowScoreTab(true);
         } else {
           setIsMyTurnToSwap(false);
         }
@@ -195,11 +199,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       if (showScoreTab && sidebarRef.current && !sidebarRef.current.contains(target)) {
         setShowScoreTab(false);
       }
-      // Also hide math hint if active and clicking outside the math input area
-      if (showMathHint) {
-        setShowMathHint(false);
-        sessionStorage.setItem("quiz_jam_math_hint_dismissed", "true");
-      }
     };
     document.addEventListener("mousedown", handleClickOutside);
 
@@ -239,22 +238,25 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     }
   }, [result, game.current_q_index, currentQuestion]);
 
-  // Tooltip auto-hide effect
-  useEffect(() => {
-    if (showMathHint && game.current_q_index === 0) {
-      const timer = setTimeout(() => {
-        setShowMathHint(false);
-        sessionStorage.setItem("quiz_jam_math_hint_dismissed", "true");
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [showMathHint, game.current_q_index]);
 
   // Sync Timer from Host
   const [timeLeft, setTimeLeft] = useState<number>(currentQuestion?.timeLimit || 20);
 
   useEffect(() => {
     if (game?.status === 'PLAYING' && game?.options?.current_q_started_at) {
+      // Logic for first question instruction
+      if (game.current_q_index === 0) {
+        const startTime = new Date(game.options.current_q_started_at).getTime();
+        const now = Date.now();
+        if (now - startTime < 5000) {
+          setShowFirstQInstruction(true);
+          const timer = setTimeout(() => setShowFirstQInstruction(false), 5000 - (now - startTime));
+          return () => clearTimeout(timer);
+        }
+      } else {
+        setShowFirstQInstruction(false);
+      }
+
       const startTime = new Date(game.options.current_q_started_at).getTime();
       const limit = (currentQuestion?.timeLimit || 20) * 1000;
       
@@ -268,8 +270,10 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       updateTimer();
       const interval = setInterval(updateTimer, 500);
       return () => clearInterval(interval);
+    } else {
+      setShowFirstQInstruction(false);
     }
-  }, [game?.status, game?.options?.current_q_started_at, currentQuestion?.timeLimit]);
+  }, [game?.status, game?.options?.current_q_started_at, game?.current_q_index, currentQuestion?.timeLimit]);
 
   // Font Scaling Helpers
   const getQuestionFontSize = (text: string) => {
@@ -347,7 +351,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
     return (
       <div className="flex flex-col items-center justify-center min-h-[600px] w-full max-w-2xl mx-auto p-4 md:p-8 animate-in fade-in duration-500 relative">
-        {(swapResultText || pendingSwapTarget) && (
+        {(swapResultText || pendingSwapTarget || (activeSwapperName && !isMyTurnToSwap) || isMyTurnToSwap) && (
            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
               <div className="bg-white rounded-[3rem] p-8 max-w-md w-full shadow-2xl animate-in zoom-in duration-300 border-8 border-indigo-500 flex flex-col items-center text-center">
                  {pendingSwapTarget ? (
@@ -359,6 +363,41 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                           <Button size="lg" className="flex-1 rounded-2xl bg-indigo-600" onClick={() => handleSwapSelection(pendingSwapTarget.id, pendingSwapTarget.nickname)}>바꾸기</Button>
                           <Button size="lg" variant="ghost" className="flex-1 rounded-2xl border-2" onClick={() => setPendingSwapTarget(null)}>취소</Button>
                        </div>
+                    </>
+                 ) : isMyTurnToSwap ? (
+                    <div className="w-full flex flex-col items-center">
+                       <div className="text-5xl mb-4">🔄</div>
+                       <h3 className="text-2xl font-black text-indigo-900 mb-2">점수 바꾸기!</h3>
+                       <p className="text-slate-500 font-bold mb-6">누구와 점수를 바꿀까요? 목록에서 선택해 주세요!</p>
+                       <div className="w-full max-h-[300px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                          {players.filter(p => p.id !== player.id).sort((a,b) => (b.score||0)-(a.score||0)).map(p => (
+                             <button
+                                key={p.id}
+                                onClick={() => handleSwapSelection(p.id, p.nickname)}
+                                className="w-full flex items-center justify-between p-3 rounded-2xl border-2 border-slate-100 hover:border-indigo-400 hover:bg-indigo-50 transition-all group"
+                             >
+                                <div className="flex items-center gap-3">
+                                   <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200">
+                                      <img src={`/avatars/avatar_${p.avatar_id || 1}.png`} alt="avatar" className="w-full h-full object-cover" />
+                                   </div>
+                                   <span className="font-bold text-slate-700">{p.nickname}</span>
+                                </div>
+                                <span className="font-black text-indigo-600">{(p.score || 0).toLocaleString()}점</span>
+                             </button>
+                          ))}
+                       </div>
+                       <Button variant="ghost" className="mt-4 w-full rounded-2xl" onClick={() => handleSwapSelection(null, null)}>넘어가기 (선택 안함)</Button>
+                    </div>
+                 ) : activeSwapperName && !isMyTurnToSwap ? (
+                    <>
+                       <div className="text-5xl mb-4 animate-bounce">🔄</div>
+                       <h3 className="text-2xl font-black text-indigo-900 mb-4">{activeSwapperName} 학생이<br/>점수를 바꾸고 있습니다!</h3>
+                       <div className="flex items-center gap-2 text-indigo-500 font-bold">
+                          <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" />
+                          <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-100" />
+                          <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-200" />
+                       </div>
+                       <p className="text-slate-400 text-sm mt-6 font-bold">잠시만 기다려주세요...</p>
                     </>
                  ) : (
                     <>
@@ -623,6 +662,52 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
               );
             })()}
           </div>
+          {/* Enhanced Swapping Animation */}
+          {isSwapExecuting && (
+            <div className="fixed inset-0 z-[100] bg-indigo-900/80 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in transition-all">
+              <div className="relative">
+                <RefreshCw size={80} className="text-white animate-spin opacity-20" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 bg-white rounded-full animate-ping opacity-75" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <RefreshCw size={40} className="text-indigo-500 animate-spin" />
+                  </div>
+                </div>
+              </div>
+              <h2 className="text-3xl font-black text-white mt-8 animate-pulse italic tracking-tighter">SWAPPING SCORES...</h2>
+              <p className="text-indigo-200 font-bold mt-2">잠시만 기다려 주세요 정산 중입니다!</p>
+            </div>
+          )}
+
+           {/* First Question Instruction Overlay */}
+           {showFirstQInstruction && (
+             <div className="fixed inset-0 z-[100] bg-indigo-600 flex flex-col items-center justify-center animate-in zoom-in-95 transition-all p-8 text-center">
+                <div className="bg-white/10 w-24 h-24 rounded-[2rem] flex items-center justify-center mb-6 animate-bounce">
+                   <Layers size={48} className="text-white" />
+                </div>
+                <h1 className="text-4xl font-black text-white mb-4 tracking-tight leading-tight">
+                  수학 키보드 사용 안내
+                </h1>
+                <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-4">
+                   <div className="flex items-center gap-4 text-left">
+                      <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center shrink-0">
+                         <Keyboard size={20} className="text-indigo-600" />
+                      </div>
+                      <p className="text-slate-700 font-bold leading-snug">수학 문제를 풀 때 우측 상단 수식 키보드를 활용해 보세요!</p>
+                   </div>
+                   <div className="flex items-center gap-4 text-left opacity-90 transition-all hover:opacity-100">
+                      <div className="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center shrink-0 border border-amber-100">
+                         <RefreshCw size={20} className="text-amber-600 animate-spin-slow" />
+                      </div>
+                      <p className="text-slate-700 font-bold leading-snug">키보드가 입력되지 않으면 [새로고침] 버튼을 눌러주세요!</p>
+                   </div>
+                   <div className="bg-indigo-50 py-3 rounded-2xl">
+                      <span className="text-indigo-600 font-black text-xl animate-pulse">곧 게임이 시작됩니다! (5초)</span>
+                   </div>
+                </div>
+             </div>
+           )}
+
           {isMyTurnToSwap && (
             <div className="mt-4 p-3 bg-indigo-600 rounded-2xl text-white text-center animate-pulse shadow-lg border-b-4 border-indigo-800">
                <div className="text-xs font-black mb-1">🔄 점수 바꾸기 진행 중!</div>
@@ -632,31 +717,42 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         </div>
       </div>
 
-      <div className="w-full max-w-4xl bg-white rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl p-4 md:p-8 border-2 border-indigo-50 flex flex-col relative overflow-hidden h-full max-h-[92vh] focus-within:ring-0">
+      <div className="w-full max-w-4xl bg-white rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl p-3 md:p-6 flex flex-col relative overflow-hidden h-full max-h-[94vh] focus-within:ring-0">
 
-        <div className="flex items-center justify-between mb-4 px-2 pt-2">
-          <div className="bg-indigo-50 px-4 py-2 rounded-2xl flex items-center gap-3 border border-indigo-100">
-            <Trophy size={18} className="text-indigo-500" />
-            <span className="text-xl md:text-2xl font-black text-indigo-600">Q{(game?.current_q_index ?? 0) + 1}</span>
-            <span className="text-sm font-bold text-indigo-300">/ {totalQuestions}</span>
+        <div className="flex items-center justify-between mb-1 px-2 pt-0.5">
+          <div className="bg-indigo-50 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-indigo-100">
+            <Trophy size={16} className="text-indigo-500" />
+            <span className="text-lg md:text-xl font-black text-indigo-600">Q{(game?.current_q_index ?? 0) + 1}</span>
+            <span className="text-xs font-bold text-indigo-300">/ {totalQuestions}</span>
           </div>
-          <div className={cn("px-4 py-2 rounded-2xl flex items-center gap-3 border-2 transition-all", timeLeft <= 5 ? "bg-red-50 border-red-200 animate-pulse" : "bg-slate-50 border-slate-100")}>
-            <Clock size={18} className={timeLeft <= 5 ? "text-red-500" : "text-slate-400"} />
-            <span className={cn("text-xl md:text-3xl font-black tabular-nums", timeLeft <= 5 ? "text-red-600" : "text-slate-600")}>{timeLeft}</span>
+
+          {/* Global Swap Notification for non-swappers */}
+          {activeSwapperName && !isMyTurnToSwap && !isSwapExecuting && (
+            <div className="absolute left-1/2 -translate-x-1/2 top-2 z-[60] animate-bounce">
+              <div className="bg-amber-500 text-white px-4 py-1.5 rounded-full shadow-lg border-2 border-white flex items-center gap-2">
+                <RefreshCw size={14} className="animate-spin" />
+                <span className="text-xs font-black whitespace-nowrap">{activeSwapperName} 학생이 점수 교체 중...</span>
+              </div>
+            </div>
+          )}
+
+          <div className={cn("px-3 py-1.5 rounded-xl flex items-center gap-2 border-2 transition-all", timeLeft <= 5 ? "bg-red-50 border-red-200 animate-pulse" : "bg-slate-50 border-slate-100")}>
+            <Clock size={16} className={timeLeft <= 5 ? "text-red-500" : "text-slate-400"} />
+            <span className={cn("text-lg md:text-2xl font-black tabular-nums", timeLeft <= 5 ? "text-red-600" : "text-slate-600")}>{timeLeft}</span>
           </div>
         </div>
 
         <div className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar px-2">
-          <div className={cn("font-black text-slate-800 break-keep leading-tight text-center py-4 md:py-8", getQuestionFontSize(currentQuestion.q))}>
+          <div className={cn("font-black text-slate-800 break-keep leading-tight text-center py-1 md:py-2", getQuestionFontSize(currentQuestion.q))}>
             <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
               {processMathText(currentQuestion.type === "BLANK" ? 
                 currentQuestion.q.split(/\s+/).map((w: string, i: number) => (currentQuestion.blanks || []).includes(i) ? "___" : w).join(" ") 
                 : currentQuestion.q)}
             </ReactMarkdown>
           </div>
-          {currentQuestion.image_url && <img src={currentQuestion.image_url} alt="q" className="rounded-2xl max-w-full max-h-[40vh] object-contain mx-auto shadow-lg border-2 border-slate-100 mb-6" />}
+          {currentQuestion.image_url && <img src={currentQuestion.image_url} alt="q" className="rounded-2xl max-w-full max-h-[35vh] object-contain mx-auto shadow-lg border-2 border-slate-100 mb-2" />}
           
-          <div className="space-y-4 flex flex-col flex-1">
+          <div className="space-y-2 flex flex-col flex-1">
             {currentQuestion.type === "BLANK" && !submitted && !internalSubmitted && (
                <div className="text-center font-black text-indigo-500 bg-indigo-50 py-2 rounded-2xl animate-pulse text-sm">
                  💡 빈칸에 알맞은 단어를 입력해 주세요!
@@ -711,36 +807,16 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                       </div>
                     ) : (
                       <div className="w-full">
-                        <div className="relative border-2 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all p-1 flex items-center">
-                          <MathInput value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-lg md:text-xl font-bold p-1" template={currentQuestion.template} focusOnMount={true} isFirstQuestion={game.current_q_index === 0} />
-                          
-                          {showMathHint && (
-                            <div className="fixed top-24 right-6 z-50 animate-pop">
-                              <div className="bg-white rounded-2xl shadow-xl p-4 border-2 border-indigo-500 relative flex items-center gap-4 max-w-xs text-left">
-                                <div className="p-3 bg-indigo-100 rounded-xl">
-                                  <Keyboard className="text-indigo-600" size={24} />
-                                </div>
-                                <div>
-                                  <p className="font-bold text-gray-800 text-sm">수학 도구</p>
-                                  <p className="text-gray-600 text-xs leading-tight mt-1">수학 문제를 풀 때<br/>사용해요!</p>
-                                </div>
-                                <div className="absolute -top-3 right-3 bg-indigo-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">TIP</div>
-                              </div>
-                            </div>
-                          )}
-
-                          <button 
-                            onClick={() => { 
-                              (document.activeElement as HTMLElement)?.blur(); 
-                              setTimeout(() => { 
-                                (document.querySelector('math-field, input[type="text"]') as HTMLElement)?.focus(); 
-                              }, 100); 
-                            }} 
-                            className="shrink-0 w-8 h-8 bg-indigo-50 text-indigo-500 rounded-lg flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100"
-                          >
-                            <RefreshCw size={14} />
-                          </button>
-                        </div>
+                         <MathInput 
+                            value={answer} 
+                            onChange={handleAnswerChange} 
+                            onEnter={() => handleSubmit()} 
+                            className="w-full text-lg md:text-xl font-bold p-1" 
+                            template={currentQuestion.template} 
+                            focusOnMount={true} 
+                            isFirstQuestion={game.current_q_index === 0} 
+                            gameId={game.id} 
+                         />
                       </div>
                     )}
                     <Button size="xl" className="w-full py-5 md:py-6 text-xl md:text-2xl shadow-lg mt-auto" onClick={() => handleSubmit()}>정답 제출하기</Button>

@@ -375,7 +375,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       if (statusErr) console.error("[Host] Status update failed:", statusErr);
 
       // 7. Broadcast Results Ready (to trigger student re-fetch)
-      const eventChannel = supabase.channel(`game_events_${game.id}_final`);
+      const eventChannel = supabase.channel(`game_events_${game.id}`);
       eventChannel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           console.log("[Host] Broadcasting results and updates...");
@@ -397,9 +397,13 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             await eventChannel.send({
               type: 'broadcast',
               event: 'START_SWAP',
-              payload: { playerId: swappers[0].id, nickname: swappers[0].nickname }
+              payload: { playerId: String(swappers[0].id), nickname: swappers[0].nickname }
             });
           }
+
+          // Update local state and ref so host UI shows the icons/results immediately
+          setAnswers(updatedAnswers);
+          answersRef.current = updatedAnswers;
 
           setTimeout(() => supabase.removeChannel(eventChannel), 5000);
         }
@@ -614,11 +618,12 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     if (game.status === 'RESULT' || game.status === 'PLAYING') {
       setCalculating(false);
     }
-    // RESET SWAP & SUBMISSION STATES only when moving to a NEW question
+    // RESET SWAP & SUBMISSION STATES only when moving to a NEW question (PLAYING status)
     if (game.status === 'PLAYING' && prevQIndexRef.current !== game.current_q_index) {
       console.log(`[HostControl] New question detected (${game.current_q_index}), resetting states.`);
       setCurrentSwapperId(null);
       setSwapQueue([]);
+      // Only clear answers if we're entering a state where new answers are expected.
       setAnswers([]);
       prevQIndexRef.current = game.current_q_index;
     }
@@ -745,9 +750,12 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       }
     };
 
-    // Immediate cleanup and initial fetch on question index change
-    setAnswers([]);
-    answersRef.current = [];
+    // Optimization: avoid clearing answers if we just entered RESULT screen
+    // so calculatedHost results don't flicker.
+    if (gameRef.current.status === 'PLAYING') {
+      setAnswers([]);
+      answersRef.current = [];
+    }
     fetchAnswers();
 
     const interval = setInterval(() => {
@@ -967,11 +975,14 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                               if (!evt) return null;
                               return (
                                 <div key={eIdx} className={cn(
-                                  "flex flex-col items-center bg-white/10 px-1.5 py-0.5 rounded-lg border border-white/5",
+                                  "flex flex-col items-center bg-white/10 px-1.5 py-0.5 rounded-lg border border-white/5 relative",
                                   String(currentSwapperId) === String(player.id) && e === 'swap' && "bg-indigo-600 border-indigo-400 scale-110 shadow-lg ring-2 ring-white/20"
                                 )}>
                                   {String(currentSwapperId) === String(player.id) && e === 'swap' ? (
-                                    <RefreshCw className="text-white animate-spin" size={12} />
+                                    <>
+                                      <RefreshCw className="text-white animate-spin" size={12} />
+                                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[8px] px-1.5 py-0.5 rounded-full whitespace-nowrap font-black shadow-lg border border-indigo-300">교체 중</span>
+                                    </>
                                   ) : (
                                     <span className="text-sm leading-none drop-shadow-md">{evt.icon}</span>
                                   )}

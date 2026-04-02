@@ -168,15 +168,6 @@ function StudentPlayContent() {
           setWasKicked(true);
         }
       })
-      .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
-        const newEmoji = { 
-          id: Date.now() + Math.random(), 
-          emoji: payload.emoji, 
-          left: Math.random() * 80 + 10 
-        };
-        setFloatingEmojis((prev: any[]) => [...prev, newEmoji]);
-        setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 3000);
-      })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           channelRef.current = channel;

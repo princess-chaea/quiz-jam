@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMathKeypad } from "./MathKeypadContext";
 import { cn, hasMathSymbols } from "@/lib/utils";
-import { Keyboard } from "lucide-react";
+import { Keyboard, RefreshCw } from "lucide-react";
 
 /**
  * Converts plain text or mixed LaTeX into a format that MathLive renders correctly,
@@ -43,6 +43,8 @@ interface MathInputProps {
   showScrollbar?: boolean; // New prop to force scrollbar
   forceMathKeypad?: boolean; // New prop to force math keypad for students
   isFirstQuestion?: boolean; // New prop to control keyboard hint visibility
+  gameId?: string; // Prop to track if it's a new game instance
+  onRefresh?: () => void; // New prop for manual focus/refresh
 }
 
 export function MathInput({ 
@@ -60,6 +62,8 @@ export function MathInput({
   showScrollbar = false,
   forceMathKeypad = false,
   isFirstQuestion = false,
+  gameId = "global",
+  onRefresh
 }: MathInputProps) {
   const mfRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -71,17 +75,27 @@ export function MathInput({
 
   useEffect(() => {
     if (!isTeacher && isFirstQuestion) {
-      const shownThisSession = sessionStorage.getItem("quiz-jam-keypad-hint-shown");
-      if (!shownThisSession) {
-        setShowHelp(true);
-        const timer = setTimeout(() => {
-          setShowHelp(false);
-          sessionStorage.setItem("quiz-jam-keypad-hint-shown", "true");
-        }, 5000);
-        return () => clearTimeout(timer);
+      // Use a session storage key that inclusions the game ID to show it "always" for new games
+      // but only once per game instance to avoid being annoying on every re-render.
+      const storageKey = `quiz-jam-keypad-hint-shown-${gameId}`;
+      const shownThisGame = sessionStorage.getItem(storageKey);
+      
+      if (!shownThisGame) {
+        // Delay slightly for visual effect
+        const initialTimer = setTimeout(() => {
+          setShowHelp(true);
+          const hideTimer = setTimeout(() => {
+            setShowHelp(false);
+            sessionStorage.setItem(storageKey, "true");
+          }, 5000);
+          return () => clearTimeout(hideTimer);
+        }, 1000);
+        return () => clearTimeout(initialTimer);
       }
+    } else if (!isFirstQuestion) {
+      setShowHelp(false);
     }
-  }, [isTeacher, isFirstQuestion]);
+  }, [isTeacher, isFirstQuestion, gameId]);
 
   const dismissHelp = () => {
     setShowHelp(false);
@@ -413,34 +427,39 @@ export function MathInput({
       ref={containerRef}
       onClick={() => mfRef.current && forceFocus(mfRef.current)}
       className={cn(
-        "relative flex flex-col justify-center w-full h-fit min-h-[2.5rem] rounded-xl group/math bg-slate-50/50 border border-slate-200 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text py-0", 
+        "relative flex flex-col justify-center w-full h-fit rounded-xl group/math bg-slate-50/50 border border-slate-200 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text py-0 px-0.5 my-0.5", 
         (!multiline || showScrollbar) ? "overflow-x-auto custom-scrollbar" : "overflow-visible h-fit",
         containerClassName
       )}
+      style={{ minHeight: 'auto' }}
     >
       <style dangerouslySetInnerHTML={{ __html: `
         math-field {
           display: block !important;
           width: ${(multiline && !showScrollbar) ? '100%' : 'max-content'} !important;
           min-width: 100% !important;
-          height: 100% !important;
+          height: auto !important;
           background: transparent !important;
           overflow: visible !important;
+          min-height: 0 !important;
         }
         math-field::part(container) {
-          padding: 0 3rem 0 0.75rem !important; 
+          padding: 0 4.5rem 0 0.5rem !important; 
           overflow: visible !important;
           cursor: text !important;
-          min-height: 100% !important;
+          min-height: 0 !important;
           display: flex !important;
           align-items: center !important;
+          line-height: normal !important;
         }
         math-field .ML__base {
           display: flex !important;
           flex-wrap: ${multiline ? 'wrap' : 'nowrap'} !important;
           width: 100% !important;
           line-height: inherit !important;
-          padding: 2px 0 !important;
+          padding: 0 !important;
+          margin-top: -2px !important;
+          margin-bottom: -2px !important;
         }
         math-field .ML__content {
           display: ${multiline ? 'block' : 'inline-block'} !important;
@@ -457,63 +476,87 @@ export function MathInput({
           pointer-events: none !important;
         }
       `}} />
-      <math-field
-        ref={(el: any) => {
-          mfRef.current = el;
-          if (el !== mfElement) setMfElement(el);
-        }}
-        className={cn("w-full outline-none", className)}
-        style={{ 
-          flex: 1,
-          width: "100%", 
-          background: "transparent",
-          border: "none",
-          minHeight: isTeacher ? "2.5rem" : "2.2rem",
-          padding: "0.1rem 0.4rem",
-          fontSize: isTeacher ? "1.125rem" : "1.5rem",
-        }}
-        multiline={multiline ? "true" : "false"}
-        math-virtual-keyboard-policy="manual"
-        virtual-keyboard-toggle="hidden"
-        menu-icon="none"
-        keypress-sound="none"
-        plonk-sound="none"
-        placeholder={placeholder}
-      >
-        {toMathLiveValue(value)}
-      </math-field>
+      <div className="relative group w-full">
+        <math-field
+          ref={(el: any) => {
+            mfRef.current = el;
+            if (el !== mfElement) setMfElement(el);
+          }}
+          tabIndex={0}
+          className={cn(
+            "w-full bg-transparent outline-none transition-all math-field-compact",
+            className
+          )}
+          style={{ 
+            fontSize: isTeacher ? '1.1rem' : '1.25rem',
+            padding: '0px',
+            minHeight: 'auto',
+            background: 'transparent',
+            border: 'none',
+            display: 'block'
+          }}
+          multiline={multiline ? "true" : "false"}
+          math-virtual-keyboard-policy="manual"
+          virtual-keyboard-toggle="hidden"
+          menu-icon="none"
+          keypress-sound="none"
+          plonk-sound="none"
+          placeholder={placeholder}
+        >
+          {toMathLiveValue(value)}
+        </math-field>
+      </div>
       
       {!isTeacher && (
-        <div className="relative">
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10 p-0.5">
           <button
             type="button"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              if (showHelp) dismissHelp();
-              if (mfRef.current) {
-                forceFocus(mfRef.current);
-                openKeypad(mfRef.current, level);
+              if (onRefresh) onRefresh();
+              else {
+                mfRef.current?.blur();
+                setTimeout(() => mfRef.current?.focus(), 50);
               }
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-indigo-50 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-600 transition-all shadow-sm border border-indigo-100 z-10"
-            title="수식 키보드 열기"
+            className="p-1 rounded-lg bg-slate-100 text-slate-500 hover:bg-indigo-600 hover:text-white transition-all border border-slate-200"
+            title="입력기 새로고침"
           >
-            <Keyboard size={20} />
+            <RefreshCw size={14} />
           </button>
+          
+          <div className="relative">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (showHelp) dismissHelp();
+                if (mfRef.current) {
+                  forceFocus(mfRef.current);
+                  openKeypad(mfRef.current, level);
+                }
+              }}
+              className="p-1 rounded-lg bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100"
+              title="수식 키보드 열기"
+            >
+              <Keyboard size={16} />
+            </button>
 
-          {showHelp && (
-            <div className="absolute right-0 bottom-full mb-3 z-50 animate-tip-pop pointer-events-none">
-              <div className="bg-indigo-600 text-white px-4 py-3 rounded-2xl shadow-2xl min-w-[180px] relative">
-                <p className="text-xs font-black leading-snug">
-                  수학 문제를 풀 때<br/>
-                  사용해요!
-                </p>
-                {/* Arrow */}
-                <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-indigo-600 rotate-45" />
+            {showHelp && (
+              <div className="absolute right-0 bottom-full mb-3 z-50 animate-tip-pop pointer-events-none">
+                <div className="bg-indigo-600 text-white px-3 py-2 rounded-xl shadow-2xl min-w-[150px] relative">
+                  <p className="text-[10px] font-black leading-tight">
+                    키보드가 뜨지 않으면<br/>
+                    [새로고침] 버튼을 눌러보세요!
+                  </p>
+                  {/* Arrow */}
+                  <div className="absolute -bottom-1 right-5 w-2 h-2 bg-indigo-600 rotate-45" />
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>
