@@ -67,12 +67,18 @@ body {
 }
 
 @keyframes float-up {
-  0% { transform: translateY(0); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translateY(-100vh); opacity: 0; }
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  10% { opacity: 1; transform: scale(1.2); }
+  80% { opacity: 1; }
+  100% { transform: translateY(-120vh) scale(1); opacity: 0; }
 }
 
-.animate-float-up {
+.float-up-reaction {
+  position: fixed;
+  bottom: 0;
+  pointer-events: none;
   animation: float-up 3s ease-out forwards;
+  z-index: 9999;
+  font-size: 4rem;
+  filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
 }

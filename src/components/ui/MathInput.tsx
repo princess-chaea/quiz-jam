@@ -468,9 +468,9 @@ export function MathInput({
           width: "100%", 
           background: "transparent",
           border: "none",
-          fontSize: isTeacher ? "1.125rem" : "1.875rem",
+          fontSize: isTeacher ? "1.125rem" : "1.25rem",
           display: 'block',
-          minHeight: isTeacher ? "3rem" : "4.5rem",
+          minHeight: isTeacher ? "3rem" : "2.75rem",
         }}
         multiline={multiline ? "true" : "false"}
         math-virtual-keyboard-policy="manual"

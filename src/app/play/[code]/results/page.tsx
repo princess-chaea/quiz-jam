@@ -206,9 +206,8 @@ function ResultsContent() {
           <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-b-8 border-indigo-200">
             <div className="bg-indigo-600 p-10 flex flex-col items-center text-white relative">
               <img src="/logo.png" className="w-16 h-16 object-contain mb-4 animate-pop shadow-md rounded-2xl bg-white/10 p-2" alt="Quiz Jam Logo" />
-              <div className="relative mb-2">
+              <div className="mb-2">
                 <Trophy size={64} className="text-yellow-400 drop-shadow-lg" />
-                <Star size={24} className="absolute -top-2 -right-2 text-yellow-200 animate-pulse" />
               </div>
               <h1 className="text-3xl font-jua">게임 완료</h1>
               <p className="opacity-80 font-bold">{name} 학생, 수고했어요!</p>

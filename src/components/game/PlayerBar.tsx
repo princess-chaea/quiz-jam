@@ -99,11 +99,13 @@ export function PlayerBar({ players, currentNickname, submissions, className }: 
               )}
             </div>
 
-            <div className="flex flex-col min-w-0 pr-1">
-              <span className={cn(
-                "text-[11px] font-black truncate max-w-[80px] leading-tight",
-                isMe ? "text-white" : "text-indigo-900"
-              )}>{player.nickname}</span>
+            <div className="flex flex-col min-w-0 pr-1 gap-1">
+              <div className={cn(
+                "px-2 py-0.5 rounded-lg text-[10px] font-black truncate max-w-[90px] leading-tight",
+                isMe ? "bg-white text-indigo-600 shadow-sm" : "bg-white/90 text-indigo-900 border border-white/50 shadow-sm"
+              )}>
+                {player.nickname}
+              </div>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className={cn(
                   "text-[10px] font-black px-1.5 py-0.5 rounded-lg",
@@ -111,12 +113,10 @@ export function PlayerBar({ players, currentNickname, submissions, className }: 
                 )}>
                   {player.score.toLocaleString()}
                 </span>
-                {isMe && (
-                  <div className="flex gap-0.5 ml-1">
-                    {hasStrike && <span className="text-xs animate-pulse">⚡</span>}
-                    {hasShield && <span className="text-xs">🛡️</span>}
-                  </div>
-                )}
+                <div className="flex gap-0.5 ml-1">
+                  {isMe && hasStrike && <span className="text-xs animate-pulse">⚡</span>}
+                  {isMe && hasShield && <span className="text-xs">🛡️</span>}
+                </div>
               </div>
             </div>
           </div>

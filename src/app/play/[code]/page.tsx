@@ -392,16 +392,9 @@ function StudentPlayContent() {
           {game?.status === 'WAITING' ? (
              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-white to-indigo-50 w-full rounded-3xl">
                 <div className="animate-float mb-8 cursor-pointer group relative" onClick={handleAvatarChange}>
-                    <div className={cn(
-                       "w-48 h-48 rounded-full flex items-center justify-center shadow-2xl border-8 transition-all overflow-hidden relative",
-                       me?.team === 'RED' ? "bg-red-500 border-red-200 ring-4 ring-red-100/50" :
-                       me?.team === 'BLUE' ? "bg-blue-500 border-blue-200 ring-4 ring-blue-100/50" :
-                       me?.team === 'GREEN' ? "bg-green-500 border-green-200 ring-4 ring-green-100/50" :
-                       me?.team === 'YELLOW' ? "bg-yellow-400 border-yellow-200 ring-4 ring-yellow-100/50" :
-                       "bg-white border-indigo-100 group-hover:border-indigo-400"
-                    )}>
+                    <div className="w-48 h-48 rounded-full flex items-center justify-center shadow-2xl border-8 transition-all overflow-hidden relative bg-white border-white ring-4 ring-indigo-100/50">
                       {me?.avatar_id ? (
-                         <img src={`/avatars/avatar_${me.avatar_id}.png`} alt="My Avatar" className="w-full h-full object-cover p-4" />
+                         <img src={`/avatars/avatar_${me.avatar_id}.png`} alt="My Avatar" className="w-full h-full object-cover" />
                       ) : (
                          <img src="/logo.png" alt="Quiz Jam Logo" className="w-28 h-28 object-contain translate-y-1" />
                       )}
@@ -516,6 +509,19 @@ function StudentPlayContent() {
             (game?.status === 'PLAYING' || game?.status === 'RESULT') ? "border-indigo-200" : "border-indigo-100 bg-white"
           )}
        />
+
+      {/* Global Floating Emojis Layer */}
+      <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
+        {floatingEmojis.map((e: any) => (
+          <div
+            key={e.id}
+            className="float-up-reaction"
+            style={{ left: `${e.left}%` }}
+          >
+            {e.emoji}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

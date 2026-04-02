@@ -354,17 +354,20 @@ export default function HostPage() {
           )}
         </div>
         
-        {/* Floating Emojis */}
+      </main>
+
+      {/* Global Floating Emojis Layer */}
+      <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
         {floatingEmojis.map((e: any) => (
           <div
             key={e.id}
-            className="fixed bottom-0 pointer-events-none animate-float-up text-6xl z-[100] drop-shadow-2xl"
+            className="float-up-reaction"
             style={{ left: `${e.left}%` }}
           >
             {e.emoji}
           </div>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

@@ -632,51 +632,49 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   }, [game.status, game.current_q_index]);
 
   useEffect(() => {
-    if (game.status !== 'PLAYING') return;
-    
-    const calculateTimeLeft = () => {
-      const q = game.options?.questions?.[game.current_q_index];
-      const limit = q?.timeLimit || 20;
-      const startedAt = game.options?.current_q_started_at;
-      
+    if (game.status !== 'PLAYING') {
+      setTimeLeft(game.options?.timeLimit || 20);
+      return;
+    }
+
+    const limit = game.options?.timeLimit || 20;
+    const startedAt = game.options?.current_q_started_at;
+
+    const syncTime = () => {
+      const limit = game.options?.timeLimit || 20;
       if (!startedAt) return limit;
-      
-      try {
-        const start = new Date(startedAt).getTime();
-        const now = new Date().getTime();
-        const elapsed = Math.floor((now - start) / 1000);
-        return Math.max(0, limit - elapsed);
-      } catch (e) {
-        return limit;
-      }
+      const start = new Date(startedAt).getTime();
+      const now = new Date().getTime();
+      const elapsed = Math.floor((now - start) / 1000);
+      return Math.max(0, limit - elapsed);
     };
 
     // Initial sync
-    const initial = calculateTimeLeft();
-    setTimeLeft(initial);
-    
+    const initialTime = syncTime();
+    setTimeLeft(initialTime);
+
     const timer = setInterval(() => {
-      const remaining = calculateTimeLeft();
+      const remaining = syncTime();
       setTimeLeft(remaining);
       
       // Periodically broadcast sync for all student clients to handle drift
-      if (remaining > 0 && remaining % 5 === 0) {
-        const channel = supabase.channel(`game_realtime:${game.id}`);
-        channel.subscribe(async (status) => {
+      if (remaining > 0 && (remaining % 5 === 0 || remaining <= 3)) {
+        const syncChannel = supabase.channel(`sync_${game.id}_${Date.now()}`);
+        syncChannel.subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
-            await channel.send({
+            await syncChannel.send({
               type: 'broadcast',
               event: 'TIMER_SYNC',
               payload: { timeLeft: remaining }
             });
-            setTimeout(() => supabase.removeChannel(channel), 1000);
+            setTimeout(() => supabase.removeChannel(syncChannel), 1000);
           }
         });
       }
 
       if (remaining <= 0) {
         clearInterval(timer);
-        // Only host triggers the finish round
+        // Delay slightly to allow late submissions to trickle in
         setTimeout(() => { 
           if (finishRoundRef.current && gameRef.current.status === 'PLAYING') {
             finishRoundRef.current(); 
@@ -909,14 +907,26 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                       key={player.id}
                       className="flex items-center gap-3 bg-white/5 p-3 rounded-2xl border border-white/5 hover:bg-white/10 transition-all group shrink-0"
                     >
-                      {/* Rank Indication */}
-                      <div className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs shrink-0 shadow-lg",
-                        rank === 1 ? "bg-yellow-400 text-indigo-900 border-2 border-yellow-200" :
-                          rank === 2 ? "bg-slate-300 text-slate-700" :
-                            rank === 3 ? "bg-orange-400 text-white" : "bg-white/10 text-white"
-                      )}>
-                        {rank}
+                      {/* Rank & Character */}
+                      <div className="relative shrink-0 flex items-center gap-2">
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs shrink-0 shadow-lg z-10",
+                          rank === 1 ? "bg-yellow-400 text-indigo-900 border-2 border-yellow-200" :
+                            rank === 2 ? "bg-slate-300 text-slate-700" :
+                              rank === 3 ? "bg-orange-400 text-white" : "bg-white/10 text-white"
+                        )}>
+                          {rank}
+                        </div>
+                        <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/10 p-0.5 border border-white/10 shadow-inner">
+                          <img 
+                            src={`/avatars/avatar_${player.avatar_id || 1}.png`} 
+                            className="w-full h-full object-cover" 
+                            alt="char"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/logo.png';
+                            }}
+                          />
+                        </div>
                       </div>
 
                       <div className="flex-1 min-w-0 flex items-center gap-3">
@@ -1030,16 +1040,8 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             </div>
           </div>
         </div>
-        {/* Floating Emojis */}
-        {floatingEmojis.map((e: any) => (
-          <div
-            key={e.id}
-            className="fixed bottom-0 pointer-events-none animate-float-up text-6xl z-[100] drop-shadow-2xl"
-            style={{ left: `${e.left}%` }}
-          >
-            {e.emoji}
           </div>
-        ))}
+        </div>
       </div>
     );
   }
@@ -1257,17 +1259,6 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         submissions={answers.filter(a => a.answer !== '(시간초과)').map(a => a.player_id)}
         className="bg-indigo-50/90 border-t border-indigo-200"
       />
-
-      {/* Floating Emojis */}
-      {floatingEmojis.map((e: { id: string | number; emoji: string; left: number }) => (
-        <div
-          key={e.id}
-          className="fixed bottom-0 pointer-events-none animate-float-up text-6xl z-[1000] drop-shadow-2xl"
-          style={{ left: `${e.left}%` }}
-        >
-          {e.emoji}
-        </div>
-      ))}
     </div>
   );
 }

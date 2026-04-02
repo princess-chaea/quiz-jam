@@ -5,7 +5,7 @@ import { useDialog } from '@/components/ui/DialogProvider';
 import { cn } from '@/lib/utils';
 import { 
   Trophy, Clock, Check, X, RefreshCw, Zap, Gift, 
-  Shield, TrendingUp, ChevronLeft, ChevronRight, Scissors 
+  Shield, TrendingUp, ChevronLeft, ChevronRight, Scissors, Keyboard
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import ReactMarkdown from 'react-markdown';
@@ -54,18 +54,15 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const [blankAnswers, setBlankAnswers] = useState<Record<number, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [internalSubmitted, setInternalSubmitted] = useState(false);
-  const [showFocusHelp, setShowFocusHelp] = useState(() => {
-    if (typeof window !== "undefined") {
-      return sessionStorage.getItem("quiz_jam_focus_help_dismissed") !== "true";
-    }
-    return true;
+  const [showMathHint, setShowMathHint] = useState(() => {
+    // Show only for the first question of the game
+    return game.current_q_index === 0 && !sessionStorage.getItem("quiz_jam_math_hint_dismissed");
   });
   const [showScoreTab, setShowScoreTab] = useState(false);
   const [rankingTab, setRankingTab] = useState<'individual' | 'team'>('individual');
   const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
   
   const totalQuestions = game.options?.questions?.length || 0;
-  const currentProgress = ((game.current_q_index + 1) / totalQuestions) * 100;
   const currentQuestion = game.options?.questions[game.current_q_index];
   
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -161,8 +158,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         }
       })
       .on('broadcast', { event: 'SHIELD_BLOCK' }, ({ payload }: { payload: any }) => {
-        if (payload.targetId === player.id) {
-          setShieldBlock({ nickname: payload.attackerName, type: payload.type });
+        if (String(payload.targetId) === String(player.id)) {
+          setShieldBlock({ nickname: payload.attackerName || payload.nickname, type: payload.type });
           setTimeout(() => setShieldBlock(null), 3000);
         }
       })
@@ -181,10 +178,10 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       if (showScoreTab && sidebarRef.current && !sidebarRef.current.contains(target)) {
         setShowScoreTab(false);
       }
-      // Also hide focus help if active and clicking outside the math input area
-      if (showFocusHelp) {
-        setShowFocusHelp(false);
-        sessionStorage.setItem("quiz_jam_focus_help_dismissed", "true");
+      // Also hide math hint if active and clicking outside the math input area
+      if (showMathHint) {
+        setShowMathHint(false);
+        sessionStorage.setItem("quiz_jam_math_hint_dismissed", "true");
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -225,53 +222,37 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     }
   }, [result, game.current_q_index, currentQuestion]);
 
-  // 2. Timer Sync Logic
-  const [timeLeft, setTimeLeft] = useState<number>(30);
-  
+  // Tooltip auto-hide effect
   useEffect(() => {
-    if (game.status !== 'PLAYING') {
-      setTimeLeft(currentQuestion?.timeLimit || 20);
-      return;
+    if (showMathHint && game.current_q_index === 0) {
+      const timer = setTimeout(() => {
+        setShowMathHint(false);
+        sessionStorage.setItem("quiz_jam_math_hint_dismissed", "true");
+      }, 5000);
+      return () => clearTimeout(timer);
     }
-    
-    const calculateTimeLeft = () => {
-      const limit = currentQuestion?.timeLimit || 20;
-      const startedAt = game.options?.current_q_started_at;
-      if (!startedAt) return limit;
+  }, [showMathHint, game.current_q_index]);
+
+  // Sync Timer from Host
+  const [timeLeft, setTimeLeft] = useState<number>(currentQuestion?.timeLimit || 20);
+
+  useEffect(() => {
+    if (game?.status === 'PLAYING' && game?.options?.current_q_started_at) {
+      const startTime = new Date(game.options.current_q_started_at).getTime();
+      const limit = (currentQuestion?.timeLimit || 20) * 1000;
       
-      const start = new Date(startedAt).getTime();
-      const now = new Date().getTime();
-      const elapsed = Math.floor((now - start) / 1000);
-      return Math.max(0, limit - elapsed);
-    };
+      const updateTimer = () => {
+        const now = Date.now();
+        const elapsed = now - startTime;
+        const remaining = Math.max(0, Math.ceil((limit - elapsed) / 1000));
+        setTimeLeft(remaining);
+      };
 
-    // Immediate initial sync
-    const initialTime = calculateTimeLeft();
-    setTimeLeft(initialTime);
-    
-    // Decrement timer locally every second
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 0) return 0;
-        return prev - 1;
-      });
-    }, 1000);
-
-    // Listen for Host broadcast SYNC to handle clock drift
-    const channel = supabase.channel(`game_realtime:${game.id}`)
-      .on('broadcast', { event: 'TIMER_SYNC' }, ({ payload }: { payload: any }) => {
-        if (payload?.timeLeft !== undefined) {
-          // Sync with the absolute truth from host
-          setTimeLeft(payload.timeLeft);
-        }
-      })
-      .subscribe();
-    
-    return () => {
-      clearInterval(timer);
-      supabase.removeChannel(channel);
-    };
-  }, [game.status, game.id, game.options?.current_q_started_at]);
+      updateTimer();
+      const interval = setInterval(updateTimer, 500);
+      return () => clearInterval(interval);
+    }
+  }, [game?.status, game?.options?.current_q_started_at, currentQuestion?.timeLimit]);
 
   // Font Scaling Helpers
   const getQuestionFontSize = (text: string) => {
@@ -325,9 +306,46 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   };
 
   if (game.status === "RESULT" && result) {
-    // Round Result Screen
+    const getEventInfo = (event?: string) => {
+      if (!event || event === 'none') return null;
+      const e = event.split(',')[0].trim().toLowerCase();
+      if (e === 'double') return { icon: '✨', text: '두배 찬스!', color: 'bg-yellow-400', desc: '다음 문제 점수가 2배가 됩니다!' };
+      if (e === 'strike_bonus') return { icon: '🔥', text: '콤보 보너스!', color: 'bg-orange-500', desc: '연속 정답으로 추가 점수를 얻었습니다!' };
+      if (e === 'shield') return { icon: '🛡️', text: '방어막 획득!', color: 'bg-blue-400', desc: '공격을 한 번 막아줄 방어막이 생겼습니다!' };
+      if (e === 'swap') return { icon: '🔄', text: '점수 바꾸기!', color: 'bg-indigo-500', desc: '다른 친구와 점수를 바꿀 수 있습니다!' };
+      if (e === 'cut') return { icon: '✂️', text: '점수 삭감!', color: 'bg-red-500', desc: '상대방의 점수를 깎았습니다!' };
+      if (e === 'donate') return { icon: '📤', text: '점수 기부!', color: 'bg-emerald-500', desc: '우리 팀원에게 점수를 나누어 주었습니다!' };
+      return null;
+    };
+
+    const eventInfo = getEventInfo(result.event);
+
     return (
       <div className="flex flex-col items-center justify-center min-h-[600px] w-full max-w-2xl mx-auto p-4 md:p-8 animate-in fade-in duration-500 relative">
+        {(swapResultText || pendingSwapTarget) && (
+           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+              <div className="bg-white rounded-[3rem] p-8 max-w-md w-full shadow-2xl animate-in zoom-in duration-300 border-8 border-indigo-500 flex flex-col items-center text-center">
+                 {pendingSwapTarget ? (
+                    <>
+                       <div className="text-5xl mb-4">🔄</div>
+                       <h3 className="text-2xl font-black text-indigo-900 mb-2">{pendingSwapTarget.nickname} 학생과<br/>점수를 바꿀까요?</h3>
+                       <p className="text-slate-500 font-bold mb-6">내가 가진 점수와 바꿀 수 있습니다.</p>
+                       <div className="flex gap-3 w-full">
+                          <Button size="lg" className="flex-1 rounded-2xl bg-indigo-600" onClick={() => handleSwapSelection(pendingSwapTarget.id, pendingSwapTarget.nickname)}>바꾸기</Button>
+                          <Button size="lg" variant="ghost" className="flex-1 rounded-2xl border-2" onClick={() => setPendingSwapTarget(null)}>취소</Button>
+                       </div>
+                    </>
+                 ) : (
+                    <>
+                       <div className="text-5xl mb-4">✨</div>
+                       <h3 className="text-2xl font-black text-indigo-900 mb-4">{swapResultText}</h3>
+                       <Button size="lg" className="w-full rounded-2xl bg-indigo-600" onClick={() => { setSwapResultText(null); if (swapCommitted) refresh(); }}>확인</Button>
+                    </>
+                 )}
+              </div>
+           </div>
+        )}
+
         <div className={cn(
           "w-full bg-white rounded-[4rem] border-[16px] shadow-2xl overflow-hidden flex flex-col items-center p-8 transition-all duration-500 scale-105",
           result.is_correct ? "border-emerald-500" : "border-red-500"
@@ -335,13 +353,38 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           <div className="text-xl md:text-2xl font-black text-slate-800 font-jua mb-4">
             {result.is_correct ? "정답입니다!" : "아쉬워요!"}
           </div>
-          <div className="mb-8">
-            {result.is_correct ? <Check className="text-emerald-500" size={80} strokeWidth={8} /> : <X className="text-red-500" size={100} strokeWidth={6} />}
+          <div className="mb-6 flex flex-col items-center gap-4">
+            {result.is_correct ? (
+              <div className="relative">
+                <Check className="text-emerald-500" size={80} strokeWidth={8} />
+                <div className="absolute inset-0 animate-ping bg-emerald-100 rounded-full opacity-20" />
+              </div>
+            ) : (
+              <X className="text-red-500" size={100} strokeWidth={6} />
+            )}
+            
+            {eventInfo && (
+              <div className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-2xl text-white font-black animate-bounce shadow-lg",
+                eventInfo.color
+              )}>
+                <span className="text-xl">{eventInfo.icon}</span>
+                <span className="text-sm">{eventInfo.text}</span>
+              </div>
+            )}
           </div>
+
           <div className="bg-slate-50 rounded-[3rem] p-8 w-full flex flex-col items-center">
-            <div className={cn("text-6xl md:text-8xl font-black mb-4", result.is_correct ? "text-indigo-600" : "text-red-500")}>
-              {result.points_awarded >= 0 ? `+${result.points_awarded}` : result.points_awarded}점
+            <div className={cn("text-6xl md:text-8xl font-black mb-2", result.is_correct ? "text-indigo-600" : "text-red-500")}>
+              {result.points_added >= 0 ? `+${result.points_added}` : result.points_added}점
             </div>
+            
+            {(result.event_description || eventInfo?.desc) && (
+              <div className="bg-white/80 backdrop-blur px-4 py-2 rounded-xl border border-indigo-100 mt-2 mb-6 text-indigo-600 font-bold text-sm shadow-sm">
+                ✨ {result.event_description || eventInfo?.desc}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4 w-full">
               <div className="bg-indigo-50 p-3 rounded-2xl border text-center">
                 <div className="text-[10px] text-slate-400 font-black uppercase">내가 쓴 답</div>
@@ -362,7 +405,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center p-3 md:p-6 overflow-hidden">
-      {/* Floating Leaderboard Sidebar */}
       <div 
         ref={sidebarRef}
         className={cn(
@@ -382,7 +424,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             <span className="text-[10px] text-indigo-400 font-bold">실시간</span>
           </div>
 
-          {/* Detailed Team Stats (Sticky at top of content if team mode) */}
           {game?.options?.isTeamMode && player?.team && (
             <div className="mb-4 p-3 bg-indigo-50/50 rounded-2xl border-2 border-indigo-100/50 shrink-0">
               <div className="flex items-center justify-between mb-2">
@@ -520,11 +561,16 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                   <div key={p.id} className={cn("flex items-center justify-between p-2 rounded-xl border transition-all", p.id===player.id ? "bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100" : "bg-slate-50 border-slate-100")}>
                     <div className="flex items-center gap-2">
                       <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0", rank===1 ? "bg-yellow-400 text-white" : rank===2 ? "bg-slate-300 text-white" : rank===3 ? "bg-orange-300 text-white" : "bg-slate-200 text-slate-500")}>{rank}</span>
-                      {p.character && (
-                        <div className="w-6 h-6 rounded-full overflow-hidden bg-white border border-slate-200 shrink-0">
-                          <img src={p.character} alt="avatar" className="w-full h-full object-cover" />
-                        </div>
-                      )}
+                      <div className="w-6 h-6 rounded-full overflow-hidden bg-white border border-slate-200 shrink-0">
+                        <img 
+                          src={`/avatars/avatar_${p.avatar_id || 1}.png`} 
+                          alt="avatar" 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => {
+                             (e.target as HTMLImageElement).src = '/logo.png';
+                          }}
+                        />
+                      </div>
                       <span className="font-bold text-sm text-slate-700 truncate max-w-[80px]">{p.nickname} {p.id===player.id && "(나)"}</span>
                     </div>
                     <span className="font-black text-indigo-600 text-sm">{(p.score||0).toLocaleString()}</span>
@@ -569,7 +615,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             
             {(submitted || internalSubmitted) ? (
               <div className="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-50/50 rounded-[2.5rem] border-2 border-indigo-100 border-dashed animate-in zoom-in relative">
-                {/* Embedded Timer for Continuity */}
                 <div className="absolute top-6 right-6 flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border-2 border-indigo-100 shadow-sm">
                   <Clock size={14} className={timeLeft <= 5 ? "text-red-500 animate-pulse" : "text-indigo-400"} />
                   <span className={cn("text-lg font-black tabular-nums", timeLeft <= 5 ? "text-red-600" : "text-indigo-600")}>{timeLeft}</span>
@@ -615,41 +660,38 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                         })}
                       </div>
                     ) : (
-                      <div className="relative border-4 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all p-1.5 flex items-center">
-                        <MathInput value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-xl md:text-2xl font-bold p-1" template={currentQuestion.template} focusOnMount={true} isFirstQuestion={game.current_q_index === 0} />
-                        
-                        {showFocusHelp && (
-                          <div className="absolute right-0 bottom-full mb-4 animate-bounce z-50">
-                            <div className="bg-indigo-600 text-white px-4 py-2 rounded-2xl shadow-xl text-xs font-black whitespace-nowrap relative">
-                              입력이 안 될 때 여기를 눌러주세요!
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setShowFocusHelp(false);
-                                  sessionStorage.setItem("quiz_jam_focus_help_dismissed", "true");
-                                }}
-                                className="ml-2 hover:text-red-300 transition-colors"
-                              >
-                                ✕
-                              </button>
-                              {/* Triangle Arrow */}
-                              <div className="absolute top-full right-4 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-indigo-600" />
-                            </div>
-                          </div>
-                        )}
+                        <div className="flex-1 max-w-sm mx-auto">
+                          <div className="relative border-2 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all p-1 flex items-center">
+                            <MathInput value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-lg md:text-xl font-bold p-1" template={currentQuestion.template} focusOnMount={true} isFirstQuestion={game.current_q_index === 0} />
+                            
+                            {showMathHint && (
+                              <div className="fixed top-24 right-6 z-50 animate-pop">
+                                <div className="bg-white rounded-2xl shadow-xl p-4 border-2 border-indigo-500 relative flex items-center gap-4 max-w-xs text-left">
+                                  <div className="p-3 bg-indigo-100 rounded-xl">
+                                    <Keyboard className="text-indigo-600" size={24} />
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-gray-800 text-sm">수학 도구</p>
+                                    <p className="text-gray-600 text-xs leading-tight mt-1">수학 문제를 풀 때<br/>사용해요!</p>
+                                  </div>
+                                  <div className="absolute -top-3 right-3 bg-indigo-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">TIP</div>
+                                </div>
+                              </div>
+                            )}
 
-                        <button 
-                          onClick={() => { 
-                            (document.activeElement as HTMLElement)?.blur(); 
-                            setTimeout(() => { 
-                              (document.querySelector('math-field, input[type="text"]') as HTMLElement)?.focus(); 
-                            }, 100); 
-                          }} 
-                          className="shrink-0 w-10 h-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100"
-                        >
-                          <RefreshCw size={18} />
-                        </button>
-                      </div>
+                            <button 
+                              onClick={() => { 
+                                (document.activeElement as HTMLElement)?.blur(); 
+                                setTimeout(() => { 
+                                  (document.querySelector('math-field, input[type="text"]') as HTMLElement)?.focus(); 
+                                }, 100); 
+                              }} 
+                              className="shrink-0 w-8 h-8 bg-indigo-50 text-indigo-500 rounded-lg flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100"
+                            >
+                              <RefreshCw size={14} />
+                            </button>
+                          </div>
+                        </div>
                     )}
                     <Button size="xl" className="w-full py-5 md:py-6 text-xl md:text-2xl shadow-lg mt-auto" onClick={() => handleSubmit()}>정답 제출하기</Button>
                   </div>
@@ -660,18 +702,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         </div>
       </div>
 
-      {/* Floating Emojis Layer */}
-      <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
-        {floatingEmojis.map(item => (
-          <div 
-            key={item.id}
-            className="absolute bottom-[-50px] text-4xl animate-float-up"
-            style={{ left: `${item.left}%` }}
-          >
-            {item.emoji}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
