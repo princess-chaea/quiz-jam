@@ -23,9 +23,9 @@ export function GameHelpModal({ onClose, probabilities }: GameHelpModalProps) {
       title: "기본 규칙",
       icon: <HelpCircle className="text-indigo-500" />,
       items: [
-        { label: "정답 제출", desc: "문제를 풀고 '정답 제출하기' 또는 엔터를 누르세요." },
-        { label: "수식 키보드", desc: "수식 입력 시 화면의 자판 아이콘을 눌러 활성화하세요." },
-        { label: "입력창 새로고침", desc: "수식이 잘 안 써지거나 입력창이 이상할 때 '새로고침' 버튼을 누르세요." }
+        { icon: "✅", label: "정답 제출", desc: "문제를 풀고 '정답 제출하기' 또는 엔터를 누르세요." },
+        { icon: "⌨️", label: "수식 키보드", desc: "수식 입력 시 화면의 자판 아이콘을 눌러 활성화하세요." },
+        { icon: "🔄", label: "입력창 새로고침", desc: "수식이 잘 안 써지거나 입력창이 이상할 때 '새로고침' 버튼을 누르세요." }
       ]
     },
     {
