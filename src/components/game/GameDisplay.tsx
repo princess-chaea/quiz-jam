@@ -660,38 +660,38 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                         })}
                       </div>
                     ) : (
-                        <div className="flex-1 max-w-sm mx-auto">
-                          <div className="relative border-2 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all p-1 flex items-center">
-                            <MathInput value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-lg md:text-xl font-bold p-1" template={currentQuestion.template} focusOnMount={true} isFirstQuestion={game.current_q_index === 0} />
-                            
-                            {showMathHint && (
-                              <div className="fixed top-24 right-6 z-50 animate-pop">
-                                <div className="bg-white rounded-2xl shadow-xl p-4 border-2 border-indigo-500 relative flex items-center gap-4 max-w-xs text-left">
-                                  <div className="p-3 bg-indigo-100 rounded-xl">
-                                    <Keyboard className="text-indigo-600" size={24} />
-                                  </div>
-                                  <div>
-                                    <p className="font-bold text-gray-800 text-sm">수학 도구</p>
-                                    <p className="text-gray-600 text-xs leading-tight mt-1">수학 문제를 풀 때<br/>사용해요!</p>
-                                  </div>
-                                  <div className="absolute -top-3 right-3 bg-indigo-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">TIP</div>
+                      <div className="flex-1 max-w-sm mx-auto">
+                        <div className="relative border-2 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all p-1 flex items-center">
+                          <MathInput value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-lg md:text-xl font-bold p-1" template={currentQuestion.template} focusOnMount={true} isFirstQuestion={game.current_q_index === 0} />
+                          
+                          {showMathHint && (
+                            <div className="fixed top-24 right-6 z-50 animate-pop">
+                              <div className="bg-white rounded-2xl shadow-xl p-4 border-2 border-indigo-500 relative flex items-center gap-4 max-w-xs text-left">
+                                <div className="p-3 bg-indigo-100 rounded-xl">
+                                  <Keyboard className="text-indigo-600" size={24} />
                                 </div>
+                                <div>
+                                  <p className="font-bold text-gray-800 text-sm">수학 도구</p>
+                                  <p className="text-gray-600 text-xs leading-tight mt-1">수학 문제를 풀 때<br/>사용해요!</p>
+                                </div>
+                                <div className="absolute -top-3 right-3 bg-indigo-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">TIP</div>
                               </div>
-                            )}
+                            </div>
+                          )}
 
-                            <button 
-                              onClick={() => { 
-                                (document.activeElement as HTMLElement)?.blur(); 
-                                setTimeout(() => { 
-                                  (document.querySelector('math-field, input[type="text"]') as HTMLElement)?.focus(); 
-                                }, 100); 
-                              }} 
-                              className="shrink-0 w-8 h-8 bg-indigo-50 text-indigo-500 rounded-lg flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100"
-                            >
-                              <RefreshCw size={14} />
-                            </button>
-                          </div>
+                          <button 
+                            onClick={() => { 
+                              (document.activeElement as HTMLElement)?.blur(); 
+                              setTimeout(() => { 
+                                (document.querySelector('math-field, input[type="text"]') as HTMLElement)?.focus(); 
+                              }, 100); 
+                            }} 
+                            className="shrink-0 w-8 h-8 bg-indigo-50 text-indigo-500 rounded-lg flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100"
+                          >
+                            <RefreshCw size={14} />
+                          </button>
                         </div>
+                      </div>
                     )}
                     <Button size="xl" className="w-full py-5 md:py-6 text-xl md:text-2xl shadow-lg mt-auto" onClick={() => handleSubmit()}>정답 제출하기</Button>
                   </div>

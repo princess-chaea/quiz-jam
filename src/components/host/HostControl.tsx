@@ -1040,8 +1040,6 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             </div>
           </div>
         </div>
-          </div>
-        </div>
       </div>
     );
   }
