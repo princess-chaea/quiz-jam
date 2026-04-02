@@ -144,9 +144,20 @@ export default function ResultsPage() {
               </div>
               <div className="text-lg font-black text-slate-400">{finalSortedPlayers[1]?.score?.toLocaleString() || 0} PTS</div>
             </div>
-            <div className="w-full bg-gradient-to-t from-slate-500 to-slate-400 h-44 md:h-64 rounded-t-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center justify-center relative border-x-4 border-t-4 border-white/20 group hover:scale-105 transition-transform overflow-hidden">
+            
+            {/* Player Avatar */}
+            <div className="w-24 h-24 rounded-2xl bg-white/10 border-2 border-white/20 overflow-hidden mb-[-2rem] z-30 shadow-xl p-1 relative">
+               <img 
+                 src={`/avatars/avatar_${finalSortedPlayers[1]?.avatar_id || 1}.png`} 
+                 className="w-full h-full object-cover rounded-xl" 
+                 alt="char"
+                 onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+               />
+            </div>
+
+            <div className="w-full bg-gradient-to-t from-slate-500 to-slate-400 h-44 md:h-64 rounded-t-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center justify-center relative border-x-4 border-t-4 border-white/20 group hover:scale-105 transition-transform overflow-hidden pt-8">
                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-               <div className="relative flex items-center justify-center">
+               <div className="relative flex items-center justify-center mt-4">
                  <Medal size={64} className="text-slate-100 drop-shadow-lg" />
                  <span className="absolute text-slate-500 font-black text-xl mt-1.5">2</span>
                </div>
@@ -161,10 +172,24 @@ export default function ResultsPage() {
               </div>
               <div className="text-2xl font-black text-yellow-200">{finalSortedPlayers[0]?.score?.toLocaleString() || 0} PTS</div>
             </div>
-            <div className="w-full bg-gradient-to-t from-yellow-600 to-yellow-400 h-72 md:h-96 rounded-t-[3rem] shadow-[0_20px_60px_-10px_rgba(250,204,21,0.4)] flex flex-col items-center justify-center relative border-x-4 border-t-4 border-yellow-200 group hover:scale-105 transition-transform overflow-hidden">
+            
+            {/* Player Avatar */}
+            <div className="w-32 h-32 rounded-3xl bg-white/10 border-4 border-yellow-200 overflow-hidden mb-[-3rem] z-30 shadow-[0_0_30px_rgba(250,204,21,0.3)] p-1.5 relative">
+               <img 
+                 src={`/avatars/avatar_${finalSortedPlayers[0]?.avatar_id || 1}.png`} 
+                 className="w-full h-full object-cover rounded-2xl" 
+                 alt="char"
+                 onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+               />
+               <div className="absolute top-1 right-1 bg-yellow-400 text-indigo-900 p-1 rounded-lg">
+                 <Crown size={18} />
+               </div>
+            </div>
+
+            <div className="w-full bg-gradient-to-t from-yellow-600 to-yellow-400 h-72 md:h-96 rounded-t-[3rem] shadow-[0_20px_60px_-10px_rgba(250,204,21,0.4)] flex flex-col items-center justify-center relative border-x-4 border-t-4 border-yellow-200 group hover:scale-105 transition-transform overflow-hidden pt-12">
                {/* Shine effect */}
                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
-               <Trophy size={100} className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)] mb-2 animate-pop" />
+               <Trophy size={100} className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)] mb-2 animate-pop mt-4" />
                <div className="absolute bottom-10 md:bottom-14 text-[6rem] md:text-[8rem] font-black text-yellow-900/20 italic select-none leading-none">{finalSortedPlayers[0]?.rank}st</div>
             </div>
           </div>
@@ -176,15 +201,27 @@ export default function ResultsPage() {
               </div>
               <div className="text-lg font-black text-orange-400">{finalSortedPlayers[2]?.score?.toLocaleString() || 0} PTS</div>
             </div>
-            <div className="w-full bg-gradient-to-t from-orange-600 to-orange-500 h-36 md:h-52 rounded-t-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center justify-center relative border-x-4 border-t-4 border-white/20 group hover:scale-105 transition-transform overflow-hidden">
+            
+            {/* Player Avatar */}
+            <div className="w-20 h-20 rounded-2xl bg-white/10 border-2 border-orange-200/40 overflow-hidden mb-[-1.5rem] z-30 shadow-xl p-1 relative">
+               <img 
+                 src={`/avatars/avatar_${finalSortedPlayers[2]?.avatar_id || 1}.png`} 
+                 className="w-full h-full object-cover rounded-xl" 
+                 alt="char"
+                 onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+               />
+            </div>
+
+            <div className="w-full bg-gradient-to-t from-orange-600 to-orange-500 h-36 md:h-52 rounded-t-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center justify-center relative border-x-4 border-t-4 border-white/20 group hover:scale-105 transition-transform overflow-hidden pt-4">
                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-               <div className="relative flex items-center justify-center">
+               <div className="relative flex items-center justify-center mt-2">
                  <Medal size={56} className="text-orange-100 drop-shadow-lg" />
                  <span className="absolute text-orange-800 font-black text-lg mt-1">3</span>
                </div>
                <div className="absolute bottom-4 md:bottom-8 text-4xl md:text-5xl font-black text-orange-900/20 italic select-none">{finalSortedPlayers[2]?.rank}rd</div>
             </div>
           </div>
+
         </div>
 
         {/* Lower Rankings List - Show ALL players from 4th place down */}
@@ -202,8 +239,17 @@ export default function ResultsPage() {
                   className="flex justify-between items-center p-6 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all group scale-100 hover:scale-[1.02]"
                 >
                   <div className="flex items-center gap-6">
-                    <span className="text-indigo-500 font-black text-2xl italic opacity-50 group-hover:opacity-100 transition-opacity">#{player.rank}</span>
-                    <span className="text-2xl font-black tracking-tight">{player.nickname}</span>
+                    <span className="text-indigo-500 font-black text-2xl italic opacity-50 group-hover:opacity-100 transition-opacity shrink-0">#{player.rank}</span>
+                    <div className="w-12 h-12 rounded-xl bg-white/10 p-0.5 border border-white/10 shrink-0">
+                      <img 
+                         src={`/avatars/avatar_${player.avatar_id || 1}.png`} 
+                         className="w-full h-full object-cover rounded-lg" 
+                         alt="char"
+                         onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+                      />
+                    </div>
+                    <span className="text-2xl font-black tracking-tight truncate">{player.nickname}</span>
+
                     {player.team && (
                       <span className={cn(
                         "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase",

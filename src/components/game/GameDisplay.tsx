@@ -306,19 +306,27 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   };
 
   if (game.status === "RESULT" && result) {
-    const getEventInfo = (event?: string) => {
-      if (!event || event === 'none') return null;
-      const e = event.split(',')[0].trim().toLowerCase();
+    const getEventInfo = (eventCode: string) => {
+      if (!eventCode || eventCode === 'none') return null;
+      const e = eventCode.trim().toLowerCase();
       if (e === 'double') return { icon: '✨', text: '두배 찬스!', color: 'bg-yellow-400', desc: '다음 문제 점수가 2배가 됩니다!' };
       if (e === 'strike_bonus') return { icon: '🔥', text: '콤보 보너스!', color: 'bg-orange-500', desc: '연속 정답으로 추가 점수를 얻었습니다!' };
+      if (e === 'strike_double') return { icon: '💥', text: '슈퍼 콤보!', color: 'bg-red-500', desc: '연속 정답에 두배 찬스까지! 점수가 폭발합니다!' };
       if (e === 'shield') return { icon: '🛡️', text: '방어막 획득!', color: 'bg-blue-400', desc: '공격을 한 번 막아줄 방어막이 생겼습니다!' };
       if (e === 'swap') return { icon: '🔄', text: '점수 바꾸기!', color: 'bg-indigo-500', desc: '다른 친구와 점수를 바꿀 수 있습니다!' };
+      if (e === 'strike') return { icon: '⚡', text: '콤보 획득!', color: 'bg-amber-400', desc: '다음 문제 정답 시 보너스 점수를 얻습니다!' };
       if (e === 'cut') return { icon: '✂️', text: '점수 삭감!', color: 'bg-red-500', desc: '상대방의 점수를 깎았습니다!' };
-      if (e === 'donate') return { icon: '📤', text: '점수 기부!', color: 'bg-emerald-500', desc: '우리 팀원에게 점수를 나누어 주었습니다!' };
+      if (e === 'donate') return { icon: '📤', text: '점수 기부!', color: 'bg-emerald-500', desc: '팀원들에게 점수를 나누어 주었습니다!' };
+      if (e.startsWith('gift')) {
+        const donor = e.split(':')[1] || '누군가';
+        return { icon: '🎁', text: '점수 선물!', color: 'bg-pink-400', desc: `${donor} 학생이 점수를 선물했습니다!` };
+      }
+      if (e.endsWith('_blocked')) return { icon: '🛡️', text: '공격 방어!', color: 'bg-slate-500', desc: '방어막으로 상대방의 공격을 막아냈습니다!' };
       return null;
     };
 
-    const eventInfo = getEventInfo(result.event);
+    const events = (result.event || "").split(',').filter((e: string) => e && e !== 'none');
+    const eventInfos = events.map(getEventInfo).filter(Boolean);
 
     return (
       <div className="flex flex-col items-center justify-center min-h-[600px] w-full max-w-2xl mx-auto p-4 md:p-8 animate-in fade-in duration-500 relative">
@@ -363,13 +371,17 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
               <X className="text-red-500" size={100} strokeWidth={6} />
             )}
             
-            {eventInfo && (
-              <div className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-2xl text-white font-black animate-bounce shadow-lg",
-                eventInfo.color
-              )}>
-                <span className="text-xl">{eventInfo.icon}</span>
-                <span className="text-sm">{eventInfo.text}</span>
+            {eventInfos.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2">
+                {eventInfos.map((info, idx) => (
+                  <div key={idx} className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-2xl text-white font-black animate-bounce shadow-lg",
+                    info!.color
+                  )}>
+                    <span className="text-xl">{info!.icon}</span>
+                    <span className="text-sm">{info!.text}</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -379,10 +391,14 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
               {result.points_added >= 0 ? `+${result.points_added}` : result.points_added}점
             </div>
             
-            {(result.event_description || eventInfo?.desc) && (
-              <div className="bg-white/80 backdrop-blur px-4 py-2 rounded-xl border border-indigo-100 mt-2 mb-6 text-indigo-600 font-bold text-sm shadow-sm">
-                ✨ {result.event_description || eventInfo?.desc}
-              </div>
+            {eventInfos.length > 0 && (
+               <div className="flex flex-col gap-1.5 mt-2 mb-6">
+                 {eventInfos.map((info, idx) => (
+                   <div key={idx} className="bg-white/80 backdrop-blur px-4 py-2 rounded-xl border border-indigo-100 text-indigo-600 font-bold text-sm shadow-sm text-center">
+                     ✨ {info!.desc}
+                   </div>
+                 ))}
+               </div>
             )}
 
             <div className="grid grid-cols-2 gap-4 w-full">
@@ -557,28 +573,43 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                   rank = firstIdx + 1;
                 }
 
-                return (
-                  <div key={p.id} className={cn("flex items-center justify-between p-2 rounded-xl border transition-all", p.id===player.id ? "bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100" : "bg-slate-50 border-slate-100")}>
-                    <div className="flex items-center gap-2">
-                      <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0", rank===1 ? "bg-yellow-400 text-white" : rank===2 ? "bg-slate-300 text-white" : rank===3 ? "bg-orange-300 text-white" : "bg-slate-200 text-slate-500")}>{rank}</span>
-                      <div className="w-6 h-6 rounded-full overflow-hidden bg-white border border-slate-200 shrink-0">
-                        <img 
-                          src={`/avatars/avatar_${p.avatar_id || 1}.png`} 
-                          alt="avatar" 
-                          className="w-full h-full object-cover" 
-                          onError={(e) => {
-                             (e.target as HTMLImageElement).src = '/logo.png';
-                          }}
-                        />
-                      </div>
-                      <span className="font-bold text-sm text-slate-700 truncate max-w-[80px]">{p.nickname} {p.id===player.id && "(나)"}</span>
-                    </div>
-                    <span className="font-black text-indigo-600 text-sm">{(p.score||0).toLocaleString()}</span>
-                  </div>
-                );
-              });
+                      const canSwap = isMyTurnToSwap && p.id !== player.id;
+                      return (
+                        <div 
+                          key={p.id} 
+                          onClick={() => canSwap && handleSwapSelection(p.id, p.nickname)}
+                          className={cn(
+                            "flex items-center justify-between p-2 rounded-xl border transition-all relative overflow-hidden",
+                            p.id === player.id ? "bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100" : "bg-slate-50 border-slate-100 font-medium",
+                            canSwap && "cursor-pointer hover:border-indigo-400 hover:bg-white hover:scale-[1.02] shadow-sm hover:shadow-md ring-4 ring-transparent hover:ring-indigo-500/20 active:scale-95"
+                          )}
+                        >
+                          {canSwap && (
+                            <div className="absolute inset-0 bg-indigo-500/5 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                              <span className="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-black shadow-lg">선택하기</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0", rank===1 ? "bg-yellow-400 text-white" : rank===2 ? "bg-slate-300 text-white" : rank===3 ? "bg-orange-300 text-white" : "bg-slate-200 text-slate-500")}>{rank}</span>
+                            <div className="w-6 h-6 rounded-full overflow-hidden bg-white border border-slate-200 shrink-0">
+                               <img src={`/avatars/avatar_${p.avatar_id || 1}.png`} alt="avatar" className="w-full h-full object-cover" />
+                            </div>
+                            <span className="font-bold text-sm text-slate-700 truncate max-w-[80px]">{p.nickname} {p.id===player.id && "(나)"}</span>
+                          </div>
+                          <span className="font-black text-indigo-600 text-sm">{(p.score||0).toLocaleString()}</span>
+                        </div>
+                      );
+                    })}
+                </div>
+              );
             })()}
           </div>
+          {isMyTurnToSwap && (
+            <div className="mt-4 p-3 bg-indigo-600 rounded-2xl text-white text-center animate-pulse shadow-lg border-b-4 border-indigo-800">
+               <div className="text-xs font-black mb-1">🔄 점수 바꾸기 진행 중!</div>
+               <div className="text-[10px] font-bold opacity-90">목록에서 바꿀 친구를 누르세요.</div>
+            </div>
+          )}
         </div>
       </div>
 

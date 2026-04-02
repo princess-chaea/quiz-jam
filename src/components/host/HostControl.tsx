@@ -780,6 +780,12 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   if (game.status === 'RESULT') {
     return (
       <div className="h-screen w-full flex flex-col bg-indigo-900 text-white overflow-hidden relative">
+        {/* Floating Emojis */}
+        {floatingEmojis.map((e: any) => (
+          <div key={e.id} className="absolute text-4xl animate-float-up z-[2000]" style={{ left: `${e.left}%`, bottom: '-50px' }}>
+            {e.emoji}
+          </div>
+        ))}
         {/* Large Answer Popup Overlay */}
         {showLargeAnswer && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-indigo-900 animate-in fade-in duration-300">
@@ -820,7 +826,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             </div>
 
             <div className="flex items-center gap-4 mb-2">
-              <Award size={48} className="text-yellow-400 animate-bounce" />
+              <Trophy size={64} className="text-yellow-400 drop-shadow-lg" />
               <h2 className="text-3xl font-jua">라운드 결과</h2>
             </div>
 
@@ -1257,6 +1263,19 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         submissions={answers.filter(a => a.answer !== '(시간초과)').map(a => a.player_id)}
         className="bg-indigo-50/90 border-t border-indigo-200"
       />
+
+      {/* Floating Emojis Container */}
+      <div className="fixed inset-0 pointer-events-none z-[200] overflow-hidden">
+        {floatingEmojis.map(emoji => (
+          <div
+            key={emoji.id}
+            className="absolute bottom-0 text-5xl animate-float-up opacity-0"
+            style={{ left: `${emoji.left}%` }}
+          >
+            {emoji.emoji}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

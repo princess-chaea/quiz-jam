@@ -10,6 +10,7 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { processMathText, cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import { useAIQuiz } from "@/providers/AIQuizProvider";
 
 interface AIQuizGeneratorProps {
   onQuestionsGenerated: (questions: any[]) => void;
@@ -17,76 +18,17 @@ interface AIQuizGeneratorProps {
 }
 
 export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGeneratorProps) {
-  const [text, setText] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("ai_gen_text") || "";
-    }
-    return "";
-  });
-  const [files, setFiles] = useState<File[]>([]);
-  const [count, setCount] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("ai_gen_count");
-      return saved ? parseInt(saved) : 5;
-    }
-    return 5;
-  });
-  const [types, setTypes] = useState<string[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("ai_gen_types");
-      return saved ? JSON.parse(saved) : ["SHORT_ANSWER", "MULTIPLE_CHOICE"];
-    }
-    return ["SHORT_ANSWER", "MULTIPLE_CHOICE"];
-  });
-  const [mathMode] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("ai_gen_math_mode");
-      return saved ? saved === "true" : true;
-    }
-    return true;
-  });
+  const { 
+    text, setText, count, setCount, types, setTypes, mathMode,
+    loading, preview, setPreview, files, setFiles, generate, reset
+  } = useAIQuiz();
+
   const [isDragging, setIsDragging] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState<any[] | null>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("ai_gen_preview");
-      return saved ? JSON.parse(saved) : null;
-    }
-    return null;
-  });
   const { showAlert, showConfirm } = useDialog();
-
-  // Persist state to localStorage
-  useEffect(() => {
-    localStorage.setItem("ai_gen_text", text);
-  }, [text]);
-
-  useEffect(() => {
-    localStorage.setItem("ai_gen_count", count.toString());
-  }, [count]);
-
-  useEffect(() => {
-    localStorage.setItem("ai_gen_types", JSON.stringify(types));
-  }, [types]);
-
-  useEffect(() => {
-    localStorage.setItem("ai_gen_math_mode", mathMode.toString());
-  }, [mathMode]);
-
-
-  useEffect(() => {
-    if (preview) {
-      localStorage.setItem("ai_gen_preview", JSON.stringify(preview));
-    } else {
-      localStorage.removeItem("ai_gen_preview");
-    }
-  }, [preview]);
 
   const processFiles = async (newFiles: File[]) => {
     if (newFiles.length === 0) return;
-
     const validFiles: File[] = [];
-
     for (const file of newFiles) {
       if (file.size > 20 * 1024 * 1024) {
         await showAlert({ message: `'${file.name}' 파일 용량이 너무 큽니다. 20MB 이하의 파일만 업로드할 수 있습니다.` });
@@ -94,7 +36,6 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
       }
       validFiles.push(file);
     }
-
     setFiles((prev: File[]) => [...prev, ...validFiles]);
   };
 
@@ -120,7 +61,6 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    
     const droppedFiles = Array.from(e.dataTransfer.files || []) as File[];
     await processFiles(droppedFiles);
   };
@@ -128,7 +68,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
   const toggleType = (t: string) => {
     setTypes((prev: string[]) => {
       if (prev.includes(t)) {
-        if (prev.length === 1) return prev; // Keep at least one
+        if (prev.length === 1) return prev;
         return prev.filter((x: string) => x !== t);
       }
       return [...prev, t];
@@ -144,120 +84,13 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
       await showAlert({ message: "최소 1개의 문제 유형을 선택해주세요." });
       return;
     }
-    setLoading(true);
-    try {
-      // 1. Upload files to Supabase ai-temp bucket first
-      const uploadedFilePaths: { mimeType: string, path: string, name: string }[] = [];
-
-      const totalSize = files.reduce((acc: number, f: File) => acc + f.size, 0);
-      if (totalSize > 50 * 1024 * 1024) {
-        throw new Error("첨부된 전체 파일 용량이 너무 큽니다 (최대 50MB). 일부 파일을 제외해주세요.");
-      }
-
-      for (const file of files) {
-        if (!file) continue;
-        console.log(`[AI Generator] Uploading file: ${file.name} (${file.type}, ${file.size} bytes)`);
-
-        const fileExt = file.name.split('.').pop();
-        const randomId = Math.random().toString(36).substring(2, 10);
-        const fileName = `${Date.now()}-${randomId}.${fileExt}`;
-        const filePath = `${fileName}`;
-
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('ai-temp')
-          .upload(filePath, file, {
-            contentType: file.type || 'application/octet-stream',
-            upsert: false
-          });
-
-        if (uploadError) {
-          console.error("[AI Generator] Supabase Storage upload error details:", JSON.stringify(uploadError, null, 2));
-          let msg = uploadError.message;
-          if (msg.includes("Bucket not found")) {
-            msg = "Supabase에 'ai-temp' 버킷이 없습니다. Supabase SQL Editor에서 'INSERT INTO storage.buckets (id, name, public) VALUES ('ai-temp', 'ai-temp', true);' 명령어를 실행해 주세요.";
-          }
-          throw new Error(`${file.name} 업로드 실패 (Status: ${uploadError.status || 'unknown'}): ${msg}`);
-        }
-
-        console.log(`[AI Generator] Successfully uploaded ${file.name} to ${filePath}`);
-
-        uploadedFilePaths.push({
-          mimeType: file.type,
-          path: filePath,
-          name: file.name
-        });
-      }
-
-      // 2. Call generate API with file paths
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, count, types, storageFiles: uploadedFilePaths, mathMode }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-
-      const preparedQuestions = data.map((q: any) => {
-        let processed = { ...q };
-
-        // Ensure type consistency
-        const type = q.type || (types.length === 1 ? types[0] : "SHORT_ANSWER");
-
-        // Fallback for BLANK type: if AI used markers but didn't provide blanks array
-        if (type === 'BLANK' && (!processed.blanks || processed.blanks.length === 0)) {
-          console.log("[AI Generator] Fallback: Detecting blanks from markers in text");
-          const words = (processed.q || "").split(/\s+/).filter(Boolean);
-          const detectedBlanks: number[] = [];
-
-          words.forEach((word: string, idx: number) => {
-            if (word.includes('\\square') || word.includes('□') || word.includes('____')) {
-              detectedBlanks.push(idx);
-            }
-          });
-
-          if (detectedBlanks.length > 0) {
-            processed.blanks = detectedBlanks;
-            // If answer 'a' is also missing or just the marker, try to sync it if possible
-            // But usually we can't know the answer if it's just a marker.
-            // At least the UI will highlight the blank now.
-          }
-        }
-
-        return {
-          ...processed,
-          type,
-          points: processed.points || 10,
-          timeLimit: processed.timeLimit || 20,
-          math_mode: mathMode
-        };
-      });
-      setPreview(preparedQuestions);
-    } catch (err) {
-      console.error("[AI Generator] Error:", err);
-      let errorMsg = (err as Error).message;
-
-      if (errorMsg.includes("payload") || errorMsg.includes("too large") || errorMsg.includes("413")) {
-        errorMsg = "첨부파일 용량이 너무 커서 인공지능이 처리할 수 없습니다. 더 작은 파일을 사용하거나 파일 개수를 줄여주세요.";
-      } else if (errorMsg.includes("JSON")) {
-        errorMsg = "인공지능이 응답 형식을 맞추지 못했습니다. 다시 시도해 주세요.";
-      } else if (errorMsg.includes("할당량") || errorMsg.includes("limit") || errorMsg.includes("429") || errorMsg.includes("503") || errorMsg.includes("unavailable")) {
-        errorMsg = "현재 인공지능 서버 사용량이 많아 응답이 지연되고 있습니다. 약 10~20초 후 다시 시도해 주세요.\n(팁: 파일 용량이 크면 처리 시간이 더 길어질 수 있습니다.)";
-      }
-
-      await showAlert({ message: "문항 생성 실패: " + errorMsg });
-    } finally {
-      setLoading(false);
-    }
+    await generate(files);
   };
 
   const handleAdd = () => {
     if (preview) {
       onQuestionsGenerated(preview);
-      localStorage.removeItem("ai_gen_preview");
-      localStorage.removeItem("ai_gen_text");
-      localStorage.removeItem("ai_gen_count");
-      localStorage.removeItem("ai_gen_types");
-      localStorage.removeItem("ai_gen_math_mode");
+      reset(true); // Clear everything after adding
       onClose();
     }
   };
@@ -355,10 +188,10 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                   </div>
                 )}
                 <textarea
+                  className="w-full h-[120px] p-4 rounded-2xl border-2 border-slate-100 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all resize-none text-slate-600 font-medium placeholder:text-slate-300"
+                  placeholder="퀴즈로 만들고 싶은 내용을 입력하거나 파일을 첨부해 주세요. (예: 오늘 배운 덧셈과 뺄셈 내용을 5문제 만들어줘)"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder="또는 여기에 교과 전개 내용이나 요약본을 직접 입력하세요..."
-                  className="w-full h-32 p-6 text-base border-2 border-slate-100 bg-slate-50 rounded-3xl focus:border-indigo-400 focus:bg-white outline-none transition-all resize-none shadow-inner"
                 />
               </div>
 

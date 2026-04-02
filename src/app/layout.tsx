@@ -24,6 +24,7 @@ export const metadata: Metadata = {
 import { DialogProvider } from "@/components/ui/DialogProvider";
 import { ProfileSetupModal } from "@/components/auth/ProfileSetupModal";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { AIQuizProvider } from "@/providers/AIQuizProvider";
 import { MathKeypadProvider } from "@/components/ui/MathKeypadContext";
 import { MathKeypad } from "@/components/ui/MathKeypad";
 
@@ -38,9 +39,11 @@ export default function RootLayout({
         <AuthProvider>
           <MathKeypadProvider>
             <DialogProvider>
-              {children}
-              <ProfileSetupModal />
-              <MathKeypad />
+              <AIQuizProvider>
+                {children}
+                <ProfileSetupModal />
+                <MathKeypad />
+              </AIQuizProvider>
             </DialogProvider>
           </MathKeypadProvider>
         </AuthProvider>

@@ -13,25 +13,36 @@ interface RankingItemProps {
   nickname: string;
   score: number;
   isMe: boolean;
+  avatar_id: number;
 }
 
-function RankingItem({ rank, nickname, score, isMe }: RankingItemProps) {
+function RankingItem({ rank, nickname, score, isMe, avatar_id }: RankingItemProps) {
   return (
     <div className={cn(
-      "flex items-center justify-between p-2 rounded-xl border transition-all",
+      "flex items-center justify-between p-2 rounded-xl border transition-all group",
       isMe ? "bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100" : "bg-slate-50 border-slate-100"
     )}>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <span className={cn(
-          "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black",
+          "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0",
           rank === 1 ? "bg-yellow-400 text-white" : 
           rank === 2 ? "bg-slate-300 text-white" : 
           rank === 3 ? "bg-orange-300 text-white" : 
           "bg-slate-200 text-slate-500"
         )}>{rank}</span>
+        
+        <div className="w-8 h-8 rounded-lg overflow-hidden bg-white border border-slate-200 shrink-0 shadow-sm">
+          <img 
+            src={`/avatars/avatar_${avatar_id || 1}.png`} 
+            className="w-full h-full object-cover" 
+            alt="char"
+            onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+          />
+        </div>
+
         <span className="font-bold text-sm text-slate-700 truncate max-w-[100px]">{nickname} {isMe && "(나)"}</span>
       </div>
-      <span className="font-black text-indigo-600 text-sm">{score.toLocaleString()}</span>
+      <span className="font-black text-indigo-600 text-sm shrink-0">{score.toLocaleString()}</span>
     </div>
   );
 }
@@ -195,7 +206,7 @@ function ResultsContent() {
                     const firstIdx = sortedPlayers.findIndex(p2 => p2.score === p.score);
                     rank = firstIdx + 1;
                   }
-                  return <RankingItem key={p.id} rank={rank} nickname={p.nickname} score={p.score || 0} isMe={p.nickname === name} />;
+                  return <RankingItem key={p.id} rank={rank} nickname={p.nickname} score={p.score || 0} isMe={p.nickname === name} avatar_id={p.avatar_id || 1} />;
                 })
               )}
             </div>
@@ -211,6 +222,16 @@ function ResultsContent() {
               </div>
               <h1 className="text-3xl font-jua">게임 완료</h1>
               <p className="opacity-80 font-bold">{name} 학생, 수고했어요!</p>
+              
+              {/* Added Current Avatar to Main Card */}
+              <div className="mt-4 w-24 h-24 rounded-3xl bg-white/20 border-2 border-white/30 overflow-hidden p-1 shadow-inner relative">
+                 <img 
+                   src={`/avatars/avatar_${me?.avatar_id || 1}.png`} 
+                   className="w-full h-full object-cover rounded-2xl" 
+                   alt="char"
+                   onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+                 />
+              </div>
             </div>
 
             <div className="p-10 space-y-8">
