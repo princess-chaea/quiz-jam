@@ -84,7 +84,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
       await showAlert({ message: "최소 1개의 문제 유형을 선택해주세요." });
       return;
     }
-    await generate(files);
+    await generate();
   };
 
   const handleAdd = () => {
