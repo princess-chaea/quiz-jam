@@ -5,7 +5,8 @@ import { useDialog } from '@/components/ui/DialogProvider';
 import { cn } from '@/lib/utils';
 import { 
   Trophy, Clock, Check, X, RefreshCw, Zap, Gift, 
-  Shield, TrendingUp, ChevronLeft, ChevronRight, Scissors, Keyboard, Layers
+  Shield, TrendingUp, ChevronLeft, ChevronRight, Scissors, Keyboard, Layers,
+  User
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import ReactMarkdown from 'react-markdown';
@@ -14,6 +15,7 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { MathInput } from '@/components/ui/MathInput';
 import { SegmentedInput } from '@/components/game/SegmentedInput';
+import { IntroOverlay } from '@/components/game/IntroOverlay';
 
 interface GameDisplayProps {
   game: any;
@@ -57,6 +59,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const [showScoreTab, setShowScoreTab] = useState(false);
   const [rankingTab, setRankingTab] = useState<'individual' | 'team'>('individual');
   const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
+  const [showIntro, setShowIntro] = useState(false);
   
   const totalQuestions = game.options?.questions?.length || 0;
   const currentQuestion = game.options?.questions[game.current_q_index];
@@ -243,6 +246,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const [timeLeft, setTimeLeft] = useState<number>(currentQuestion?.timeLimit || 20);
 
   useEffect(() => {
+    if (game?.status === 'PLAYING' && game.current_q_index === 0 && !submitted) {
+       setShowIntro(true);
+    }
+  }, [game.status, game.current_q_index, submitted]);
+
+  useEffect(() => {
     if (game?.status === 'PLAYING' && game?.options?.current_q_started_at) {
       // Logic for first question instruction
       if (game.current_q_index === 0) {
@@ -365,29 +374,41 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                        </div>
                     </>
                  ) : isMyTurnToSwap ? (
-                    <div className="w-full flex flex-col items-center">
-                       <div className="text-5xl mb-4">🔄</div>
-                       <h3 className="text-2xl font-black text-indigo-900 mb-2">점수 바꾸기!</h3>
-                       <p className="text-slate-500 font-bold mb-6">누구와 점수를 바꿀까요? 목록에서 선택해 주세요!</p>
-                       <div className="w-full max-h-[300px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                          {players.filter(p => p.id !== player.id).sort((a,b) => (b.score||0)-(a.score||0)).map(p => (
-                             <button
-                                key={p.id}
-                                onClick={() => handleSwapSelection(p.id, p.nickname)}
-                                className="w-full flex items-center justify-between p-3 rounded-2xl border-2 border-slate-100 hover:border-indigo-400 hover:bg-indigo-50 transition-all group"
-                             >
-                                <div className="flex items-center gap-3">
-                                   <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200">
-                                      <img src={`/avatars/avatar_${p.avatar_id || 1}.png`} alt="avatar" className="w-full h-full object-cover" />
-                                   </div>
-                                   <span className="font-bold text-slate-700">{p.nickname}</span>
+                    <div className="w-full flex flex-col items-center max-h-[85vh]">
+                        <div className="text-4xl mb-4">🔄</div>
+                        <h3 className="text-2xl font-black text-indigo-900 mb-1">점수 바꾸기!</h3>
+                        <p className="text-slate-500 font-bold mb-4">누구와 점수를 바꿀까요?</p>
+                        
+                        {/* Current Player Score Card (Fixed) */}
+                        <div className="w-full bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4 mb-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-600 rounded-xl text-white">
+                                    <User size={18} />
                                 </div>
-                                <span className="font-black text-indigo-600">{(p.score || 0).toLocaleString()}점</span>
-                             </button>
-                          ))}
-                       </div>
-                       <Button variant="ghost" className="mt-4 w-full rounded-2xl" onClick={() => handleSwapSelection(null, null)}>넘어가기 (선택 안함)</Button>
-                    </div>
+                                <span className="font-bold text-indigo-900">나의 현재 점수</span>
+                            </div>
+                            <span className="text-2xl font-black text-indigo-600">{(player.score || 0).toLocaleString()}점</span>
+                        </div>
+
+                        <div className="w-full overflow-y-auto space-y-2 pr-1 custom-scrollbar mb-4" style={{ maxHeight: 'calc(80vh - 350px)', minHeight: '120px' }}>
+                           {players.filter(p => p.id !== player.id).sort((a,b) => (b.score||0)-(a.score||0)).map(p => (
+                              <button
+                                 key={p.id}
+                                 onClick={() => handleSwapSelection(p.id, p.nickname)}
+                                 className="w-full flex items-center justify-between p-3 rounded-2xl border-2 border-slate-100 hover:border-indigo-400 hover:bg-indigo-50 transition-all group animate-in slide-in-from-right-4 duration-300"
+                              >
+                                 <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200">
+                                       <img src={`/avatars/avatar_${p.avatar_id || 1}.png`} alt="avatar" className="w-full h-full object-cover" />
+                                    </div>
+                                    <span className="font-bold text-slate-700">{p.nickname}</span>
+                                 </div>
+                                 <span className="font-black text-indigo-600">{(p.score || 0).toLocaleString()}점</span>
+                              </button>
+                           ))}
+                        </div>
+                        <Button variant="ghost" className="w-full rounded-2xl border-2 border-slate-100 py-4" onClick={() => handleSwapSelection(null, null)}>넘어가기 (선택 안함)</Button>
+                     </div>
                  ) : activeSwapperName && !isMyTurnToSwap ? (
                     <>
                        <div className="text-5xl mb-4 animate-bounce">🔄</div>
@@ -827,7 +848,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           </div>
         </div>
       </div>
-
-    </div>
-  );
+     
+     {showIntro && <IntroOverlay onClose={() => setShowIntro(false)} />}
+   </div>
+ );
 }

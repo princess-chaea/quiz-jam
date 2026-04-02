@@ -450,7 +450,7 @@ export function MathInput({
           min-height: 0 !important;
           display: flex !important;
           align-items: center !important;
-          line-height: normal !important;
+          line-height: 1.2 !important;
         }
         math-field .ML__base {
           display: flex !important;
@@ -488,7 +488,7 @@ export function MathInput({
             className
           )}
           style={{ 
-            fontSize: isTeacher ? '1.1rem' : '1.25rem',
+            fontSize: isTeacher ? '1.1rem' : '1.75rem',
             padding: '0px',
             minHeight: 'auto',
             background: 'transparent',

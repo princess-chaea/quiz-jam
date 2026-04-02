@@ -19,6 +19,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { IntroOverlay } from '@/components/game/IntroOverlay';
 
 interface HostControlProps {
   game: any;
@@ -40,6 +41,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   const [currentSwapperId, setCurrentSwapperId] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(30); // Default
   const [showLargeAnswer, setShowLargeAnswer] = useState(false);
+  const [showIntro, setShowIntro] = useState(false);
   const { showConfirm, showAlert } = useDialog();
   const currentQuestion = game.options?.questions[game.current_q_index];
 
@@ -636,6 +638,12 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       return () => clearTimeout(timer);
     } else {
       setShowLargeAnswer(false);
+    }
+  }, [game.status, game.current_q_index]);
+
+  useEffect(() => {
+    if (game?.status === 'PLAYING' && game.current_q_index === 0) {
+      setShowIntro(true);
     }
   }, [game.status, game.current_q_index]);
 
@@ -1296,6 +1304,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           </div>
         ))}
       </div>
+      {showIntro && <IntroOverlay isTeacher={true} onClose={() => setShowIntro(false)} />}
     </div>
   );
 }
