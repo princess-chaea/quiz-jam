@@ -833,8 +833,14 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 w-full max-w-6xl justify-center">
               <div className="bg-white/10 px-8 py-3 rounded-2xl border-2 border-white/10 animate-pop text-center">
                 <span className="text-indigo-200 font-bold mb-1 uppercase tracking-widest text-[10px] block">정답</span>
-                <h3 className="text-3xl font-black text-yellow-300 [&_p]:m-0">
-                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(currentQuestion?.a || "")}</ReactMarkdown>
+                <h3 className="text-3xl font-black text-yellow-300">
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkMath]} 
+                    rehypePlugins={[rehypeKatex]}
+                    components={{ p: 'span' }}
+                  >
+                    {processMathText(currentQuestion?.a || "")}
+                  </ReactMarkdown>
                 </h3>
               </div>
 
