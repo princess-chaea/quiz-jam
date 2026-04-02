@@ -566,40 +566,42 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
               }
 
               const sorted = [...players].sort((a,b) => (b.score||0)-(a.score||0));
-              return sorted.map((p, i) => {
-                let rank = i + 1;
-                if (i > 0 && (p.score||0) === (sorted[i-1].score||0)) {
-                  const firstIdx = sorted.findIndex(p2 => (p2.score||0) === (p.score||0));
-                  rank = firstIdx + 1;
-                }
+              return (
+                <div className="space-y-2">
+                  {sorted.map((p, i) => {
+                    let rank = i + 1;
+                    if (i > 0 && (p.score||0) === (sorted[i-1].score||0)) {
+                      const firstIdx = sorted.findIndex(p2 => (p2.score||0) === (p.score||0));
+                      rank = firstIdx + 1;
+                    }
 
-                      const canSwap = isMyTurnToSwap && p.id !== player.id;
-                      return (
-                        <div 
-                          key={p.id} 
-                          onClick={() => canSwap && handleSwapSelection(p.id, p.nickname)}
-                          className={cn(
-                            "flex items-center justify-between p-2 rounded-xl border transition-all relative overflow-hidden",
-                            p.id === player.id ? "bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100" : "bg-slate-50 border-slate-100 font-medium",
-                            canSwap && "cursor-pointer hover:border-indigo-400 hover:bg-white hover:scale-[1.02] shadow-sm hover:shadow-md ring-4 ring-transparent hover:ring-indigo-500/20 active:scale-95"
-                          )}
-                        >
-                          {canSwap && (
-                            <div className="absolute inset-0 bg-indigo-500/5 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                              <span className="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-black shadow-lg">선택하기</span>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-2">
-                            <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0", rank===1 ? "bg-yellow-400 text-white" : rank===2 ? "bg-slate-300 text-white" : rank===3 ? "bg-orange-300 text-white" : "bg-slate-200 text-slate-500")}>{rank}</span>
-                            <div className="w-6 h-6 rounded-full overflow-hidden bg-white border border-slate-200 shrink-0">
-                               <img src={`/avatars/avatar_${p.avatar_id || 1}.png`} alt="avatar" className="w-full h-full object-cover" />
-                            </div>
-                            <span className="font-bold text-sm text-slate-700 truncate max-w-[80px]">{p.nickname} {p.id===player.id && "(나)"}</span>
+                    const canSwap = isMyTurnToSwap && p.id !== player.id;
+                    return (
+                      <div 
+                        key={p.id} 
+                        onClick={() => canSwap && handleSwapSelection(p.id, p.nickname)}
+                        className={cn(
+                          "flex items-center justify-between p-2 rounded-xl border transition-all relative overflow-hidden",
+                          p.id === player.id ? "bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100" : "bg-slate-50 border-slate-100 font-medium",
+                          canSwap && "cursor-pointer hover:border-indigo-400 hover:bg-white hover:scale-[1.02] shadow-sm hover:shadow-md ring-4 ring-transparent hover:ring-indigo-500/20 active:scale-95"
+                        )}
+                      >
+                        {canSwap && (
+                          <div className="absolute inset-0 bg-indigo-500/5 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                            <span className="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-black shadow-lg">선택하기</span>
                           </div>
-                          <span className="font-black text-indigo-600 text-sm">{(p.score||0).toLocaleString()}</span>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0", rank===1 ? "bg-yellow-400 text-white" : rank===2 ? "bg-slate-300 text-white" : rank===3 ? "bg-orange-300 text-white" : "bg-slate-200 text-slate-500")}>{rank}</span>
+                          <div className="w-6 h-6 rounded-full overflow-hidden bg-white border border-slate-200 shrink-0">
+                             <img src={`/avatars/avatar_${p.avatar_id || 1}.png`} alt="avatar" className="w-full h-full object-cover" />
+                          </div>
+                          <span className="font-bold text-sm text-slate-700 truncate max-w-[80px]">{p.nickname} {p.id===player.id && "(나)"}</span>
                         </div>
-                      );
-                    })}
+                        <span className="font-black text-indigo-600 text-sm">{(p.score||0).toLocaleString()}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })()}
