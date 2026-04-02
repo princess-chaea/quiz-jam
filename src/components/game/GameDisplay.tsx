@@ -15,7 +15,6 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { MathInput } from '@/components/ui/MathInput';
 import { SegmentedInput } from '@/components/game/SegmentedInput';
-import { IntroOverlay } from '@/components/game/IntroOverlay';
 import { GameHelpModal } from '@/components/game/GameHelpModal';
 
 interface GameDisplayProps {
@@ -60,7 +59,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const [showScoreTab, setShowScoreTab] = useState(false);
   const [rankingTab, setRankingTab] = useState<'individual' | 'team'>('individual');
   const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
-  const [showIntro, setShowIntro] = useState(false);
+  const [showStartTip, setShowStartTip] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [hintStage, setHintStage] = useState<number>(game.current_hint_stage || 0);
 
@@ -254,9 +253,18 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
   useEffect(() => {
     if (game?.status === 'PLAYING' && game.current_q_index === 0 && !submitted) {
-       setShowIntro(true);
+       // Show start tip instead of intro overlay
+       const storageKey = `quiz-jam-start-tip-shown-${game.id}`;
+       if (!sessionStorage.getItem(storageKey)) {
+         setShowStartTip(true);
+         const timer = setTimeout(() => {
+           setShowStartTip(false);
+           sessionStorage.setItem(storageKey, "true");
+         }, 7000);
+         return () => clearTimeout(timer);
+       }
     }
-  }, [game.status, game.current_q_index, submitted]);
+  }, [game.status, game.current_q_index, submitted, game.id]);
 
   useEffect(() => {
     if (game?.status === 'PLAYING' && game?.options?.current_q_started_at) {
@@ -775,26 +783,23 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
         <div className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar px-2">
             {/* Hint Banner (Realtime from Teacher) */}
-            {(hintStage === 1 || hintStage === 2) && (
-              <div className="mb-4 bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-3 flex flex-col gap-1.5 animate-in slide-in-from-top-4 shadow-sm border-dashed">
-                <div className="flex items-center gap-2 text-indigo-600">
-                  <div className="p-1.5 bg-white rounded-lg border border-indigo-100 ring-2 ring-indigo-500/10">
-                    <Zap size={16} className="fill-indigo-500" />
-                  </div>
-                  <span className="font-black text-sm uppercase tracking-tight italic">선생님의 힌트가 도착했어요!</span>
+            {hintStage > 0 && (
+              <div className="mb-6 p-4 bg-indigo-50/50 rounded-2xl border-2 border-indigo-100 border-dashed animate-in slide-in-from-top-4 duration-500">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap size={16} className="text-indigo-500 fill-indigo-500" />
+                  <span className="text-sm font-black text-indigo-700 uppercase tracking-tight italic">선생님의 힌트가 도착했어요!</span>
                 </div>
-                
-                <div className="flex flex-col gap-1 px-1">
-                  {hintStage >= 1 && (
-                    <div className="flex items-center gap-2 text-indigo-900 font-bold text-sm">
-                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full shrink-0" />
-                      <span>{currentQuestion.a.length}글자입니다.</span>
+                <div className="flex flex-col gap-1.5 pl-6">
+                  {hintStage >= 1 && currentQuestion.type !== 'BLANK' && (
+                    <div className="flex items-center gap-2 text-slate-600 font-bold">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                      <span>정답은 <span className="text-indigo-600 font-black">{currentQuestion.a.replace(/\s/g, '').length}</span>글자입니다.</span>
                     </div>
                   )}
                   {hintStage >= 2 && (
-                    <div className="flex items-center gap-2 text-indigo-900 font-bold text-sm">
-                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full shrink-0" />
-                      <span>초성 힌트: <span className="p-1 bg-white border border-indigo-100 rounded-md shadow-sm ml-1 px-2 font-black text-indigo-600 font-mono">{getChoseong(currentQuestion.a)}</span></span>
+                    <div className="flex items-center gap-2 text-slate-600 font-bold">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                      <span>초성 힌트: <span className="text-indigo-600 font-black tracking-widest">{getChoseong(currentQuestion.a)}</span></span>
                     </div>
                   )}
                 </div>
@@ -886,19 +891,45 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         </div>
       </div>
      
-     {showIntro && <IntroOverlay onClose={() => setShowIntro(false)} />}
+      {/* Start TIP Floating Popup (Left Empty Space) */}
+      {showStartTip && (
+        <div className="fixed left-6 top-1/2 -translate-y-1/2 z-[60] w-64 animate-in slide-in-from-left-8 duration-700">
+          <div className="bg-white/90 backdrop-blur-md rounded-[2.5rem] p-6 shadow-2xl border-4 border-indigo-500 relative ring-8 ring-indigo-500/10">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="w-16 h-16 bg-indigo-500 rounded-3xl flex items-center justify-center text-white shadow-lg animate-bounce">
+                <Keyboard size={32} />
+              </div>
+              <div>
+                <h4 className="text-lg font-black text-indigo-900 mb-1">입력 꿀팁! 💡</h4>
+                <p className="text-slate-600 text-sm font-bold leading-relaxed">
+                  입력칸을 클릭하면<br/>
+                  수식 키보드 아이콘이<br/>
+                  나타납니다!
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowStartTip(false)}
+                className="mt-2 text-xs font-black text-indigo-400 hover:text-indigo-600"
+              >
+                알겠어요 (닫기)
+              </button>
+            </div>
+            {/* Arrow decor */}
+            <div className="absolute left-full top-1/2 -translate-y-1/2 border-[12px] border-transparent border-l-indigo-500" />
+          </div>
+        </div>
+      )}
 
-      {/* Help FAB */}
-      <button 
-        onClick={() => setShowHelp(true)}
-        className="fixed left-6 bottom-6 z-40 p-4 bg-indigo-600 text-white rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all group"
-        title="게임 가이드 및 아이템 설명"
-      >
-        <HelpCircle size={28} />
-        <span className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-lg">
-          게임 가이드 보기
-        </span>
-      </button>
+      {/* Help FAB Sidebar (Left) */}
+      <div className="fixed left-0 top-1/2 -translate-y-1/2 z-50 flex items-center group">
+        <button 
+          onClick={() => setShowHelp(true)}
+          className="w-10 h-24 bg-slate-800 text-white rounded-r-2xl flex flex-col items-center justify-center gap-2 shadow-xl hover:bg-indigo-600 hover:w-12 transition-all"
+        >
+          <HelpCircle size={20} />
+          <span className="text-[9px] font-black [writing-mode:vertical-lr] tracking-widest">GUIDE</span>
+        </button>
+      </div>
 
       {/* Help Modal */}
       {showHelp && (

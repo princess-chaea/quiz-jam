@@ -508,7 +508,7 @@ export function MathInput({
       </div>
       
       {!isTeacher && (
-        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10 p-0.5">
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10 p-0.5">
           <button
             type="button"
             onClick={(e) => {
@@ -520,10 +520,10 @@ export function MathInput({
                 setTimeout(() => mfRef.current?.focus(), 50);
               }
             }}
-            className="p-1 rounded-lg bg-slate-100 text-slate-500 hover:bg-indigo-600 hover:text-white transition-all border border-slate-200"
+            className="w-12 h-12 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-indigo-600 hover:text-white transition-all border-2 border-slate-200"
             title="입력기 새로고침"
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={24} />
           </button>
           
           <div className="relative">
@@ -538,10 +538,10 @@ export function MathInput({
                   openKeypad(mfRef.current, level);
                 }
               }}
-              className="p-1 rounded-lg bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100"
+              className="w-12 h-12 flex items-center justify-center rounded-xl bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition-all shadow-md border-2 border-indigo-100"
               title="수식 키보드 열기"
             >
-              <Keyboard size={16} />
+              <Keyboard size={24} />
             </button>
 
             {showHelp && (
