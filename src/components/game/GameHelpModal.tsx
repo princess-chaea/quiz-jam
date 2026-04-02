@@ -90,7 +90,6 @@ export function GameHelpModal({ onClose, probabilities }: GameHelpModalProps) {
                   </div>
                 ))}
               </div>
-              </div>
             </div>
           ))}
 
