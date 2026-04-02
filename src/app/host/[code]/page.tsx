@@ -44,7 +44,11 @@ export default function HostPage() {
         .from("games")
         .update({ 
           status: "PLAYING", 
-          current_q_index: 0 
+          current_q_index: 0,
+          options: {
+            ...game.options,
+            current_q_started_at: new Date().toISOString()
+          }
         })
         .eq("id", game.id);
 

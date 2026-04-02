@@ -254,7 +254,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         player_id: res.player.id,
         q_index: qIndex,
         is_correct: res.isCorrect,
-        points_added: res.points,
+        points_awarded: res.points,
         event: res.event,
         answer: res.rawAnswer
       }));
@@ -269,7 +269,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           player_id: res.player.id,
           q_index: qIndex,
           is_correct: res.isCorrect,
-          points_added: res.points,
+          points_awarded: res.points,
           event: res.event,
           answer: res.rawAnswer
         };

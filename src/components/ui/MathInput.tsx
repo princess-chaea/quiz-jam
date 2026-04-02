@@ -468,8 +468,8 @@ export function MathInput({
           width: "100%", 
           background: "transparent",
           border: "none",
-          minHeight: isTeacher ? "3.5rem" : "3.5rem",
-          padding: "0.75rem",
+          minHeight: isTeacher ? "3rem" : "2.75rem",
+          padding: "0.5rem 0.75rem",
           fontSize: isTeacher ? "1.125rem" : "1.5rem",
         }}
         multiline={multiline ? "true" : "false"}

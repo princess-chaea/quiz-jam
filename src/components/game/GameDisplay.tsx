@@ -405,7 +405,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
           <div className="bg-slate-50 rounded-[3rem] p-8 w-full flex flex-col items-center">
             <div className={cn("text-6xl md:text-8xl font-black mb-2", result.is_correct ? "text-indigo-600" : "text-red-500")}>
-              {((result.points_added ?? result.points_awarded ?? 0) >= 0) ? `+${result.points_added ?? result.points_awarded ?? 0}` : (result.points_added ?? result.points_awarded ?? 0)}점
+              {result.points_added ?? result.points_awarded ?? 0}점
             </div>
             
             {eventInfos.length > 0 && (
@@ -710,7 +710,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                         })}
                       </div>
                     ) : (
-                      <div className="flex-1 max-w-sm mx-auto">
+                      <div className="w-full">
                         <div className="relative border-2 border-gray-100 rounded-2xl focus-within:border-indigo-400 bg-white transition-all p-1 flex items-center">
                           <MathInput value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-lg md:text-xl font-bold p-1" template={currentQuestion.template} focusOnMount={true} isFirstQuestion={game.current_q_index === 0} />
                           
