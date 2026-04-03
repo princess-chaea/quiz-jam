@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 interface SegmentedInputProps {
   value: string;
   length: number;
+  hint?: string;
   onChange: (val: string) => void;
   onEnter?: () => void;
   autoFocus?: boolean;
@@ -16,6 +17,7 @@ interface SegmentedInputProps {
 export function SegmentedInput({
   value,
   length,
+  hint,
   onChange,
   onEnter,
   autoFocus,
@@ -105,7 +107,9 @@ export function SegmentedInput({
             localValue[i] ? "border-indigo-400 bg-indigo-50/20" : "border-slate-100 bg-white"
           )}
         >
-          {localValue[i] || ""}
+          {localValue[i] ? localValue[i] : (hint ? (
+             <span className="text-slate-200 pointer-events-none">{hint[i] || ""}</span>
+          ) : "")}
           {/* Caret effect */}
           {localValue.length === i && (
             <div className="absolute w-0.5 h-6 bg-indigo-500 animate-pulse rounded-full" />

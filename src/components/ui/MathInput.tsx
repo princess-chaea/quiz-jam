@@ -71,52 +71,35 @@ export function MathInput({
   const { activeField, openKeypad } = useMathKeypad();
   const [isReady, setIsReady] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
+  const onChangeRef = useRef(onChange);
 
   useEffect(() => {
-    if (!isTeacher && isFirstQuestion) {
-      // Use a session storage key that inclusions the game ID to show it "always" for new games
-      // but only once per game instance to avoid being annoying on every re-render.
-      const storageKey = `quiz-jam-keypad-hint-shown-${gameId}`;
-      const shownThisGame = sessionStorage.getItem(storageKey);
-      
-      if (!shownThisGame) {
-        // Delay slightly for visual effect
-        const initialTimer = setTimeout(() => {
-          setShowHelp(true);
-          const hideTimer = setTimeout(() => {
-            setShowHelp(false);
-            sessionStorage.setItem(storageKey, "true");
-          }, 5000);
-          return () => clearTimeout(hideTimer);
-        }, 1000);
-        return () => clearTimeout(initialTimer);
-      }
-    } else if (!isFirstQuestion) {
-      setShowHelp(false);
-    }
-  }, [isTeacher, isFirstQuestion, gameId]);
-
-  const dismissHelp = () => {
-    setShowHelp(false);
-    localStorage.setItem("quiz-jam-focus-help-dismissed", "true");
-  };
-
+    onChangeRef.current = onChange;
+  }, [onChange]);
   const forceFocus = (mathFieldEl: any) => {
     if (!mathFieldEl) return;
     if (typeof mathFieldEl.focus === 'function') {
       mathFieldEl.focus();
     }
-    // Extremely aggressive search across the entire shadow DOM (and its sub-trees if any)
-    if (mathFieldEl.shadowRoot) {
-      // Find ANY element that acts as a text sink (textarea or input or specialized div)
-      const sinks = mathFieldEl.shadowRoot.querySelectorAll('textarea, input, [contenteditable="true"], .ML__keyboard-sink, .ML__textarea');
-      sinks.forEach((sink: any) => {
-        if (typeof sink.focus === 'function') {
-          sink.focus({ preventScroll: true });
-        }
-      });
-    }
+  };
+
+  const handleManualRefresh = () => {
+    if (!mfRef.current) return;
+    
+    // Safety blur-and-refocus
+    mfRef.current.blur();
+    
+    setTimeout(() => {
+      if (mfRef.current) {
+        forceFocus(mfRef.current);
+        
+        // Auto-show keypad if needed
+        const shouldShow = isTeacher || forceMathKeypad || hasMathSymbols(mfRef.current.value) || hasMathSymbols(template);
+        if (shouldShow) openKeypad(mfRef.current, level);
+        
+        if (onRefresh) onRefresh();
+      }
+    }, 50);
   };
 
   useEffect(() => {
@@ -425,7 +408,7 @@ export function MathInput({
   return (
     <div 
       ref={containerRef}
-      onClick={() => mfRef.current && forceFocus(mfRef.current)}
+      onClick={handleManualRefresh}
       className={cn(
         "relative flex flex-col justify-center w-full h-fit rounded-xl group/math bg-slate-50/50 border border-slate-200 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text py-0 px-0.5 my-0.5", 
         (!multiline || showScrollbar) ? "overflow-x-auto custom-scrollbar" : "overflow-visible h-fit",
@@ -514,11 +497,7 @@ export function MathInput({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              if (onRefresh) onRefresh();
-              else {
-                mfRef.current?.blur();
-                setTimeout(() => mfRef.current?.focus(), 50);
-              }
+              handleManualRefresh();
             }}
             className="w-12 h-12 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-indigo-600 hover:text-white transition-all border-2 border-slate-200"
             title="입력기 새로고침"
@@ -532,30 +511,13 @@ export function MathInput({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                if (showHelp) dismissHelp();
-                if (mfRef.current) {
-                  forceFocus(mfRef.current);
-                  openKeypad(mfRef.current, level);
-                }
+                handleManualRefresh();
               }}
               className="w-12 h-12 flex items-center justify-center rounded-xl bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition-all shadow-md border-2 border-indigo-100"
               title="수식 키보드 열기"
             >
               <Keyboard size={24} />
             </button>
-
-            {showHelp && (
-              <div className="absolute right-0 bottom-full mb-3 z-50 animate-tip-pop pointer-events-none">
-                <div className="bg-indigo-600 text-white px-3 py-2 rounded-xl shadow-2xl min-w-[150px] relative">
-                  <p className="text-[10px] font-black leading-tight">
-                    키보드가 뜨지 않으면<br/>
-                    [새로고침] 버튼을 눌러보세요!
-                  </p>
-                  {/* Arrow */}
-                  <div className="absolute -bottom-1 right-5 w-2 h-2 bg-indigo-600 rotate-45" />
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}

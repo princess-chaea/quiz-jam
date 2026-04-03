@@ -71,6 +71,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
   const confettiTriggered = useRef<string | null>(null); 
   const firstBlankRef = useRef<HTMLInputElement>(null);
+  const channelRef = useRef<any>(null);
 
   // --- Sequential Interactive Swap Selection ---
   const [isMyTurnToSwap, setIsMyTurnToSwap] = useState(false);
@@ -103,6 +104,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       }
 
       const channel = supabase.channel(`game_events_${game.id}`);
+      channelRef.current = channel;
       await channel.subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           await channel.send({
@@ -110,7 +112,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             event: 'EXECUTE_SWAP',
             payload: { swapperId: player.id, targetId }
           });
-          supabase.removeChannel(channel);
         }
       });
 
@@ -202,6 +203,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         setTimeLeft(payload.timeLeft);
       })
       .subscribe();
+    
+    channelRef.current = channel;
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -782,36 +785,41 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         </div>
 
         <div className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar px-2">
-            {/* Hint Banner (Realtime from Teacher) */}
-            {hintStage > 0 && (
-              <div className="mb-6 p-4 bg-indigo-50/50 rounded-2xl border-2 border-indigo-100 border-dashed animate-in slide-in-from-top-4 duration-500">
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap size={16} className="text-indigo-500 fill-indigo-500" />
-                  <span className="text-sm font-black text-indigo-700 uppercase tracking-tight italic">선생님의 힌트가 도착했어요!</span>
-                </div>
-                <div className="flex flex-col gap-1.5 pl-6">
-                  {hintStage >= 1 && currentQuestion.type !== 'BLANK' && (
-                    <div className="flex items-center gap-2 text-slate-600 font-bold">
-                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                      <span>정답은 <span className="text-indigo-600 font-black">{currentQuestion.a.replace(/\s/g, '').length}</span>글자입니다.</span>
-                    </div>
-                  )}
-                  {hintStage >= 2 && (
-                    <div className="flex items-center gap-2 text-slate-600 font-bold">
-                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                      <span>초성 힌트: <span className="text-indigo-600 font-black tracking-widest">{getChoseong(currentQuestion.a)}</span></span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+          {/* Subtle Hint Display for non-BLANK questions */}
+          {hintStage > 0 && currentQuestion.type !== "BLANK" && (
+            <div className="mb-4 flex flex-wrap justify-center gap-1.5 animate-in fade-in zoom-in duration-500">
+               {currentQuestion.a.split('').map((char: string, idx: number) => {
+                 const isSpace = /\s/.test(char);
+                 if (isSpace) return <div key={idx} className="w-2" />;
+                 const choseong = getChoseong(char);
+                 const showChoseong = hintStage >= 2;
+                 return (
+                   <div key={idx} className={cn(
+                     "w-7 h-7 rounded-lg flex items-center justify-center font-black text-sm",
+                     showChoseong ? "bg-white border-2 border-indigo-400 text-indigo-600 shadow-sm" : "bg-indigo-50 border border-indigo-100 text-indigo-200"
+                   )}>
+                     {showChoseong ? choseong : "?"}
+                   </div>
+                 );
+               })}
+            </div>
+          )}
 
           <div className={cn("font-black text-slate-800 break-keep leading-tight text-center py-1 md:py-2", getQuestionFontSize(currentQuestion.q))}>
-            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-              {processMathText(currentQuestion.type === "BLANK" ? 
-                currentQuestion.q.split(/\s+/).map((w: string, i: number) => (currentQuestion.blanks || []).includes(i) ? "___" : w).join(" ") 
-                : currentQuestion.q)}
-            </ReactMarkdown>
+            {currentQuestion.type === "BLANK" ? (
+               <div className="flex flex-col items-center gap-2">
+                 <div className="px-6 py-2 bg-indigo-600 text-white rounded-2xl text-sm md:text-base shadow-sm animate-bounce">
+                    👇 아래 문장의 빈칸에 들어갈 말을 입력해 주세요!
+                 </div>
+                 <div className="text-slate-300 text-xs font-bold mt-1 opacity-50">
+                    (문장 전체가 아닌 빈칸의 단어만 입력합니다)
+                 </div>
+               </div>
+            ) : (
+               <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                 {processMathText(currentQuestion.q)}
+               </ReactMarkdown>
+            )}
           </div>
           {currentQuestion.image_url && <img src={currentQuestion.image_url} alt="q" className="rounded-2xl max-w-full max-h-[35vh] object-contain mx-auto shadow-lg border-2 border-slate-100 mb-2" />}
           
@@ -864,7 +872,23 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                         {currentQuestion.q.split(/\s+/).filter(Boolean).map((word: string, wordIdx: number) => {
                           const blanks = currentQuestion.blanks || [];
                           const bIdx = blanks.indexOf(wordIdx);
-                          if (bIdx !== -1) return <SegmentedInput key={wordIdx} value={blankAnswers[wordIdx] || ""} length={word.length} onChange={(val) => handleBlankChange(wordIdx, val, blanks)} onEnter={() => handleSubmit()} autoFocus={bIdx === 0} firstRef={bIdx === 0 ? firstBlankRef : undefined} />;
+                          if (bIdx !== -1) {
+                            // Calculate hint for this segment if hintStage is high enough
+                            const choseongHint = (hintStage >= 2) ? getChoseong(word) : undefined;
+                            
+                            return (
+                              <SegmentedInput 
+                                key={wordIdx} 
+                                value={blankAnswers[wordIdx] || ""} 
+                                length={word.length} 
+                                hint={choseongHint}
+                                onChange={(val) => handleBlankChange(wordIdx, val, blanks)} 
+                                onEnter={() => handleSubmit()} 
+                                autoFocus={bIdx === 0} 
+                                firstRef={bIdx === 0 ? firstBlankRef : undefined} 
+                              />
+                            );
+                          }
                           return <span key={wordIdx} className="text-xl md:text-2xl font-black text-slate-400">{word}</span>;
                         })}
                       </div>
@@ -900,12 +924,21 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                 <Keyboard size={32} />
               </div>
               <div>
-                <h4 className="text-lg font-black text-indigo-900 mb-1">입력 꿀팁! 💡</h4>
-                <p className="text-slate-600 text-sm font-bold leading-relaxed">
-                  입력칸을 클릭하면<br/>
-                  수식 키보드 아이콘이<br/>
-                  나타납니다!
-                </p>
+                <h4 className="text-lg font-black text-indigo-900 mb-2">입력 꿀팁! 💡</h4>
+                <div className="space-y-3 text-left">
+                  <div className="flex items-start gap-2">
+                    <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-black text-[10px] shrink-0 mt-0.5">1</div>
+                    <p className="text-slate-600 text-sm font-bold leading-tight">
+                      입력칸을 클릭하면 <span className="text-indigo-600">수식 키보드</span>가 나타납니다!
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-black text-[10px] shrink-0 mt-0.5">2</div>
+                    <p className="text-slate-600 text-sm font-bold leading-tight">
+                      혹시 입력이 안 되면 <span className="text-amber-600">[새로고침 🔄]</span> 버튼을 눌러주세요!
+                    </p>
+                  </div>
+                </div>
               </div>
               <button 
                 onClick={() => setShowStartTip(false)}
@@ -920,14 +953,14 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         </div>
       )}
 
-      {/* Help FAB Sidebar (Left) */}
-      <div className="fixed left-0 top-1/2 -translate-y-1/2 z-50 flex items-center group">
+      {/* Help FAB Sidebar (Right - Below Ranking) */}
+      <div className="fixed right-0 top-[60%] -translate-y-1/2 z-40 flex items-center group">
         <button 
           onClick={() => setShowHelp(true)}
-          className="w-10 h-24 bg-slate-800 text-white rounded-r-2xl flex flex-col items-center justify-center gap-2 shadow-xl hover:bg-indigo-600 hover:w-12 transition-all"
+          className="w-10 h-20 bg-slate-800 text-white rounded-l-2xl flex flex-col items-center justify-center gap-2 shadow-xl hover:bg-indigo-600 hover:w-12 transition-all"
         >
-          <HelpCircle size={20} />
-          <span className="text-[9px] font-black [writing-mode:vertical-lr] tracking-widest">GUIDE</span>
+          <HelpCircle size={18} />
+          <span className="text-[7.5px] font-black [writing-mode:vertical-lr] tracking-widest uppercase">Guide</span>
         </button>
       </div>
 
