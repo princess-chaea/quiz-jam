@@ -194,8 +194,65 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         };
       });
 
-      // 3. Identification of Swap Earners (Sequential Ordering)
-      const swappers = calculatedResults
+      // 3. Speed Bonus Calculation (Top 3 correct submitters)
+      const correctSubmissions = currentAnswers
+        .filter(a => {
+          const question = currentGame.options?.questions[qIndex];
+          return normalizeMath(a.answer) === normalizeMath(question.a);
+        })
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+      const speedBonuses = new Map<string, number>();
+      if (correctSubmissions.length > 0) speedBonuses.set(correctSubmissions[0].player_id, 5);
+      if (correctSubmissions.length > 1) speedBonuses.set(correctSubmissions[1].player_id, 3);
+      if (correctSubmissions.length > 2) speedBonuses.set(correctSubmissions[2].player_id, 1);
+
+      // 4. Integrated Scoring Loop (Base + Speed + Streak)
+      const resultsWithBonuses = calculatedResults.map(res => {
+        let additionalPoints = 0;
+        const bonusEvents: string[] = [];
+
+        // Speed Bonus
+        const sBonus = speedBonuses.get(res.player.id) || 0;
+        if (sBonus > 0) {
+          additionalPoints += sBonus;
+          bonusEvents.push(`speed:${sBonus}`);
+        }
+
+        // Streak Bonus
+        let newStreak = 0;
+        let stBonus = 0;
+        if (res.isCorrect) {
+          newStreak = (res.player.answer_streak || 0) + 1;
+          if (newStreak === 3) stBonus = 5;
+          else if (newStreak === 5) stBonus = 10;
+          else if (newStreak === 10) stBonus = 20;
+
+          if (stBonus > 0) {
+            additionalPoints += stBonus;
+            bonusEvents.push(`streak:${newStreak}:${stBonus}`);
+          }
+        } else {
+          newStreak = 0;
+        }
+
+        const finalPoints = res.points + additionalPoints;
+        const finalEvent = res.event === 'none' 
+          ? (bonusEvents.length > 0 ? bonusEvents.join(',') : 'none')
+          : (bonusEvents.length > 0 ? res.event + ',' + bonusEvents.join(',') : res.event);
+
+        return {
+          ...res,
+          points: finalPoints,
+          event: finalEvent,
+          newStreak,
+          speedBonus: sBonus,
+          streakBonus: stBonus
+        };
+      });
+
+      // 5. Identification of Swap Earners (using order from base results)
+      const swappers = resultsWithBonuses
         .filter(res => res.event.includes('swap'))
         .map(res => {
           const ans = currentAnswers.find(a => a.player_id === res.player.id);
@@ -206,7 +263,6 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             answerId: ans?.id
           };
         })
-        // LATEST submitter first (Strategic advantage for late answers)
         .sort((a, b) => b.submitted_at - a.submitted_at);
 
       // Handle Donation BEFORE creating final arrays
@@ -249,7 +305,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         }
       });
 
-      const finalResults = [...calculatedResults];
+      const finalResults = [...resultsWithBonuses];
 
       // Update local answers state immediately so UI updates
       const updatedAnswers = finalResults.map((res: any) => ({
@@ -302,7 +358,8 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         const { error } = await supabase.from('players')
           .update({
             score: res.player.score + res.points,
-            buffs: res.newBuffs
+            buffs: res.newBuffs,
+            answer_streak: res.newStreak
           })
           .eq('id', res.player.id);
         if (error) console.error("Player update failed for", res.player.nickname, error);
@@ -923,6 +980,13 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                   const getEventInfo = (event?: string) => {
                     if (!event || event === 'none') return null;
                     const e = event.trim().toLowerCase();
+                    
+                    if (e.startsWith('speed:')) return { icon: '🚀', text: '선착순' };
+                    if (e.startsWith('streak:')) {
+                      const count = e.split(':')[1];
+                      return { icon: '🔥', text: `${count}연속` };
+                    }
+
                     if (e === 'double') return { icon: '✨', text: '두배' };
                     if (e === 'strike_bonus') return { icon: '🔥', text: '콤보' };
                     if (e === 'strike_double') return { icon: '💥', text: '슈퍼' };

@@ -360,6 +360,31 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     const getEventInfo = (eventCode: string) => {
       if (!eventCode || eventCode === 'none') return null;
       const e = eventCode.trim().toLowerCase();
+      
+      // Speed Bonus (e.g., speed:5)
+      if (e.startsWith('speed:')) {
+        const points = e.split(':')[1];
+        return { 
+          icon: '🚀', 
+          text: `빠른 제출 (+${points})`, 
+          color: 'bg-cyan-500', 
+          desc: `정답을 누구보다 빠르게 제출하여 추가 점수를 얻었습니다!` 
+        };
+      }
+      
+      // Streak Bonus (e.g., streak:3:5)
+      if (e.startsWith('streak:')) {
+        const parts = e.split(':');
+        const count = parts[1];
+        const points = parts[2];
+        return { 
+          icon: '🔥', 
+          text: `${count}연속 정답! (+${points})`, 
+          color: 'bg-orange-600', 
+          desc: `${count}문제 연속 정답 보너스 점수를 획득했습니다!` 
+        };
+      }
+
       if (e === 'double') return { icon: '✨', text: '두배 찬스!', color: 'bg-yellow-400', desc: '다음 문제 점수가 2배가 됩니다!' };
       if (e === 'strike_bonus') return { icon: '🔥', text: '콤보 보너스!', color: 'bg-orange-500', desc: '연속 정답으로 추가 점수를 얻었습니다!' };
       if (e === 'strike_double') return { icon: '💥', text: '슈퍼 콤보!', color: 'bg-red-500', desc: '연속 정답에 두배 찬스까지! 점수가 폭발합니다!' };
