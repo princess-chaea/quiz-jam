@@ -698,11 +698,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     }
   }, [game.status, game.current_q_index]);
 
-  useEffect(() => {
-    if (game?.status === 'PLAYING' && game.current_q_index === 0) {
-      setShowIntro(true);
-    }
-  }, [game.status, game.current_q_index]);
+  // Removed showIntro logic - will start directly with question
 
   useEffect(() => {
     if (game.status !== 'PLAYING') {
@@ -715,8 +711,6 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
     const syncTime = () => {
       let limit = currentQuestion?.timeLimit || game.options?.timeLimit || 20;
-      // Add 5 second buffer for the first question intro
-      if (game.current_q_index === 0) limit += 5;
       
       if (!startedAt) return limit;
       const start = new Date(startedAt).getTime();

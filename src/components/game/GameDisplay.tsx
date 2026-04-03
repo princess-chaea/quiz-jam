@@ -254,40 +254,14 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   // Sync Timer from Host
   const [timeLeft, setTimeLeft] = useState<number>(currentQuestion?.timeLimit || 20);
 
-  useEffect(() => {
-    if (game?.status === 'PLAYING' && game.current_q_index === 0 && !submitted) {
-       // Show start tip instead of intro overlay
-       const storageKey = `quiz-jam-start-tip-shown-${game.id}`;
-       if (!sessionStorage.getItem(storageKey)) {
-         setShowStartTip(true);
-         const timer = setTimeout(() => {
-           setShowStartTip(false);
-           sessionStorage.setItem(storageKey, "true");
-         }, 7000);
-         return () => clearTimeout(timer);
-       }
-    }
-  }, [game.status, game.current_q_index, submitted, game.id]);
+  // Removed start tip logic
 
   useEffect(() => {
     if (game?.status === 'PLAYING' && game?.options?.current_q_started_at) {
-      // Logic for first question instruction
-      if (game.current_q_index === 0) {
-        const startTime = new Date(game.options.current_q_started_at).getTime();
-        const now = Date.now();
-        if (now - startTime < 5000) {
-          setShowFirstQInstruction(true);
-          const timer = setTimeout(() => setShowFirstQInstruction(false), 5000 - (now - startTime));
-          return () => clearTimeout(timer);
-        }
-      } else {
-        setShowFirstQInstruction(false);
-      }
+      // Removed first question instruction logic
 
       const startTime = new Date(game.options.current_q_started_at).getTime();
       let limit = (currentQuestion?.timeLimit || 20);
-      // Add 5 second buffer for Q1
-      if (game.current_q_index === 0) limit += 5;
       const limitMs = limit * 1000;
       
       const updateTimer = () => {
@@ -404,140 +378,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     const events = (result.event || "").split(',').filter((e: string) => e && e !== 'none');
     const eventInfos = events.map(getEventInfo).filter(Boolean);
 
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[600px] w-full max-w-2xl mx-auto p-4 md:p-8 animate-in fade-in duration-500 relative">
-        {(swapResultText || pendingSwapTarget || (activeSwapperName && !isMyTurnToSwap) || isMyTurnToSwap) && (
-           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-              <div className="bg-white rounded-[3rem] p-8 max-w-md w-full shadow-2xl animate-in zoom-in duration-300 border-8 border-indigo-500 flex flex-col items-center text-center">
-                 {pendingSwapTarget ? (
-                    <>
-                       <div className="text-5xl mb-4">🔄</div>
-                       <h3 className="text-2xl font-black text-indigo-900 mb-2">{pendingSwapTarget.nickname} 학생과<br/>점수를 바꿀까요?</h3>
-                       <p className="text-slate-500 font-bold mb-6">내가 가진 점수와 바꿀 수 있습니다.</p>
-                       <div className="flex gap-3 w-full">
-                          <Button size="lg" className="flex-1 rounded-2xl bg-indigo-600" onClick={() => handleSwapSelection(pendingSwapTarget.id, pendingSwapTarget.nickname)}>바꾸기</Button>
-                          <Button size="lg" variant="ghost" className="flex-1 rounded-2xl border-2" onClick={() => setPendingSwapTarget(null)}>취소</Button>
-                       </div>
-                    </>
-                 ) : isMyTurnToSwap ? (
-                    <div className="w-full flex flex-col items-center max-h-[85vh]">
-                        <div className="text-4xl mb-4">🔄</div>
-                        <h3 className="text-2xl font-black text-indigo-900 mb-1">점수 바꾸기!</h3>
-                        <p className="text-slate-500 font-bold mb-4">누구와 점수를 바꿀까요?</p>
-                        
-                        {/* Current Player Score Card (Fixed) */}
-                        <div className="w-full bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4 mb-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-indigo-600 rounded-xl text-white">
-                                    <User size={18} />
-                                </div>
-                                <span className="font-bold text-indigo-900">나의 현재 점수</span>
-                            </div>
-                            <span className="text-2xl font-black text-indigo-600">{(player.score || 0).toLocaleString()}점</span>
-                        </div>
-
-                        <div className="w-full overflow-y-auto space-y-2 pr-1 custom-scrollbar mb-4" style={{ maxHeight: 'calc(80vh - 350px)', minHeight: '120px' }}>
-                           {players.filter(p => p.id !== player.id).sort((a,b) => (b.score||0)-(a.score||0)).map(p => (
-                              <button
-                                 key={p.id}
-                                 onClick={() => handleSwapSelection(p.id, p.nickname)}
-                                 className="w-full flex items-center justify-between p-3 rounded-2xl border-2 border-slate-100 hover:border-indigo-400 hover:bg-indigo-50 transition-all group animate-in slide-in-from-right-4 duration-300"
-                              >
-                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200">
-                                       <img src={`/avatars/avatar_${p.avatar_id || 1}.png`} alt="avatar" className="w-full h-full object-cover" />
-                                    </div>
-                                    <span className="font-bold text-slate-700">{p.nickname}</span>
-                                 </div>
-                                 <span className="font-black text-indigo-600">{(p.score || 0).toLocaleString()}점</span>
-                              </button>
-                           ))}
-                        </div>
-                        <Button variant="ghost" className="w-full rounded-2xl border-2 border-slate-100 py-4" onClick={() => handleSwapSelection(null, null)}>넘어가기 (선택 안함)</Button>
-                     </div>
-                 ) : activeSwapperName && !isMyTurnToSwap ? (
-                    <>
-                       <div className="text-5xl mb-4 animate-bounce">🔄</div>
-                       <h3 className="text-2xl font-black text-indigo-900 mb-4">{activeSwapperName} 학생이<br/>점수를 바꾸고 있습니다!</h3>
-                       <div className="flex items-center gap-2 text-indigo-500 font-bold">
-                          <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" />
-                          <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-100" />
-                          <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-200" />
-                       </div>
-                       <p className="text-slate-400 text-sm mt-6 font-bold">잠시만 기다려주세요...</p>
-                    </>
-                 ) : (
-                    <>
-                       <div className="text-5xl mb-4">✨</div>
-                       <h3 className="text-2xl font-black text-indigo-900 mb-4">{swapResultText}</h3>
-                       <Button size="lg" className="w-full rounded-2xl bg-indigo-600" onClick={() => { setSwapResultText(null); if (swapCommitted) refresh(); }}>확인</Button>
-                    </>
-                 )}
-              </div>
-           </div>
-        )}
-
-        <div className={cn(
-          "w-full bg-white rounded-[4rem] border-[16px] shadow-2xl overflow-hidden flex flex-col items-center p-8 transition-all duration-500 scale-105",
-          result.is_correct ? "border-emerald-500" : "border-red-500"
-        )}>
-          <div className="text-xl md:text-2xl font-black text-slate-800 font-jua mb-4">
-            {result.is_correct ? "정답입니다!" : "아쉬워요!"}
-          </div>
-          <div className="mb-6 flex flex-col items-center gap-4">
-            {result.is_correct ? (
-              <div className="relative">
-                <Check className="text-emerald-500" size={80} strokeWidth={8} />
-                <div className="absolute inset-0 animate-ping bg-emerald-100 rounded-full opacity-20" />
-              </div>
-            ) : (
-              <X className="text-red-500" size={100} strokeWidth={6} />
-            )}
-            
-            {eventInfos.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2">
-                {eventInfos.map((info: any, idx: number) => (
-                  <div key={idx} className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-2xl text-white font-black animate-bounce shadow-lg",
-                    info!.color
-                  )}>
-                    <span className="text-xl">{info!.icon}</span>
-                    <span className="text-sm">{info!.text}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-slate-50 rounded-[3rem] p-8 w-full flex flex-col items-center">
-            <div className={cn("text-6xl md:text-8xl font-black mb-2", result.is_correct ? "text-indigo-600" : "text-red-500")}>
-              {result.points_added ?? result.points_awarded ?? 0}점
-            </div>
-            
-            {eventInfos.length > 0 && (
-               <div className="flex flex-col gap-1.5 mt-2 mb-6">
-                 {eventInfos.map((info: any, idx: number) => (
-                   <div key={idx} className="bg-white/80 backdrop-blur px-4 py-2 rounded-xl border border-indigo-100 text-indigo-600 font-bold text-sm shadow-sm text-center">
-                     ✨ {info!.desc}
-                   </div>
-                 ))}
-               </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4 w-full">
-              <div className="bg-indigo-50 p-3 rounded-2xl border text-center">
-                <div className="text-[10px] text-slate-400 font-black uppercase">내가 쓴 답</div>
-                <div className="font-bold truncate">{answer || "(없음)"}</div>
-              </div>
-              <div className="bg-indigo-50 p-3 rounded-2xl border border-indigo-100 text-center">
-                <div className="text-[10px] text-indigo-400 font-black uppercase">정답</div>
-                <div className="font-bold text-indigo-600 truncate">{currentQuestion?.a}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    // Moved result UI to the bottom
   }
 
   if (!currentQuestion) return <div className="p-12 text-center text-indigo-400 animate-pulse font-black">문제를 불러오는 중...</div>;
@@ -978,8 +819,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         </div>
       )}
 
-      {/* Help FAB Sidebar (Right - Below Ranking) */}
-      <div className="fixed right-0 top-[60%] -translate-y-1/2 z-40 flex items-center group">
+      {/* Help FAB Sidebar (Right - Below Ranking) - Higher z-index and moved top for visibility */}
+      <div className="fixed right-0 top-[75%] -translate-y-1/2 z-[60] flex items-center group">
         <button 
           onClick={() => setShowHelp(true)}
           className="w-10 h-20 bg-slate-800 text-white rounded-l-2xl flex flex-col items-center justify-center gap-2 shadow-xl hover:bg-indigo-600 hover:w-12 transition-all"
