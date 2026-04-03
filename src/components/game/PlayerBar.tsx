@@ -117,10 +117,12 @@ export function PlayerBar({ players, currentNickname, submissions, className }: 
                 )}>
                   {player.score.toLocaleString()}
                 </span>
-                <div className="flex gap-0.5 ml-1">
-                  {isMe && hasStrike && <span className="text-xs animate-pulse">⚡</span>}
-                  {isMe && hasShield && <span className="text-xs">🛡️</span>}
-                </div>
+                {!hideBuffs && (
+                  <div className="flex gap-0.5 ml-1">
+                    {isMe && hasStrike && <span className="text-xs animate-pulse">⚡</span>}
+                    {isMe && hasShield && <span className="text-xs">🛡️</span>}
+                  </div>
+                )}
               </div>
             </div>
           </div>

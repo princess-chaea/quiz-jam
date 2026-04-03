@@ -1014,7 +1014,9 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                             src={`/avatars/avatar_${player.avatar_id || 1}.png`} 
                             className="w-full h-full object-cover" 
                             alt="char"
-                            onError={(e) => {
+                            width={40}
+                            height={40}
+                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                               (e.target as HTMLImageElement).src = '/logo.png';
                             }}
                           />
@@ -1039,14 +1041,25 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                         {/* Effects */}
                         <div className="flex items-center gap-1 shrink-0 px-2 border-l border-white/10">
                           {ans?.event && ans.event !== 'none' ? (
-                            ans.event.split(',').slice(0, 2).map((e: string, eIdx: number) => {
+                            ans.event.split(',').slice(0, 3).map((e: string, eIdx: number) => {
                               const evt = getEventInfo(e);
                               if (!evt) return null;
+                              // User request: Don't show shield icon during results if it's just a passive buff
+                              // But they said "라운드 결과에서는 획득 효과로 보이고" (Visible as earned effect in results is OK)
+                              // If they specifically meant hide it from the TEACHER screen list...
+                              // I'll keep it here as it represents the "Earned" effect of the round.
+                              
                               return (
                                 <div key={eIdx} className={cn(
-                                  "flex flex-col items-center bg-white/10 px-1.5 py-0.5 rounded-lg border border-white/5 relative",
+                                  "flex flex-col items-center bg-white/10 px-1.5 py-0.5 rounded-lg border border-white/5 relative group/item",
                                   String(currentSwapperId) === String(player.id) && e === 'swap' && "bg-indigo-600 border-indigo-400 scale-110 shadow-lg ring-2 ring-white/20"
                                 )}>
+                                  {/* Tooltip */}
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-[10px] rounded-lg opacity-0 group-hover/item:opacity-100 transition-opacity whitespace-nowrap z-[100] pointer-events-none border border-white/10 shadow-xl">
+                                    <div className="font-black text-indigo-300">{evt.text}</div>
+                                    <div className="text-[8px] opacity-70">마우스 고정 시 설명 표시</div>
+                                  </div>
+
                                   {String(currentSwapperId) === String(player.id) && e === 'swap' ? (
                                     <>
                                       <RefreshCw className="text-white animate-spin" size={12} />
@@ -1351,6 +1364,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         players={[...players].sort((a: any, b: any) => (b.score || 0) - (a.score || 0))}
         submissions={answers.filter((a: any) => a.answer !== '(시간초과)').map((a: any) => a.player_id)}
         className="bg-indigo-50/90 border-t border-indigo-200"
+        hideBuffs={true}
       />
 
       {/* Floating Emojis Container */}

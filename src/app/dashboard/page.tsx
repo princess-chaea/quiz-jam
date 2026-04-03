@@ -67,20 +67,68 @@ export default function Dashboard() {
     if (!authLoading && !user) {
       router.push("/");
     }
-    // Load probabilities from localStorage
-    const saved = localStorage.getItem("quiz_probs");
-    if (saved) {
+    
+    // Load probabilities: Try database first, fallback to localStorage
+    const loadSettings = async () => {
+      if (!user) return;
+      
       try {
-        setProbabilities(JSON.parse(saved));
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("settings")
+          .eq("id", user.id)
+          .maybeSingle();
+        
+        if (data?.settings?.probabilities) {
+          setProbabilities(data.settings.probabilities);
+          return;
+        }
       } catch (e) {
-        console.error("Failed to parse saved probabilities");
+        console.error("Failed to load settings from DB:", e);
       }
+
+      // Fallback
+      const saved = localStorage.getItem("quiz_probs");
+      if (saved) {
+        try {
+          setProbabilities(JSON.parse(saved));
+        } catch (e) {
+          console.error("Failed to parse saved probabilities");
+        }
+      }
+    };
+
+    if (user) {
+      loadSettings();
     }
   }, [user, authLoading, router]);
 
-  const handleSaveProbabilities = (newProbs: any) => {
+  const handleSaveProbabilities = async (newProbs: any) => {
     setProbabilities(newProbs);
     localStorage.setItem("quiz_probs", JSON.stringify(newProbs));
+    
+    if (user) {
+      try {
+        // Fetch current settings to preserve other possible fields
+        const { data: profile } = await supabase.from("profiles").select("settings").eq("id", user.id).maybeSingle();
+        const currentSettings = profile?.settings || {};
+        
+        const { error } = await supabase
+          .from("profiles")
+          .upsert({ 
+            id: user.id, 
+            settings: { ...currentSettings, probabilities: newProbs },
+            updated_at: new Date().toISOString()
+          });
+          
+        if (error) throw error;
+        // Optional: show small success toast if available, or just close modal
+      } catch (e) {
+        console.error("Settings save failed:", e);
+        showAlert({ message: "서버 저장에 실패했습니다. (로컬에는 저장됨)" });
+      }
+    }
+    
     setShowProbSettings(false);
   };
 
