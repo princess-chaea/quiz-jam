@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { X, UserMinus, ShieldAlert, UserCog, Users, Settings, Zap, RotateCcw, Shield, Gift, Scissors, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
 
 interface KickConfirmModalProps {
   playerName: string;
