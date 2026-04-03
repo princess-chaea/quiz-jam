@@ -412,7 +412,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
               {result.is_correct ? <div className="p-4 bg-emerald-50 rounded-full"><Check className="text-emerald-500" size={80} strokeWidth={8} /></div> : <div className="p-4 bg-red-50 rounded-full"><X className="text-red-500" size={100} strokeWidth={6} /></div>}
               {eventInfos.length > 0 && (
                 <div className="flex flex-wrap justify-center gap-2">
-                  {eventInfos.map((info, idx) => (
+                  {eventInfos.map((info: any, idx: number) => (
                     <div key={idx} className={cn("flex items-center gap-2 px-4 py-2 rounded-2xl text-white font-black animate-bounce shadow-lg", info?.color)}>
                       <span className="text-xl">{info?.icon}</span>
                       <span className="text-sm">{info?.text}</span>

@@ -176,7 +176,7 @@ export function EventSettingsModal({ probabilities, onSave, onCancel }: EventSet
                     max="100" 
                     step="1"
                     value={localProbs[k]}
-                    onChange={(e) => setLocalProbs(prev => ({ ...prev, [k]: parseInt(e.target.value) }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocalProbs((prev: any) => ({ ...prev, [k]: parseInt(e.target.value) }))}
                     className="w-full accent-indigo-600 h-2 bg-white rounded-lg appearance-none cursor-pointer"
                   />
                 </div>
@@ -230,6 +230,3 @@ export function DefaultConfirmModal({ onConfirm, onCancel }: DefaultConfirmModal
   );
 }
 
-// Ensure "use client" and imports are updated at top
-import { useState } from "react";
-import { cn } from "@/lib/utils";

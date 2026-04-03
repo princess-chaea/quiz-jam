@@ -83,7 +83,7 @@ export default function Dashboard() {
           setProbabilities(data.settings.probabilities);
           return;
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error("Failed to load settings from DB:", e);
       }
 
@@ -92,7 +92,7 @@ export default function Dashboard() {
       if (saved) {
         try {
           setProbabilities(JSON.parse(saved));
-        } catch (e) {
+        } catch (e: any) {
           console.error("Failed to parse saved probabilities");
         }
       }
@@ -123,7 +123,7 @@ export default function Dashboard() {
           
         if (error) throw error;
         // Optional: show small success toast if available, or just close modal
-      } catch (e) {
+      } catch (e: any) {
         console.error("Settings save failed:", e);
         showAlert({ message: "서버 저장에 실패했습니다. (로컬에는 저장됨)" });
       }
@@ -156,7 +156,7 @@ export default function Dashboard() {
       const quizIds = (data || []).map((q: any) => q.id);
       if (quizIds.length > 0) {
         const { data: games } = await supabase.from("games").select("id").in("quiz_id", quizIds);
-        const gameIds = games?.map(g => g.id) || [];
+        const gameIds = games?.map((g: any) => g.id) || [];
         
         let totalStudents = 0;
         let avgParticipation = 0;
@@ -173,7 +173,7 @@ export default function Dashboard() {
         setStats({ totalStudents: 0, avgParticipation: 0, totalQuestions });
       }
 
-    } catch (err) {
+    } catch (err: any) {
       console.error("퀴즈 목록 가져오기 실패:", err);
     } finally {
       setLoading(false);

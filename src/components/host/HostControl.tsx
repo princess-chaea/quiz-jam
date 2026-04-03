@@ -208,7 +208,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       if (correctSubmissions.length > 2) speedBonuses.set(correctSubmissions[2].player_id, 1);
 
       // 4. Integrated Scoring Loop (Base + Speed + Streak)
-      const resultsWithBonuses = calculatedResults.map(res => {
+      const resultsWithBonuses = calculatedResults.map((res: any) => {
         let additionalPoints = 0;
         const bonusEvents: string[] = [];
 
@@ -375,10 +375,10 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       const blockedResults = finalResults.filter((r: any) => r.event.includes('_blocked'));
       if (blockedResults.length > 0) {
         const eventChannel = supabase.channel(`game_swaps_${game.id}`);
-        eventChannel.subscribe(async (status) => {
+        eventChannel.subscribe(async (status: string) => {
           if (status === 'SUBSCRIBED') {
             for (const res of blockedResults) {
-              const blockedTypes = res.event.split(',').filter(e => e.endsWith('_blocked'));
+              const blockedTypes = res.event.split(',').filter((e: string) => e.endsWith('_blocked'));
               for (const bType of blockedTypes) {
                 await eventChannel.send({
                   type: 'broadcast',
@@ -435,7 +435,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
       // 7. Broadcast Results Ready (to trigger student re-fetch)
       const eventChannel = supabase.channel(`game_events_${game.id}`);
-      eventChannel.subscribe(async (status) => {
+      eventChannel.subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           console.log("[Host] Broadcasting results and updates...");
           
@@ -535,7 +535,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
     // BROADCAST immediate refresh for all players to move to new question
     const channel = supabase.channel(`game_realtime:${game.id}`);
-    channel.subscribe(async (status) => {
+    channel.subscribe(async (status: string) => {
       if (status === 'SUBSCRIBED') {
         await channel.send({
           type: 'broadcast',
@@ -570,7 +570,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     if (!error) {
       // Broadcast hint reveal for immediate student-side reaction
       const channel = supabase.channel(`game_events_${game.id}`);
-      channel.subscribe(async (status) => {
+      channel.subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           await channel.send({
             type: 'broadcast',
@@ -730,7 +730,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       // Periodically broadcast sync for all student clients to handle drift
       if (remaining > 0 && (remaining % 5 === 0 || remaining <= 3)) {
         const syncChannel = supabase.channel(`sync_${game.id}_${Date.now()}`);
-        syncChannel.subscribe(async (status) => {
+        syncChannel.subscribe(async (status: string) => {
           if (status === 'SUBSCRIBED') {
             await syncChannel.send({
               type: 'broadcast',
@@ -964,7 +964,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {[...players].sort((a, b) => (b.score || 0) - (a.score || 0)).map((player: any, idx: number, sortedPlayers: any[]) => {
+                {[...players].sort((a: any, b: any) => (b.score || 0) - (a.score || 0)).map((player: any, idx: number, sortedPlayers: any[]) => {
                   const ans = answers.find((a: any) => a.player_id === player.id);
                   let rank = idx + 1;
                   if (idx > 0 && (player.score || 0) === (sortedPlayers[idx - 1].score || 0)) {
@@ -1044,10 +1044,6 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                             ans.event.split(',').slice(0, 3).map((e: string, eIdx: number) => {
                               const evt = getEventInfo(e);
                               if (!evt) return null;
-                              // User request: Don't show shield icon during results if it's just a passive buff
-                              // But they said "라운드 결과에서는 획득 효과로 보이고" (Visible as earned effect in results is OK)
-                              // If they specifically meant hide it from the TEACHER screen list...
-                              // I'll keep it here as it represents the "Earned" effect of the round.
                               
                               return (
                                 <div key={eIdx} className={cn(

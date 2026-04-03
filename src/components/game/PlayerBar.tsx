@@ -9,9 +9,10 @@ interface PlayerBarProps {
   currentNickname?: string;
   submissions?: string[]; // IDs of players who submitted
   className?: string;
+  hideBuffs?: boolean;
 }
 
-export function PlayerBar({ players, currentNickname, submissions, className }: PlayerBarProps) {
+export function PlayerBar({ players, currentNickname, submissions, className, hideBuffs }: PlayerBarProps) {
   // Sort players by score descending
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
 
