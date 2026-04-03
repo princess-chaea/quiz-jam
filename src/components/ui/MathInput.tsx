@@ -72,10 +72,15 @@ export function MathInput({
   const [isReady, setIsReady] = useState(false);
   const [mounted, setMounted] = useState(false);
   const onChangeRef = useRef(onChange);
+  const onEnterRef = useRef(onEnter);
 
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+
+  useEffect(() => {
+    onEnterRef.current = onEnter;
+  }, [onEnter]);
   const forceFocus = (mathFieldEl: any) => {
     if (!mathFieldEl) return;
     if (typeof mathFieldEl.focus === 'function') {
@@ -228,17 +233,6 @@ export function MathInput({
     };
   }, []);
 
-  // Use refs to prevent listener re-binding on prop updates
-  const onChangeRef = useRef(onChange);
-  const onEnterRef = useRef(onEnter);
-  
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
-  
-  useEffect(() => {
-    onEnterRef.current = onEnter;
-  }, [onEnter]);
 
   // Focus Synchronization: Blur if another field becomes active in the context
   useEffect(() => {
