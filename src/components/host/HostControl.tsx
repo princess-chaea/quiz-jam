@@ -728,17 +728,13 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       setTimeLeft(remaining);
       
       // Periodically broadcast sync for all student clients to handle drift
-      if (remaining > 0 && (remaining % 5 === 0 || remaining <= 3)) {
-        const syncChannel = supabase.channel(`sync_${game.id}_${Date.now()}`);
-        syncChannel.subscribe(async (status: string) => {
-          if (status === 'SUBSCRIBED') {
-            await syncChannel.send({
-              type: 'broadcast',
-              event: 'TIMER_SYNC',
-              payload: { timeLeft: remaining }
-            });
-            setTimeout(() => supabase.removeChannel(syncChannel), 1000);
-          }
+      // Broadcast more frequently (every 2s) to ensure fast initial sync
+      if (remaining > 0 && (remaining % 2 === 0 || remaining <= 3)) {
+        const syncChannel = supabase.channel(`game_events_${game.id}`);
+        syncChannel.send({
+          type: 'broadcast',
+          event: 'TIMER_SYNC',
+          payload: { timeLeft: remaining }
         });
       }
 
@@ -975,22 +971,22 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                     if (!event || event === 'none') return null;
                     const e = event.trim().toLowerCase();
                     
-                    if (e.startsWith('speed:')) return { icon: '🚀', text: '선착순' };
+                    if (e.startsWith('speed:')) return { icon: '🚀', text: '선착순', desc: '가장 빠르게 정답을 맞춘 학생에게 주는 보너스 점수입니다!' };
                     if (e.startsWith('streak:')) {
                       const count = e.split(':')[1];
-                      return { icon: '🔥', text: `${count}연속` };
+                      return { icon: '🔥', text: `${count}연속`, desc: `${count}번 연속으로 정답을 맞췄을 때 주는 보너스 점수입니다!` };
                     }
 
-                    if (e === 'double') return { icon: '✨', text: '두배' };
-                    if (e === 'strike_bonus') return { icon: '🔥', text: '콤보' };
-                    if (e === 'strike_double') return { icon: '💥', text: '슈퍼' };
-                    if (e === 'swap') return { icon: '🔄', text: '교체' };
-                    if (e === 'strike') return { icon: '⚡', text: '콤보+' };
-                    if (e === 'shield') return { icon: '🛡️', text: '방어' };
-                    if (e === 'cut') return { icon: '✂️', text: '삭감' };
-                    if (e === 'donate') return { icon: '📤', text: '기부' };
-                    if (e.startsWith('gift')) return { icon: '🎁', text: '선물' };
-                    if (e.endsWith('_blocked')) return { icon: '🛡️', text: '방어' };
+                    if (e === 'double') return { icon: '✨', text: '두배', desc: '행운의 찬스! 다음 문제에서 정답 시 획득하는 점수가 2배가 됩니다!' };
+                    if (e === 'strike_bonus') return { icon: '🔥', text: '콤보', desc: '연속 정답 보너스가 적용되었습니다!' };
+                    if (e === 'strike_double') return { icon: '💥', text: '슈퍼', desc: '강력한 콤보 보너스가 적용되었습니다!' };
+                    if (e === 'swap') return { icon: '🔄', text: '교체', desc: '다른 친구 중 한 명과 내 점수를 바꿀 수 있는 기회입니다!' };
+                    if (e === 'strike') return { icon: '⚡', text: '콤보+', desc: '다음 문제 정답 시 추가 보너스를 획득할 수 있습니다!' };
+                    if (e === 'shield') return { icon: '🛡️', text: '방어', desc: '상대방의 점수 삭감 공격을 1회 방어할 수 있는 방어막을 얻었습니다!' };
+                    if (e === 'cut') return { icon: '✂️', text: '삭감', desc: '가장 높은 점수의 학생의 점수를 일부 삭감시켰습니다!' };
+                    if (e === 'donate') return { icon: '📤', text: '기부', desc: '내 정답 점수의 일부를 다른 모든 친구들에게 나누어 주었습니다!' };
+                    if (e.startsWith('gift')) return { icon: '🎁', text: '선물', desc: '다른 친구로부터 깜짝 점수 선물을 받았습니다!' };
+                    if (e.endsWith('_blocked')) return { icon: '🛡️', text: '방어 성공', desc: '방어막 아이템을 사용하여 상대방의 공격을 성공적으로 막아냈습니다!' };
                     return null;
                   };
 
@@ -1051,9 +1047,15 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                                   String(currentSwapperId) === String(player.id) && e === 'swap' && "bg-indigo-600 border-indigo-400 scale-110 shadow-lg ring-2 ring-white/20"
                                 )}>
                                   {/* Tooltip */}
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-[10px] rounded-lg opacity-0 group-hover/item:opacity-100 transition-opacity whitespace-nowrap z-[100] pointer-events-none border border-white/10 shadow-xl">
-                                    <div className="font-black text-indigo-300">{evt.text}</div>
-                                    <div className="text-[8px] opacity-70">마우스 고정 시 설명 표시</div>
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 p-4 bg-indigo-900/95 backdrop-blur-xl text-white rounded-[2rem] opacity-0 group-hover/item:opacity-100 transition-all duration-300 whitespace-normal z-[200] pointer-events-none border-4 border-white/20 shadow-2xl min-w-[200px] scale-90 group-hover/item:scale-100 origin-bottom">
+                                    <div className="flex items-center gap-3 mb-2">
+                                      <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-xl shadow-inner border border-white/10">{evt.icon}</div>
+                                      <div className="font-black text-indigo-200 text-lg">{evt.text}</div>
+                                    </div>
+                                    <div className="text-xs text-white/80 font-bold leading-relaxed break-keep">
+                                      {evt.desc || "획득한 행운의 효과입니다!"}
+                                    </div>
+                                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-indigo-900/95 rotate-45 border-r border-b border-white/20" />
                                   </div>
 
                                   {String(currentSwapperId) === String(player.id) && e === 'swap' ? (

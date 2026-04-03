@@ -473,17 +473,17 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                       );
                     })}
                  </div>
-                 <span className="text-[10px] text-indigo-400 font-bold bg-indigo-50 px-2 py-0.5 rounded-full">{hintStage >= 2 ? "초성 힌트" : "글자수 힌트"}</span>
+                  <span className="text-[8px] md:text-[9px] text-indigo-400 font-bold bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 uppercase tracking-tighter">{hintStage >= 2 ? "초성 힌트 공개" : "글자수 힌트 공개"}</span>
               </div>
             )}
 
             <div className={cn("font-black text-slate-800 break-keep leading-tight text-center py-1 md:py-2", getQuestionFontSize(currentQuestion.q))}>
               {currentQuestion.type === "BLANK" ? (
-                 <div className="flex flex-col items-center gap-2">
-                   <div className="text-indigo-600 font-black text-base bg-indigo-50 px-4 py-2 rounded-2xl animate-pulse">
-                      💡 아래 문장의 빈칸에 알맞은 단어를 입력해 주세요!
-                   </div>
-                 </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="text-indigo-600 font-black text-sm md:text-base bg-indigo-50/50 px-4 py-1.5 rounded-full border border-indigo-100 animate-pulse">
+                       💡 빈칸에 알맞은 단어를 입력해 주세요!
+                    </div>
+                  </div>
               ) : (
                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(currentQuestion.q)}</ReactMarkdown>
               )}
@@ -560,7 +560,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       <div 
         ref={sidebarRef}
         className={cn(
-          "fixed right-0 top-1/2 -translate-y-1/2 z-[100] transition-transform duration-300 flex items-center",
+          "fixed right-0 top-1/2 -translate-y-1/2 z-[150] transition-transform duration-300 flex items-center",
           showScoreTab ? "translate-x-0" : "translate-x-[calc(100%-40px)]"
         )}
         onClick={(e) => e.stopPropagation()}
@@ -599,7 +599,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       <div 
         ref={helpSidebarRef}
         className={cn(
-          "fixed right-0 top-[75%] -translate-y-1/2 z-[100] transition-transform duration-300 flex items-center",
+          "fixed right-0 top-[75%] -translate-y-1/2 z-[150] transition-transform duration-300 flex items-center",
           showHelpTab ? "translate-x-0" : "translate-x-[calc(100%-40px)]"
         )}
         onClick={(e) => e.stopPropagation()}
