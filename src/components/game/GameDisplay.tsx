@@ -252,6 +252,10 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     return "text-lg md:text-2xl";
   };
 
+  const handleAnswerChange = (val: string) => {
+    setAnswer(val);
+  };
+
   const handleBlankChange = (wordIdx: number, val: string, blanks: number[]) => {
     setBlankAnswers((prev: Record<number, string>) => {
       const next = { ...prev, [wordIdx]: val };
@@ -578,7 +582,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             </div>
           )}
           <div className="space-y-2 overflow-y-auto flex-1 pr-1 custom-scrollbar">
-            {[...players].sort((a,b) => (b.score||0)-(a.score||0)).map((p, i) => (
+            {[...players].sort((a: any, b: any) => (b.score || 0) - (a.score || 0)).map((p: any, i: number) => (
               <div key={p.id} className={cn("flex justify-between items-center p-2.5 rounded-xl border transition-all", p.id === player.id ? "bg-indigo-50 border-indigo-200" : "bg-white border-slate-50")}>
                  <div className="flex items-center gap-3">
                     <span className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-full text-[9px] font-black">{i+1}</span>
@@ -611,11 +615,11 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Help</span>
           </div>
           <div className="space-y-6 overflow-y-auto flex-1 pr-1 custom-scrollbar">
-            {helpSections.map((section, idx) => (
+            {helpSections.map((section: any, idx: number) => (
               <div key={idx} className="space-y-3">
                 <div className="text-[11px] font-black text-indigo-600 uppercase tracking-tighter">{section.title}</div>
                 <div className="space-y-2">
-                  {section.items.map((item, iIdx) => (
+                  {section.items.map((item: any, iIdx: number) => (
                     <div key={iIdx} className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-sm">{item.icon}</span>
