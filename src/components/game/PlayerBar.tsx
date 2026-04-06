@@ -36,7 +36,10 @@ export function PlayerBar({ players, currentNickname, submissions, className, hi
                 )}>
                   <div className="flex items-center gap-1.5">
                     <div className={cn("w-2 h-2 rounded-full", colors[team])} />
-                    <span className="text-[9px] font-black text-slate-400">{isMyTeam ? '우리팀' : '상대팀'}</span>
+                    <span className="text-[9px] font-black text-slate-400">
+                      {currentNickname ? (isMyTeam ? '우리팀' : '상대팀') : 
+                       (team === 'RED' ? '빨강팀' : team === 'BLUE' ? '파랑팀' : team === 'GREEN' ? '초록팀' : '노랑팀')}
+                    </span>
                   </div>
                   <div className="bg-white px-2 py-0.5 rounded-md shadow-sm border border-indigo-100 flex items-center shrink-0">
                     <span className="text-sm font-black text-indigo-600 tabular-nums">

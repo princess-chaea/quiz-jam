@@ -315,11 +315,19 @@ export function MathInput({
       }
 
       if (e.key === 'Enter') {
+        const liveValue = el.getValue?.() || el.value || "";
+        const normalizedValue = liveValue.replace(/~/g, ' ').replace(/\\displaylines/g, '').replace(/\\ /g, ' ');
+        if (lastValueRef.current !== normalizedValue) {
+          lastValueRef.current = normalizedValue;
+          onChangeRef.current(normalizedValue);
+        }
+
         if (onEnterRef.current) {
           e.preventDefault();
           onEnterRef.current();
         }
       }
+
       
       // Explicitly handle space to insert a LaTeX non-breaking space (~)
       if (e.key === ' ' && !e.shiftKey) {

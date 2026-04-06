@@ -87,6 +87,11 @@ export function Leaderboard({ players }: LeaderboardProps) {
               </div>
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 w-32 text-center border border-white/10 shadow-lg">
                 <div className="font-black text-white truncate">{top3[1].nickname}</div>
+                {top3[1].team && (
+                  <div className="text-[10px] font-black opacity-60 text-white uppercase tracking-tighter mb-1">
+                    {teamNames[top3[1].team]}
+                  </div>
+                )}
                 <div className="text-yellow-400 font-black">{top3[1].score}점</div>
               </div>
               <div className="w-32 h-32 bg-gray-400/50 rounded-t-2xl mt-4 flex items-center justify-center text-white font-black text-2xl shadow-inner">2nd</div>
@@ -105,6 +110,11 @@ export function Leaderboard({ players }: LeaderboardProps) {
               <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-6 w-48 text-center border border-white/20 shadow-2xl relative">
                 <div className="absolute -top-4 -right-4 bg-red-500 text-white p-2 rounded-xl rotate-12 font-black shadow-lg">WINNER</div>
                 <div className="text-2xl font-black text-white truncate">{top3[0].nickname}</div>
+                {top3[0].team && (
+                  <div className="text-xs font-black opacity-70 text-white uppercase tracking-tight mb-1">
+                    {teamNames[top3[0].team]}
+                  </div>
+                )}
                 <div className="text-3xl font-black text-yellow-400 drop-shadow-md">{top3[0].score}점</div>
               </div>
               <div className="w-48 h-48 bg-yellow-500/50 rounded-t-3xl mt-4 flex items-center justify-center text-white font-black text-4xl shadow-inner">1st</div>
@@ -122,6 +132,11 @@ export function Leaderboard({ players }: LeaderboardProps) {
               </div>
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 w-32 text-center border border-white/10 shadow-lg">
                 <div className="font-black text-white truncate">{top3[2].nickname}</div>
+                {top3[2].team && (
+                  <div className="text-[10px] font-black opacity-60 text-white uppercase tracking-tighter mb-1">
+                    {teamNames[top3[2].team]}
+                  </div>
+                )}
                 <div className="text-yellow-400 font-black">{top3[2].score}점</div>
               </div>
               <div className="w-32 h-24 bg-orange-700/50 rounded-t-2xl mt-4 flex items-center justify-center text-white font-black text-2xl shadow-inner">3rd</div>

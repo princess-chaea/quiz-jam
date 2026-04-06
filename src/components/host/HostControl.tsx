@@ -622,13 +622,19 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         };
 
         const advanceQueue = async () => {
+          console.log("[Host] advanceQueue called. current isSwappingRef:", isSwappingRef.current);
           try {
-            const { data: freshGame } = await supabase.from('games').select('options').eq('id', game.id).single();
+            const { data: freshGame, error: fetchError } = await supabase.from('games').select('status, options').eq('id', game.id).single();
+            if (fetchError) throw fetchError;
+
             const currentOptions = freshGame?.options || gameRef.current?.options || {};
             const currentQueue = currentOptions.swapState?.queue || swapQueueRef.current || [];
             
+            console.log("[Host] Current swap queue length:", currentQueue.length);
+
             if (currentQueue.length === 0) {
-              isSwappingRef.current = false;
+              console.log("[Host] Swap queue is empty, finalising round updates.");
+              await refreshAllData();
               return;
             }
 
@@ -644,41 +650,51 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               }
             };
 
-            console.log("[Host] Updating DB with next swap state:", nextSwapper?.nickname || "none");
-            await supabase.from("games").update({ options: newOptions }).eq("id", game.id);
+            console.log("[Host] Updating DB with next swap state. Next swapper:", nextSwapper?.nickname || "none (end of queue)");
+            const { error: updateError } = await supabase.from("games").update({ options: newOptions }).eq("id", game.id);
+            if (updateError) throw updateError;
 
+            // Update local state to reflect DB change immediately
             setSwapQueue(nextQueue);
             setCurrentSwapperId(nextSwapper?.id || null);
             swapQueueRef.current = nextQueue;
             currentSwapperIdRef.current = nextSwapper?.id || null;
 
-            // 1. Sync game state immediately via broadcast
+            // Sync all clients via broadcast
+            console.log("[Host] Broadcasting GAME_UPDATE with new swapState.");
             await channel.send({ 
               type: 'broadcast', 
               event: 'GAME_UPDATE', 
-              payload: { status: "RESULT", options: newOptions } 
+              payload: { status: freshGame.status, options: newOptions } 
             });
 
             if (nextSwapper) {
-              console.log("[Host] Broadcasting NEXT swap start:", nextSwapper.nickname);
-              // Wait slightly for DB and GAME_UPDATE to settle
+              console.log("[Host] Scheduling START_SWAP broadcast for:", nextSwapper.nickname);
               setTimeout(async () => {
-                await channel.send({
-                  type: 'broadcast',
-                  event: 'START_SWAP',
-                  payload: { playerId: String(nextSwapper.id), nickname: nextSwapper.nickname }
-                });
-              }, 800);
+                try {
+                  await channel.send({
+                    type: 'broadcast',
+                    event: 'START_SWAP',
+                    payload: { playerId: String(nextSwapper.id), nickname: nextSwapper.nickname }
+                  });
+                  console.log("[Host] START_SWAP successfully broadcast to:", nextSwapper.nickname);
+                } catch (sendErr) {
+                  console.error("[Host] Failed to send START_SWAP broadcast:", sendErr);
+                }
+              }, 1200);
             } else {
-              console.log("[Host] All swaps completed.");
+              console.log("[Host] No more swappers. All swaps completed.");
               await refreshAllData();
             }
           } catch (err) {
-            console.error("[Host] Error advancing queue:", err);
+            console.error("[Host] CRITICAL ERROR in advanceQueue:", err);
+            // Even on error, we must allow the game to proceed if possible or at least reset the lock
           } finally {
+            console.log("[Host] Resetting isSwappingRef to false.");
             isSwappingRef.current = false;
           }
         };
+
 
         try {
           const { data: swapper } = await supabase.from('players').select('score, nickname').eq('id', swapperId).single();

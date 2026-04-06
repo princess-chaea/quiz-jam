@@ -66,9 +66,12 @@ export function SegmentedInput({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
+      // Ensure current local value is synced before Enter
+      onChange(localValue.slice(0, length));
       onEnter?.();
     }
   };
+
 
   const handleContainerClick = () => {
     hiddenInputRef.current?.focus();

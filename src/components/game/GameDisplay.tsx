@@ -245,6 +245,17 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     }
   }, [result, game.current_q_index, currentQuestion]);
 
+  // Backup sync for Swap: Monitor game options in case broadcast is missed
+  useEffect(() => {
+    if (game?.status === 'RESULT' && game?.options?.swapState?.currentSwapperId === player.id) {
+      if (!isMyTurnToSwap && !isSwapExecuting) {
+        console.log("[Game] State-based swap trigger activated for:", player.nickname);
+        setIsMyTurnToSwap(true);
+        setShowScoreTab(true);
+      }
+    }
+  }, [game?.options?.swapState?.currentSwapperId, game?.status, player.id, isMyTurnToSwap, isSwapExecuting, player.nickname]);
+
   const [timeLeft, setTimeLeft] = useState<number>(currentQuestion?.timeLimit || 20);
 
   useEffect(() => {

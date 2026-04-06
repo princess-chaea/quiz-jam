@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 "use client";
 
 import { useGame } from "@/hooks/useGame";
@@ -196,10 +195,6 @@ export default function HostPage() {
     );
   }
 
-  if (game.status === 'PLAYING' || game.status === 'RESULT') {
-    return <HostControl game={game} players={players} refreshPlayers={refreshPlayers} />;
-  }
-
   return (
     <div className="min-h-screen bg-indigo-50 flex flex-col">
       {showQR && <QRCodeModal url={joinUrl} onClose={() => setShowQR(false)} />}
@@ -219,146 +214,152 @@ export default function HostPage() {
         />
       )}
 
-      <header className="bg-indigo-600 text-white p-6 shadow-lg flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <div className="bg-white text-indigo-600 p-2 rounded-xl font-black text-2xl px-4 flex items-center gap-2">
-            <span className="text-gray-400 text-sm font-bold uppercase tracking-widest">CODE</span> {code}
-          </div>
-          <h1 className="text-2xl font-jua">선생님 대기실</h1>
-        </div>
-        <div className="flex gap-4">
-          <Button 
-            variant="secondary" 
-            className="text-gray-700 bg-white hover:bg-gray-50 border border-gray-200" 
-            onClick={handleRefresh}
-            disabled={refreshing}
-          >
-            <RefreshCw size={20} className={cn("mr-2", refreshing && "animate-spin")} />
-            새로고침
-          </Button>
-          <Button variant="ghost" className="text-white hover:bg-indigo-500" onClick={handleCopyLink}>
-            {copied ? <Check size={20} className="mr-2 text-green-400" /> : <Copy size={20} className="mr-2" />}
-            링크 복사
-          </Button>
-          <Button variant="danger" onClick={handleExit}>
-            <LogOut size={20} className="mr-2" /> 종료
-          </Button>
-        </div>
-      </header>
-
-      <main className="flex-1 p-8 overflow-hidden flex flex-col max-w-7xl w-full mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
-          <div className="animate-pop">
-            <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-600 px-4 py-1 rounded-full text-sm font-black mb-4 uppercase tracking-widest border border-indigo-200">
-              <Users size={16} /> Waiting for Students
-            </div>
-            <h2 className="text-6xl font-jua text-gray-800 mb-2">
-              입장 완료: <span className="text-indigo-600 font-black">{players.length}명</span>
-            </h2>
-            <p className="text-gray-400 font-bold text-xl">화면의 코드를 학생들에게 알려주세요!</p>
-          </div>
-          
-          <div className="flex flex-col items-center gap-4">
-            <Button 
-              size="xl" 
-              className="px-16 py-8 bg-green-500 hover:bg-green-600 shadow-2xl shadow-green-200 rounded-3xl text-3xl font-black transition-all hover:scale-105 active:scale-95"
-              onClick={() => handleStartGame()}
-              disabled={starting || players.length === 0}
-            >
-              <Play size={36} className="mr-4 fill-white text-white" /> 게임 시작!
-            </Button>
-            <button 
-              onClick={() => setShowQR(true)}
-              className="text-indigo-400 font-bold flex items-center gap-2 hover:text-indigo-600 transition-colors"
-            >
-               <QrCode size={20} /> QR코드로 접속하기
-            </button>
-          </div>
-        </div>
-
-        <div className="flex-1 bg-white/50 rounded-[3rem] border-4 border-dashed border-indigo-200 p-10 overflow-y-auto scrollbar-hide relative shadow-inner">
-          {players.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-400 animate-pulse">
-              <div className="bg-white p-8 rounded-full mb-6 shadow-xl">
-                 <Users size={120} className="opacity-20" />
+      {/* Main Content: Conditionally show HostControl or Lobby UI */}
+      {game.status === 'PLAYING' || game.status === 'RESULT' ? (
+        <HostControl game={game} players={players} refreshPlayers={refreshPlayers} />
+      ) : (
+        <>
+          <header className="bg-indigo-600 text-white p-6 shadow-lg flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <div className="bg-white text-indigo-600 p-2 rounded-xl font-black text-2xl px-4 flex items-center gap-2">
+                <span className="text-gray-400 text-sm font-bold uppercase tracking-widest">CODE</span> {code}
               </div>
-              <p className="text-3xl font-jua">학생들이 입장하기를 기다리고 있습니다...</p>
-              <p className="mt-2 text-gray-400 font-bold">참여 코드는 {code} 입니다.</p>
+              <h1 className="text-2xl font-jua">선생님 대기실</h1>
             </div>
-          ) : !game.options?.isTeamMode ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-8 animate-pop">
-              {players.map((player) => (
-                <PlayerCard 
-                  key={player.id} 
-                  player={player} 
-                  isTeamMode={false}
-                  onKick={() => setKickTarget(player)}
-                  onChangeTeam={() => setTeamTarget(player)}
-                />
-              ))}
+            <div className="flex gap-4">
+              <Button 
+                variant="secondary" 
+                className="text-gray-700 bg-white hover:bg-gray-50 border border-gray-200" 
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
+                <RefreshCw size={20} className={cn("mr-2", refreshing && "animate-spin")} />
+                새로고침
+              </Button>
+              <Button variant="ghost" className="text-white hover:bg-indigo-500" onClick={handleCopyLink}>
+                {copied ? <Check size={20} className="mr-2 text-green-400" /> : <Copy size={20} className="mr-2" />}
+                링크 복사
+              </Button>
+              <Button variant="danger" onClick={handleExit}>
+                <LogOut size={20} className="mr-2" /> 종료
+              </Button>
             </div>
-          ) : (
-            <div className="space-y-12 animate-pop">
-              {Array.from({ length: game.options?.teamCount || 4 }).map((_, i) => {
-                const teams: ('RED' | 'BLUE' | 'GREEN' | 'YELLOW')[] = ['RED', 'BLUE', 'GREEN', 'YELLOW'];
-                const team = teams[i];
-                const teamPlayers = players.filter(p => p.team === team);
-                const teamColors = {
-                  RED: 'border-red-200 bg-red-50 text-red-600',
-                  BLUE: 'border-blue-200 bg-blue-50 text-blue-600',
-                  GREEN: 'border-green-200 bg-green-50 text-green-600',
-                  YELLOW: 'border-yellow-200 bg-yellow-50 text-yellow-600'
-                };
-                const teamNames = { RED: '빨강팀', BLUE: '파랑팀', GREEN: '초록팀', YELLOW: '노랑팀' };
+          </header>
 
-                return (
-                  <div key={team} className="space-y-4">
-                    <div className={cn("inline-flex items-center gap-2 px-6 py-2 rounded-2xl border-2 font-black text-lg", teamColors[team])}>
-                      {teamNames[team]} ({teamPlayers.length}명)
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6">
-                      {teamPlayers.map((player) => (
-                        <PlayerCard 
-                          key={player.id} 
-                          player={player} 
-                          isTeamMode={true}
-                          onKick={() => setKickTarget(player)}
-                          onChangeTeam={() => setTeamTarget(player)}
-                        />
-                      ))}
-                      {teamPlayers.length === 0 && (
-                        <div className="col-span-full py-8 text-center text-gray-300 font-bold border-2 border-dashed border-gray-100 rounded-3xl">
-                          입장 대기 중...
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+          <main className="flex-1 p-8 overflow-hidden flex flex-col max-w-7xl w-full mx-auto">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
+              <div className="animate-pop">
+                <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-600 px-4 py-1 rounded-full text-sm font-black mb-4 uppercase tracking-widest border border-indigo-200">
+                  <Users size={16} /> Waiting for Students
+                </div>
+                <h2 className="text-6xl font-jua text-gray-800 mb-2">
+                  입장 완료: <span className="text-indigo-600 font-black">{players.length}명</span>
+                </h2>
+                <p className="text-gray-400 font-bold text-xl">화면의 코드를 학생들에게 알려주세요!</p>
+              </div>
               
-              {players.filter(p => !p.team).length > 0 && (
-                <div className="space-y-4 pt-8 border-t-4 border-dashed border-gray-100">
-                  <div className="inline-flex items-center gap-2 px-6 py-2 rounded-2xl border-2 border-gray-200 bg-gray-50 text-gray-500 font-black text-lg">
-                    팀 미배정 ({players.filter(p => !p.team).length}명)
+              <div className="flex flex-col items-center gap-4">
+                <Button 
+                  size="xl" 
+                  className="px-16 py-8 bg-green-500 hover:bg-green-600 shadow-2xl shadow-green-200 rounded-3xl text-3xl font-black transition-all hover:scale-105 active:scale-95"
+                  onClick={() => handleStartGame()}
+                  disabled={starting || players.length === 0}
+                >
+                  <Play size={36} className="mr-4 fill-white text-white" /> 게임 시작!
+                </Button>
+                <button 
+                  onClick={() => setShowQR(true)}
+                  className="text-indigo-400 font-bold flex items-center gap-2 hover:text-indigo-600 transition-colors"
+                >
+                   <QrCode size={20} /> QR코드로 접속하기
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 bg-white/50 rounded-[3rem] border-4 border-dashed border-indigo-200 p-10 overflow-y-auto scrollbar-hide relative shadow-inner">
+              {players.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-gray-400 animate-pulse">
+                  <div className="bg-white p-8 rounded-full mb-6 shadow-xl">
+                     <Users size={120} className="opacity-20" />
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6">
-                    {players.filter(p => !p.team).map((player) => (
-                      <PlayerCard 
-                        key={player.id} 
-                        player={player} 
-                        isTeamMode={true}
-                        onKick={() => setKickTarget(player)}
-                        onChangeTeam={() => setTeamTarget(player)}
-                      />
-                    ))}
-                  </div>
+                  <p className="text-3xl font-jua">학생들이 입장하기를 기다리고 있습니다...</p>
+                  <p className="mt-2 text-gray-400 font-bold">참여 코드는 {code} 입니다.</p>
+                </div>
+              ) : !game.options?.isTeamMode ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-8 animate-pop">
+                  {players.map((player) => (
+                    <PlayerCard 
+                      key={player.id} 
+                      player={player} 
+                      isTeamMode={false}
+                      onKick={() => setKickTarget(player)}
+                      onChangeTeam={() => setTeamTarget(player)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-12 animate-pop">
+                  {Array.from({ length: game.options?.teamCount || 4 }).map((_, i) => {
+                    const teams: ('RED' | 'BLUE' | 'GREEN' | 'YELLOW')[] = ['RED', 'BLUE', 'GREEN', 'YELLOW'];
+                    const team = teams[i];
+                    const teamPlayers = players.filter(p => p.team === team);
+                    const teamColors = {
+                      RED: 'border-red-200 bg-red-50 text-red-600',
+                      BLUE: 'border-blue-200 bg-blue-50 text-blue-600',
+                      GREEN: 'border-green-200 bg-green-50 text-green-600',
+                      YELLOW: 'border-yellow-200 bg-yellow-50 text-yellow-600'
+                    };
+                    const teamNames = { RED: '빨강팀', BLUE: '파랑팀', GREEN: '초록팀', YELLOW: '노랑팀' };
+
+                    return (
+                      <div key={team} className="space-y-4">
+                        <div className={cn("inline-flex items-center gap-2 px-6 py-2 rounded-2xl border-2 font-black text-lg", teamColors[team])}>
+                          {teamNames[team]} ({teamPlayers.length}명)
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6">
+                          {teamPlayers.map((player) => (
+                            <PlayerCard 
+                              key={player.id} 
+                              player={player} 
+                              isTeamMode={true}
+                              onKick={() => setKickTarget(player)}
+                              onChangeTeam={() => setTeamTarget(player)}
+                            />
+                          ))}
+                          {teamPlayers.length === 0 && (
+                            <div className="col-span-full py-8 text-center text-gray-300 font-bold border-2 border-dashed border-gray-100 rounded-3xl">
+                              입장 대기 중...
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {players.filter(p => !p.team).length > 0 && (
+                    <div className="space-y-4 pt-8 border-t-4 border-dashed border-gray-100">
+                      <div className="inline-flex items-center gap-2 px-6 py-2 rounded-2xl border-2 border-gray-200 bg-gray-50 text-gray-500 font-black text-lg">
+                        팀 미배정 ({players.filter(p => !p.team).length}명)
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6">
+                        {players.filter(p => !p.team).map((player) => (
+                          <PlayerCard 
+                            key={player.id} 
+                            player={player} 
+                            isTeamMode={true}
+                            onKick={() => setKickTarget(player)}
+                            onChangeTeam={() => setTeamTarget(player)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
-        
-      </main>
+          </main>
+        </>
+      )}
 
       {/* Global Floating Emojis Layer */}
       <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
