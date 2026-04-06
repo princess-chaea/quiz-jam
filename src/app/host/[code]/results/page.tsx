@@ -137,90 +137,96 @@ export default function ResultsPage() {
           {/* Background glow for podium */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-1/2 bg-indigo-500/10 blur-[120px] -z-10" />
 
-          <div className="flex flex-col items-center animate-in slide-in-from-bottom-20 duration-700 delay-300">
-            <div className="mb-6 text-center z-20">
-              <div className="text-xl md:text-3xl font-black truncate max-w-[120px] text-slate-300 drop-shadow-lg uppercase tracking-tight">
-                {finalSortedPlayers[1]?.nickname || "---"}
+          {finalSortedPlayers[1] && (
+            <div className="flex flex-col items-center animate-in slide-in-from-bottom-20 duration-700 delay-300">
+              <div className="mb-6 text-center z-20">
+                <div className="text-xl md:text-3xl font-black truncate max-w-[120px] text-slate-300 drop-shadow-lg uppercase tracking-tight">
+                  {finalSortedPlayers[1]?.nickname || "---"}
+                </div>
+                <div className="text-lg font-black text-slate-400">{finalSortedPlayers[1]?.score?.toLocaleString() || 0} PTS</div>
               </div>
-              <div className="text-lg font-black text-slate-400">{finalSortedPlayers[1]?.score?.toLocaleString() || 0} PTS</div>
-            </div>
-            
-            {/* Player Avatar */}
-            <div className="w-24 h-24 rounded-2xl bg-white/10 border-2 border-white/20 overflow-hidden mb-[-2rem] z-30 shadow-xl p-1 relative">
-               <img 
-                 src={`/avatars/avatar_${finalSortedPlayers[1]?.avatar_id || 1}.png`} 
-                 className="w-full h-full object-cover rounded-xl" 
-                 alt="char"
-                 onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
-               />
-            </div>
-
-            <div className="w-full bg-gradient-to-t from-slate-500 to-slate-400 h-44 md:h-64 rounded-t-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center justify-center relative border-x-4 border-t-4 border-white/20 group hover:scale-105 transition-transform overflow-hidden pt-8">
-               <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-               <div className="relative flex items-center justify-center mt-4">
-                 <Medal size={64} className="text-slate-100 drop-shadow-lg" />
-                 <span className="absolute text-slate-500 font-black text-xl mt-1.5">2</span>
-               </div>
-               <div className="absolute bottom-6 md:bottom-10 text-5xl md:text-6xl font-black text-slate-900/20 italic select-none">{finalSortedPlayers[1]?.rank}nd</div>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center z-10 animate-in slide-in-from-bottom-24 duration-1000">
-            <div className="mb-8 text-center drop-shadow-[0_0_20px_rgba(250,204,21,0.3)]">
-              <div className="text-3xl md:text-5xl font-black truncate max-w-[200px] text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.4)] animate-pulse uppercase tracking-tight">
-                {finalSortedPlayers[0]?.nickname || "---"}
+              
+              {/* Player Avatar */}
+              <div className="w-24 h-24 rounded-2xl bg-white/10 border-2 border-white/20 overflow-hidden mb-[-2rem] z-30 shadow-xl p-1 relative">
+                 <img 
+                   src={`/avatars/avatar_${finalSortedPlayers[1]?.avatar_id || 1}.png`} 
+                   className="w-full h-full object-cover rounded-xl" 
+                   alt="char"
+                   onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+                 />
               </div>
-              <div className="text-2xl font-black text-yellow-200">{finalSortedPlayers[0]?.score?.toLocaleString() || 0} PTS</div>
-            </div>
-            
-            {/* Player Avatar */}
-            <div className="w-32 h-32 rounded-3xl bg-white/10 border-4 border-yellow-200 overflow-hidden mb-[-3rem] z-30 shadow-[0_0_30px_rgba(250,204,21,0.3)] p-1.5 relative">
-               <img 
-                 src={`/avatars/avatar_${finalSortedPlayers[0]?.avatar_id || 1}.png`} 
-                 className="w-full h-full object-cover rounded-2xl" 
-                 alt="char"
-                 onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
-               />
-               <div className="absolute top-1 right-1 bg-yellow-400 text-indigo-900 p-1 rounded-lg">
-                 <Crown size={18} />
-               </div>
-            </div>
 
-            <div className="w-full bg-gradient-to-t from-yellow-600 to-yellow-400 h-72 md:h-96 rounded-t-[3rem] shadow-[0_20px_60px_-10px_rgba(250,204,21,0.4)] flex flex-col items-center justify-center relative border-x-4 border-t-4 border-yellow-200 group hover:scale-105 transition-transform overflow-hidden pt-12">
-               {/* Shine effect */}
-               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
-               <Trophy size={100} className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)] mb-2 animate-pop mt-4" />
-               <div className="absolute bottom-10 md:bottom-14 text-[6rem] md:text-[8rem] font-black text-yellow-900/20 italic select-none leading-none">{finalSortedPlayers[0]?.rank}st</div>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center animate-in slide-in-from-bottom-16 duration-700 delay-500">
-            <div className="mb-6 text-center z-20">
-              <div className="text-xl md:text-3xl font-black truncate max-w-[120px] text-orange-300 drop-shadow-lg uppercase tracking-tight">
-                {finalSortedPlayers[2]?.nickname || "---"}
+              <div className="w-full bg-gradient-to-t from-slate-500 to-slate-400 h-44 md:h-64 rounded-t-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center justify-center relative border-x-4 border-t-4 border-white/20 group hover:scale-105 transition-transform overflow-hidden pt-8">
+                 <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                 <div className="relative flex items-center justify-center mt-4">
+                   <Medal size={64} className="text-slate-100 drop-shadow-lg" />
+                   <span className="absolute text-slate-500 font-black text-xl mt-1.5">2</span>
+                 </div>
+                 <div className="absolute bottom-6 md:bottom-10 text-5xl md:text-6xl font-black text-slate-900/20 italic select-none">{finalSortedPlayers[1]?.rank}nd</div>
               </div>
-              <div className="text-lg font-black text-orange-400">{finalSortedPlayers[2]?.score?.toLocaleString() || 0} PTS</div>
             </div>
-            
-            {/* Player Avatar */}
-            <div className="w-20 h-20 rounded-2xl bg-white/10 border-2 border-orange-200/40 overflow-hidden mb-[-1.5rem] z-30 shadow-xl p-1 relative">
-               <img 
-                 src={`/avatars/avatar_${finalSortedPlayers[2]?.avatar_id || 1}.png`} 
-                 className="w-full h-full object-cover rounded-xl" 
-                 alt="char"
-                 onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
-               />
-            </div>
+          )}
 
-            <div className="w-full bg-gradient-to-t from-orange-600 to-orange-500 h-36 md:h-52 rounded-t-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center justify-center relative border-x-4 border-t-4 border-white/20 group hover:scale-105 transition-transform overflow-hidden pt-4">
-               <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-               <div className="relative flex items-center justify-center mt-2">
-                 <Medal size={56} className="text-orange-100 drop-shadow-lg" />
-                 <span className="absolute text-orange-800 font-black text-lg mt-1">3</span>
-               </div>
-               <div className="absolute bottom-4 md:bottom-8 text-4xl md:text-5xl font-black text-orange-900/20 italic select-none">{finalSortedPlayers[2]?.rank}rd</div>
+          {finalSortedPlayers[0] && (
+            <div className="flex flex-col items-center z-10 animate-in slide-in-from-bottom-24 duration-1000">
+              <div className="mb-8 text-center drop-shadow-[0_0_20px_rgba(250,204,21,0.3)]">
+                <div className="text-3xl md:text-5xl font-black truncate max-w-[200px] text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.4)] animate-pulse uppercase tracking-tight">
+                  {finalSortedPlayers[0]?.nickname || "---"}
+                </div>
+                <div className="text-2xl font-black text-yellow-200">{finalSortedPlayers[0]?.score?.toLocaleString() || 0} PTS</div>
+              </div>
+              
+              {/* Player Avatar */}
+              <div className="w-32 h-32 rounded-3xl bg-white/10 border-4 border-yellow-200 overflow-hidden mb-[-3rem] z-30 shadow-[0_0_30px_rgba(250,204,21,0.3)] p-1.5 relative">
+                 <img 
+                   src={`/avatars/avatar_${finalSortedPlayers[0]?.avatar_id || 1}.png`} 
+                   className="w-full h-full object-cover rounded-2xl" 
+                   alt="char"
+                   onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+                 />
+                 <div className="absolute top-1 right-1 bg-yellow-400 text-indigo-900 p-1 rounded-lg">
+                   <Crown size={18} />
+                 </div>
+              </div>
+
+              <div className="w-full bg-gradient-to-t from-yellow-600 to-yellow-400 h-72 md:h-96 rounded-t-[3rem] shadow-[0_20px_60px_-10px_rgba(250,204,21,0.4)] flex flex-col items-center justify-center relative border-x-4 border-t-4 border-yellow-200 group hover:scale-105 transition-transform overflow-hidden pt-12">
+                 {/* Shine effect */}
+                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+                 <Trophy size={100} className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)] mb-2 animate-pop mt-4" />
+                 <div className="absolute bottom-10 md:bottom-14 text-[6rem] md:text-[8rem] font-black text-yellow-900/20 italic select-none leading-none">{finalSortedPlayers[0]?.rank}st</div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {finalSortedPlayers[2] && (
+            <div className="flex flex-col items-center animate-in slide-in-from-bottom-16 duration-700 delay-500">
+              <div className="mb-6 text-center z-20">
+                <div className="text-xl md:text-3xl font-black truncate max-w-[120px] text-orange-300 drop-shadow-lg uppercase tracking-tight">
+                  {finalSortedPlayers[2]?.nickname || "---"}
+                </div>
+                <div className="text-lg font-black text-orange-400">{finalSortedPlayers[2]?.score?.toLocaleString() || 0} PTS</div>
+              </div>
+              
+              {/* Player Avatar */}
+              <div className="w-20 h-20 rounded-2xl bg-white/10 border-2 border-orange-200/40 overflow-hidden mb-[-1.5rem] z-30 shadow-xl p-1 relative">
+                 <img 
+                   src={`/avatars/avatar_${finalSortedPlayers[2]?.avatar_id || 1}.png`} 
+                   className="w-full h-full object-cover rounded-xl" 
+                   alt="char"
+                   onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+                 />
+              </div>
+
+              <div className="w-full bg-gradient-to-t from-orange-600 to-orange-500 h-36 md:h-52 rounded-t-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center justify-center relative border-x-4 border-t-4 border-white/20 group hover:scale-105 transition-transform overflow-hidden pt-4">
+                 <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                 <div className="relative flex items-center justify-center mt-2">
+                   <Medal size={56} className="text-orange-100 drop-shadow-lg" />
+                   <span className="absolute text-orange-800 font-black text-lg mt-1">3</span>
+                 </div>
+                 <div className="absolute bottom-4 md:bottom-8 text-4xl md:text-5xl font-black text-orange-900/20 italic select-none">{finalSortedPlayers[2]?.rank}rd</div>
+              </div>
+            </div>
+          )}
 
         </div>
 

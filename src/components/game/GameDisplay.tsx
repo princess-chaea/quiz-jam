@@ -120,26 +120,26 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   useEffect(() => {
     if (!game?.id || !player.id) return;
 
-    if (game.status === 'RESULT' || game.status === 'PLAYING') {
-      const swapState = game.options?.swapState;
-      if (swapState && swapState.currentSwapperId) {
-        setActiveSwapperName(swapState.currentSwapperNickname);
-        if (String(swapState.currentSwapperId) === String(player.id)) {
-          setIsMyTurnToSwap(true);
-        } else {
-          setIsMyTurnToSwap(false);
-        }
-      } else {
-        setActiveSwapperName(null);
-        setIsMyTurnToSwap(false);
-      }
-      if (game.current_hint_stage !== undefined) {
-        setHintStage(game.current_hint_stage);
-      }
+    // Sync swap state from game options
+    const swapState = game.options?.swapState;
+    if ((game.status === 'RESULT' || game.status === 'PLAYING') && swapState && swapState.currentSwapperId) {
+      setActiveSwapperName(swapState.currentSwapperNickname);
+      setIsMyTurnToSwap(String(swapState.currentSwapperId) === String(player.id));
+    } else {
+      setActiveSwapperName(null);
+      setIsMyTurnToSwap(false);
     }
-    
+
+    if (game.current_hint_stage !== undefined) {
+      setHintStage(game.current_hint_stage);
+    }
+  }, [game.status, game.options?.swapState, game.current_hint_stage, player.id]);
+
+  useEffect(() => {
+    if (!game?.id || !player.id) return;
+
     const channel = supabase.channel(`game_events_${game.id}`)
-      .on('broadcast', { event: 'START_SWAP' }, ({ payload }: { payload: any }) => {
+      .on('broadcast', { event: 'START_SWAP' }, ({ payload }: { payload: { playerId: string; nickname: string } }) => {
         setActiveSwapperName(payload.nickname);
         if (String(payload.playerId) === String(player.id)) {
           setIsMyTurnToSwap(true);
@@ -149,7 +149,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           setIsMyTurnToSwap(false);
         }
       })
-      .on('broadcast', { event: 'SWAP_COMPLETED' }, ({ payload }: { payload: any }) => {
+      .on('broadcast', { event: 'SWAP_COMPLETED' }, ({ payload }: { payload: { swapperId: string; targetId: string; skipped: boolean; targetName: string; swapperName: string } }) => {
         const { swapperId, targetId, skipped, targetName, swapperName } = payload;
         setActiveSwapperName(null);
         setIsSwapExecuting(false);
@@ -337,34 +337,34 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center p-3 md:p-6 overflow-hidden">
-      {/* Waiting Overlay for Score Swap */}
-      {activeSwapperName && !isMyTurnToSwap && !isSwapExecuting && (
-        <div className="fixed inset-0 z-[110] bg-black/40 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-500 text-center p-8">
-            <div className="bg-white rounded-[3rem] p-10 shadow-2xl border-8 border-indigo-500 max-w-sm w-full scale-110">
-                <div className="relative mb-6">
-                    <RefreshCw className="text-indigo-600 animate-spin mx-auto opacity-20" size={80} />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-12 h-12 bg-indigo-600 rounded-full animate-ping opacity-75" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-4xl text-indigo-600">🔄</span>
-                        </div>
-                    </div>
-                </div>
-                <h3 className="text-2xl font-black text-indigo-900 mb-2">{activeSwapperName} 학생이</h3>
-                <p className="text-xl font-black text-indigo-600">점수를 바꾸고 있습니다!</p>
-                <div className="mt-8 flex justify-center gap-1.5">
-                    <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-100" />
-                    <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-200" />
-                </div>
-                <p className="text-slate-400 text-xs font-bold mt-6 tracking-tighter">잠시만 기다려 주세요 정산 완료 후 이동합니다.</p>
-            </div>
-        </div>
-      )}
-
       {/* Main Content Area */}
       {game.status === 'RESULT' && result ? (
         <div className="flex flex-col items-center justify-center min-h-[600px] w-full max-w-2xl mx-auto p-4 md:p-8 animate-in fade-in duration-500 relative">
+          
+          {/* Waiting Overlay for Score Swap */}
+          {activeSwapperName && !isMyTurnToSwap && !isSwapExecuting && (
+            <div className="fixed inset-0 z-[110] bg-black/40 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-500 text-center p-8">
+                <div className="bg-white rounded-[3rem] p-10 shadow-2xl border-8 border-indigo-500 max-w-sm w-full scale-110">
+                    <div className="relative mb-6">
+                        <RefreshCw className="text-indigo-600 animate-spin mx-auto opacity-20" size={80} />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-12 h-12 bg-indigo-600 rounded-full animate-ping opacity-75" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-4xl text-indigo-600">🔄</span>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 className="text-2xl font-black text-indigo-900 mb-2">{activeSwapperName} 학생이</h3>
+                    <p className="text-xl font-black text-indigo-600">점수 바꾸기를 진행 중입니다!</p>
+                    <div className="mt-8 flex justify-center gap-1.5">
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" />
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-100" />
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-200" />
+                    </div>
+                    <p className="text-slate-400 text-xs font-bold mt-6 tracking-tighter">잠시만 기다려 주세요 정산 완료 후 이동합니다.</p>
+                </div>
+            </div>
+          )}
           {/* Swap Selection Modal (for Swapper) */}
           {(swapResultText || pendingSwapTarget || isMyTurnToSwap) && (
              <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
@@ -382,9 +382,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                       <div className="w-full flex flex-col items-center max-h-[85vh]">
                           <div className="text-4xl mb-4">🔄</div>
                           <h3 className="text-2xl font-black text-indigo-900 mb-1">점수 바꾸기!</h3>
+                          <div className="px-4 py-1.5 bg-indigo-50 rounded-full border border-indigo-100 mb-4 animate-pulse">
+                             <span className="text-xs font-black text-indigo-600 tracking-tight">나의 현재 점수: <span className="text-sm">{(player.score || 0).toLocaleString()}</span>점</span>
+                          </div>
                           <p className="text-slate-500 font-bold mb-4">누구와 점수를 바꿀까요?</p>
                           <div className="w-full overflow-y-auto space-y-2 pr-1 custom-scrollbar mb-4" style={{ maxHeight: 'calc(80vh - 350px)', minHeight: '120px' }}>
-                             {players.filter(p => p.id !== player.id).sort((a,b) => (b.score||0)-(a.score||0)).map(p => (
+                             {players.filter(p => String(p.id) !== String(player.id)).sort((a,b) => (b.score||0)-(a.score||0)).map(p => (
                                 <button key={p.id} onClick={() => handleSwapSelection(p.id, p.nickname)} className="w-full flex items-center justify-between p-3 rounded-2xl border-2 border-slate-100 hover:border-indigo-400 hover:bg-indigo-50 transition-all group">
                                    <div className="flex items-center gap-3">
                                       <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200"><img src={`/avatars/avatar_${p.avatar_id || 1}.png`} alt="avatar" className="w-full h-full object-cover" /></div>
@@ -582,15 +585,37 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             </div>
           )}
           <div className="space-y-2 overflow-y-auto flex-1 pr-1 custom-scrollbar">
-            {[...players].sort((a: any, b: any) => (b.score || 0) - (a.score || 0)).map((p: any, i: number) => (
-              <div key={p.id} className={cn("flex justify-between items-center p-2.5 rounded-xl border transition-all", p.id === player.id ? "bg-indigo-50 border-indigo-200" : "bg-white border-slate-50")}>
-                 <div className="flex items-center gap-3">
-                    <span className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-full text-[9px] font-black">{i+1}</span>
-                    <span className="text-xs font-bold text-slate-700">{p.nickname}</span>
-                 </div>
-                 <span className="text-xs font-black text-indigo-600">{(p.score||0).toLocaleString()}</span>
-              </div>
-            ))}
+            {rankingTab === 'individual' ? (
+              [...players].sort((a: any, b: any) => (b.score || 0) - (a.score || 0)).map((p: any, i: number) => (
+                <div key={p.id} className={cn("flex justify-between items-center p-2.5 rounded-xl border transition-all", p.id === player.id ? "bg-indigo-50 border-indigo-200" : "bg-white border-slate-50")}>
+                   <div className="flex items-center gap-3">
+                      <span className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-full text-[9px] font-black">{i+1}</span>
+                      <span className="text-xs font-bold text-slate-700">{p.nickname}</span>
+                   </div>
+                   <span className="text-xs font-black text-indigo-600">{(p.score||0).toLocaleString()}</span>
+                </div>
+              ))
+            ) : (
+              Object.entries(players.reduce((acc, p) => {
+                if (p.team) acc[p.team] = (acc[p.team] || 0) + (p.score || 0);
+                return acc;
+              }, {} as Record<string, number>))
+              .sort((a, b) => b[1] - a[1])
+              .map(([team, score], i) => {
+                const teamNames = { RED: '빨강팀', BLUE: '파랑팀', GREEN: '초록팀', YELLOW: '노랑팀' } as Record<string, string>;
+                const teamColors = { RED: 'bg-red-500', BLUE: 'bg-blue-500', GREEN: 'bg-green-500', YELLOW: 'bg-yellow-500' } as Record<string, string>;
+                return (
+                  <div key={team} className={cn("flex justify-between items-center p-2.5 rounded-xl border bg-white border-slate-50")}>
+                     <div className="flex items-center gap-3">
+                        <span className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-full text-[9px] font-black">{i+1}</span>
+                        <div className={cn("w-2 h-2 rounded-full", teamColors[team])} />
+                        <span className="text-xs font-bold text-slate-700">{teamNames[team] || team}</span>
+                     </div>
+                     <span className="text-xs font-black text-indigo-600">{score.toLocaleString()}</span>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
@@ -609,12 +634,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           <span className="text-[8px] font-black [writing-mode:vertical-lr]">GUIDE</span>
           {showHelpTab ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
-        <div className="w-64 md:w-72 h-[60vh] bg-white shadow-[0_0_50px_rgba(0,0,0,0.1)] border-2 border-slate-200 rounded-l-2xl p-4 overflow-y-auto custom-scrollbar flex flex-col">
+        <div className="w-64 md:w-72 h-[60vh] bg-white shadow-[0_0_50px_rgba(0,0,0,0.1)] border-2 border-slate-200 rounded-l-2xl p-4 flex flex-col">
           <div className="flex items-center justify-between border-b pb-2 mb-3">
             <h3 className="font-black text-slate-800">게임 가이드</h3>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Help</span>
           </div>
-          <div className="space-y-6 overflow-y-auto flex-1 pr-1 custom-scrollbar">
+          <div className="space-y-6 overflow-y-auto max-h-full pr-1 custom-scrollbar">
             {helpSections.map((section: any, idx: number) => (
               <div key={idx} className="space-y-3">
                 <div className="text-[11px] font-black text-indigo-600 uppercase tracking-tighter">{section.title}</div>

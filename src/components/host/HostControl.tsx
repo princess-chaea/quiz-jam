@@ -512,10 +512,11 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     const nextStatus = isLast ? "ENDED" : "PLAYING";
     const nextIndex = isLast ? game.current_q_index : game.current_q_index + 1;
     
-    // Add start timestamp to options for timer sync
+    // Add start timestamp to options for timer sync and CLEAR any lingering swapState
     const nextOptions = {
       ...(game.options || {}),
-      current_q_started_at: nextStatus === "PLAYING" ? new Date().toISOString() : null
+      current_q_started_at: nextStatus === "PLAYING" ? new Date().toISOString() : null,
+      swapState: null // Clear swap state for the next question
     };
 
     const { error } = await supabase
@@ -1047,7 +1048,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                                   String(currentSwapperId) === String(player.id) && e === 'swap' && "bg-indigo-600 border-indigo-400 scale-110 shadow-lg ring-2 ring-white/20"
                                 )}>
                                   {/* Tooltip */}
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 p-4 bg-indigo-900/95 backdrop-blur-xl text-white rounded-[2rem] opacity-0 group-hover/item:opacity-100 transition-all duration-300 whitespace-normal z-[200] pointer-events-none border-4 border-white/20 shadow-2xl min-w-[200px] scale-90 group-hover/item:scale-100 origin-bottom">
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 p-4 bg-indigo-900/95 backdrop-blur-xl text-white rounded-[2rem] opacity-0 group-hover/item:opacity-100 transition-all duration-300 whitespace-normal z-[3100] pointer-events-none border-4 border-white/20 shadow-2xl min-w-[200px] scale-90 group-hover/item:scale-100 origin-bottom">
                                     <div className="flex items-center gap-3 mb-2">
                                       <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-xl shadow-inner border border-white/10">{evt.icon}</div>
                                       <div className="font-black text-indigo-200 text-lg">{evt.text}</div>
