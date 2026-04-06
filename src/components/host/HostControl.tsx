@@ -593,80 +593,114 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   useEffect(() => { finishRoundRef.current = handleFinishRound; });
 
   // Sequential Swap Listener
+  const isSwappingRef = useRef(false);
   useEffect(() => {
     if (!game.id) return;
 
     const channel = supabase.channel(`game_events_${game.id}`)
       .on('broadcast', { event: 'EXECUTE_SWAP' }, async ({ payload }: { payload: any }) => {
+        if (isSwappingRef.current) {
+          console.log("[Host] Already processing a swap, ignoring duplicate broadcast.");
+          return;
+        }
+        
         const { swapperId, targetId } = payload;
-        // ... (rest of swap logic remains same)
+        console.log(`[Host] EXECUTE_SWAP received from ${swapperId} to ${targetId}`);
+        
+        isSwappingRef.current = true;
+
         const advanceQueue = async () => {
-          const currentQueue = swapQueueRef.current || [];
-          if (currentQueue.length === 0) return;
-          const nextQueue = currentQueue.slice(1);
-          const nextSwapper = nextQueue.length > 0 ? nextQueue[0] : null;
-
-          const newOptions = {
-            ...(gameRef.current.options || {}),
-            swapState: {
-              queue: nextQueue,
-              currentSwapperId: nextSwapper?.id || null,
-              currentSwapperNickname: nextSwapper?.nickname || null
+          try {
+            // Fetch FRESH game from DB to avoid staleness
+            const { data: freshGame } = await supabase.from('games').select('options, id').eq('id', game.id).single();
+            const currentOptions = freshGame?.options || gameRef.current?.options || {};
+            
+            const currentQueue = currentOptions.swapState?.queue || swapQueueRef.current || [];
+            if (currentQueue.length === 0) {
+              isSwappingRef.current = false;
+              return;
             }
-          };
 
-          // 1. Update DB FIRST so student-side state sync sees it
-          const { error: updateErr } = await supabase.from("games").update({ options: newOptions }).eq("id", gameRef.current.id);
-          if (updateErr) console.error("[Host] Swap state DB update failed:", updateErr);
+            const nextQueue = currentQueue.slice(1);
+            const nextSwapper = nextQueue.length > 0 ? nextQueue[0] : null;
 
-          setSwapQueue(nextQueue);
-          setCurrentSwapperId(nextSwapper?.id || null);
-          swapQueueRef.current = nextQueue;
-          currentSwapperIdRef.current = nextSwapper?.id || null;
+            const newOptions = {
+              ...currentOptions,
+              swapState: {
+                queue: nextQueue,
+                currentSwapperId: nextSwapper?.id || null,
+                currentSwapperNickname: nextSwapper?.nickname || null
+              }
+            };
 
-          if (nextSwapper) {
-            // Increased delay slightly (1000ms) to ensure DB propagates properly before manual sync
-            setTimeout(async () => {
-              if (channel) {
+            // 1. Update DB FIRST
+            const { error: updateErr } = await supabase.from("games").update({ options: newOptions }).eq("id", game.id);
+            if (updateErr) console.error("[Host] Swap state DB update failed:", updateErr);
+
+            setSwapQueue(nextQueue);
+            setCurrentSwapperId(nextSwapper?.id || null);
+            swapQueueRef.current = nextQueue;
+            currentSwapperIdRef.current = nextSwapper?.id || null;
+
+            if (nextSwapper) {
+              console.log("[Host] Notifying next swapper:", nextSwapper.nickname);
+              setTimeout(async () => {
                 await channel.send({
                   type: 'broadcast',
                   event: 'START_SWAP',
                   payload: { playerId: String(nextSwapper.id), nickname: nextSwapper.nickname }
                 });
-              }
-            }, 1000);
+                // Force sync for others
+                await channel.send({ type: 'broadcast', event: 'GAME_UPDATE', payload: { status: "RESULT" } });
+              }, 1200);
+            }
+          } catch (err) {
+            console.error("[Host] Error advancing queue:", err);
+          } finally {
+            isSwappingRef.current = false;
           }
         };
 
-        const { data: swapper } = await supabase.from('players').select('score, nickname').eq('id', swapperId).single();
-        if (!swapper) { await advanceQueue(); return; }
+        try {
+          const { data: swapper } = await supabase.from('players').select('score, nickname').eq('id', swapperId).single();
+          if (!swapper) { await advanceQueue(); return; }
 
-        if (!targetId) {
-          await channel.send({
-            type: 'broadcast',
-            event: 'SWAP_COMPLETED',
-            payload: { swapperId, swapperName: swapper.nickname, targetId: null, targetName: null, skipped: true }
-          });
-        } else {
-          const { data: target } = await supabase.from('players').select('score, nickname, buffs').eq('id', targetId).single();
-          if (target) {
-            if (target.buffs?.includes('SHIELD')) {
-              const newBuffs = target.buffs.filter((b: string) => b !== 'SHIELD');
-              await supabase.from('players').update({ buffs: newBuffs }).eq('id', targetId);
-              await channel.send({ type: 'broadcast', event: 'SHIELD_BLOCK', payload: { nickname: target.nickname, type: 'swap' } });
-            } else {
-              await supabase.from('players').update({ score: target.score }).eq('id', swapperId);
-              await supabase.from('players').update({ score: swapper.score }).eq('id', targetId);
-              await channel.send({
-                type: 'broadcast',
-                event: 'SWAP_COMPLETED',
-                payload: { swapperId, swapperName: swapper.nickname, targetId, targetName: target.nickname, swapperScore: target.score, targetScore: swapper.score, skipped: false }
-              });
+          if (!targetId) {
+            await channel.send({
+              type: 'broadcast',
+              event: 'SWAP_COMPLETED',
+              payload: { swapperId, swapperName: swapper.nickname, targetId: null, targetName: null, skipped: true }
+            });
+          } else {
+            const { data: target } = await supabase.from('players').select('score, nickname, buffs').eq('id', targetId).single();
+            if (target) {
+              if (target.buffs?.includes('SHIELD')) {
+                const newBuffs = target.buffs.filter((b: string) => b !== 'SHIELD');
+                await supabase.from('players').update({ buffs: newBuffs }).eq('id', targetId);
+                await channel.send({ type: 'broadcast', event: 'SHIELD_BLOCK', payload: { nickname: target.nickname, type: 'swap' } });
+                await channel.send({
+                  type: 'broadcast',
+                  event: 'SWAP_COMPLETED',
+                  payload: { swapperId, swapperName: swapper.nickname, targetId, targetName: target.nickname, skipped: false, blocked: true }
+                });
+              } else {
+                await supabase.from('players').update({ score: target.score }).eq('id', swapperId);
+                await supabase.from('players').update({ score: swapper.score }).eq('id', targetId);
+                await channel.send({
+                  type: 'broadcast',
+                  event: 'SWAP_COMPLETED',
+                  payload: { swapperId, swapperName: swapper.nickname, targetId, targetName: target.nickname, swapperScore: target.score, targetScore: swapper.score, skipped: false }
+                });
+              }
             }
           }
+          await advanceQueue();
+          if (refreshPlayers) await refreshPlayers();
+        } catch (err) {
+          console.error("[Host] Error in swap processing:", err);
+          isSwappingRef.current = false;
+          await advanceQueue();
         }
-        await advanceQueue();
-        if (refreshPlayers) await refreshPlayers();
       })
       .on('broadcast', { event: 'PLAYER_UPDATE' }, () => {
         if (refreshPlayers) refreshPlayers();

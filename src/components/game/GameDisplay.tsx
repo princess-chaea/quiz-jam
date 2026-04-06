@@ -149,11 +149,16 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
     const channel = supabase.channel(`game_events_${game.id}`)
       .on('broadcast', { event: 'START_SWAP' }, ({ payload }: { payload: { playerId: string; nickname: string } }) => {
+        console.log("[Student] START_SWAP received for:", payload.nickname);
         setActiveSwapperName(payload.nickname);
         if (String(payload.playerId) === String(player.id)) {
           setIsMyTurnToSwap(true);
           setSwapResultText(null);
-          setShowScoreTab(true);
+          // 팝업이 확실히 뜨도록 다른 탭들은 닫음
+          setShowScoreTab(false);
+          setShowHelpTab(false);
+          // 약간의 지연 후 스코어 탭을 열어 랭킹을 보여줌 (선택 UI가 보일 수 있게)
+          setTimeout(() => setShowScoreTab(true), 100);
         } else {
           setIsMyTurnToSwap(false);
         }
@@ -598,11 +603,10 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     
     {/* Floating UI Elements (Persistent Sidebars as Slide-out Drawers) */}
       
-      {/* 1. Ranking Sidebar */}
       <div 
         ref={sidebarRef}
         className={cn(
-          "fixed right-0 top-[40%] -translate-y-1/2 z-[200] transition-all duration-500 ease-out flex items-center group",
+          "fixed right-0 top-1/2 -translate-y-1/2 z-[200] transition-all duration-500 ease-out flex items-center group",
           showScoreTab ? "translate-x-0" : "translate-x-[calc(100%-48px)]"
         )}
         onClick={(e) => e.stopPropagation()}
