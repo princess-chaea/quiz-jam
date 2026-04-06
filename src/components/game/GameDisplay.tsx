@@ -84,9 +84,9 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
     setIsSwapExecuting(true);
     setPendingSwapTarget(null);
-    setIsMyTurnToSwap(false); // 즉시 끔으로써 선택 화면 재진입 방지
     
     try {
+      // 1. Mark as done in DB first
       if (result?.id) {
          const newEvent = (result.event || "")
            .split(',')
@@ -95,17 +95,18 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
          await supabase.from('answers').update({ event: newEvent }).eq('id', result.id);
       }
 
-      const channel = supabase.channel(`game_events_${game.id}`);
-      channelRef.current = channel;
-      await channel.subscribe(async (status: string) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.send({
-            type: 'broadcast',
-            event: 'EXECUTE_SWAP',
-            payload: { swapperId: player.id, targetId }
-          });
-        }
-      });
+      // 2. Use the existing component-level channel for broadcasting
+      if (channelRef.current) {
+        console.log(`[Swap] Broadcasting EXECUTE_SWAP to target: ${targetId}`);
+        await channelRef.current.send({
+          type: 'broadcast',
+          event: 'EXECUTE_SWAP',
+          payload: { swapperId: player.id, targetId }
+        });
+      } else {
+        console.warn("[Swap] channelRef.current is not available for broadcasting");
+        // Fallback: create a temporary channel if needed, but this shouldn't happen
+      }
 
       if (targetId) {
         setSwapResultText(`${targetName} 학생과 점수를 바꿨습니다!`);
@@ -116,7 +117,10 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       console.error("Swap execution failed:", err);
       setIsSwapExecuting(false);
     }
-    setTimeout(() => { setIsSwapExecuting(false); }, 5000);
+    // Safety clearing if host doesn't respond within 7s
+    setTimeout(() => { 
+      if (isSwapExecuting) setIsSwapExecuting(false); 
+    }, 7000);
   };
 
   useEffect(() => {
@@ -125,11 +129,20 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     // Sync swap state from game options
     const swapState = game.options?.swapState;
     if ((game.status === 'RESULT' || game.status === 'PLAYING') && swapState && swapState.currentSwapperId) {
+      const currentSwapperId = String(swapState.currentSwapperId);
+      const isMe = currentSwapperId === String(player.id);
+      
       setActiveSwapperName(swapState.currentSwapperNickname);
-      setIsMyTurnToSwap(String(swapState.currentSwapperId) === String(player.id));
+      setIsMyTurnToSwap(isMe);
+      
+      // If the current swapper is someone else, make sure I don't have 'executing' state active
+      if (!isMe && isSwapExecuting) {
+        setIsSwapExecuting(false);
+      }
     } else {
       setActiveSwapperName(null);
       setIsMyTurnToSwap(false);
+      setIsSwapExecuting(false);
     }
 
     if (game.current_hint_stage !== undefined) {
@@ -140,6 +153,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     if (game.status === 'PLAYING' || game.status === 'WAITING' || (prevQIndexRef.current !== -1 && prevQIndexRef.current !== game.current_q_index)) {
       setSwapResultText(null);
       setPendingSwapTarget(null);
+      setIsSwapExecuting(false);
     }
     prevQIndexRef.current = game.current_q_index;
   }, [game.status, game.options?.swapState, game.current_hint_stage, game.current_q_index, player.id]);
@@ -154,11 +168,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         if (String(payload.playerId) === String(player.id)) {
           setIsMyTurnToSwap(true);
           setSwapResultText(null);
-          // 팝업이 확실히 뜨도록 다른 탭들은 닫음
-          setShowScoreTab(false);
-          setShowHelpTab(false);
-          // 약간의 지연 후 스코어 탭을 열어 랭킹을 보여줌 (선택 UI가 보일 수 있게)
-          setTimeout(() => setShowScoreTab(true), 100);
+          // Only auto-open if not already open to avoid disruption
+          setShowScoreTab(true);
         } else {
           setIsMyTurnToSwap(false);
         }
@@ -168,19 +179,14 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         setActiveSwapperName(null);
         setIsSwapExecuting(false);
         
-        // 중요: 본인이 방금 교체를 수행한 학생인 경우에만 상태를 초기화합니다.
-        // 다른 학생(다음 순번일 수 있음)의 isMyTurnToSwap 상태를 건드리지 않습니다.
         if (String(swapperId) === String(player.id)) {
           setIsMyTurnToSwap(false);
-        }
-
-        if (swapperId === player.id) {
+          setSwapCommitted(true);
           if (skipped) setSwapResultText("점수 바꾸기를 하지 않고 넘어갔습니다.");
           else {
             setSwapResultText(`${targetName} 학생과 점수를 바꿨습니다!`);
             confetti({ particleCount: 50, spread: 40, origin: { y: 0.8 } });
           }
-          setSwapCommitted(true);
         } else if (targetId === player.id && !skipped) {
           setSwapResultText(`${swapperName} 학생이 당신과 점수를 바꿨습니다!`);
         }
@@ -195,18 +201,21 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     
     channelRef.current = channel;
 
+    return () => { 
+      supabase.removeChannel(channel); 
+    };
+  }, [game?.id, player.id]); // Removed UI tab dependencies
+
+  // Separate effect for outside clicks
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (showScoreTab && sidebarRef.current && !sidebarRef.current.contains(target)) setShowScoreTab(false);
       if (showHelpTab && helpSidebarRef.current && !helpSidebarRef.current.contains(target)) setShowHelpTab(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
-
-    return () => { 
-      supabase.removeChannel(channel); 
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [game?.id, player.id, showScoreTab, showHelpTab]);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showScoreTab, showHelpTab]);
 
   useEffect(() => {
     if (result) {
@@ -328,6 +337,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     if (e === 'double') return { icon: '✨', text: '두배 찬스!', color: 'bg-yellow-400', desc: '다음 문제 점수가 2배가 됩니다!' };
     if (e === 'shield') return { icon: '🛡️', text: '방어막 획득!', color: 'bg-blue-400', desc: '공격을 1회 방어합니다!' };
     if (e === 'swap') return { icon: '🔄', text: '점수 바꾸기!', color: 'bg-indigo-500', desc: '다른 친구와 점수를 바꿀 수 있습니다!' };
+    if (e === 'swap_done') return { icon: '✅', text: '교체 완료!', color: 'bg-emerald-500', desc: '점수 교체 기회를 사용했습니다.' };
     if (e === 'strike') return { icon: '⚡', text: '스트라이크!', color: 'bg-amber-400', desc: '다음 문제 정답 시 보너스 점수!' };
     if (e === 'cut') return { icon: '✂️', text: '점수 삭감!', color: 'bg-red-500', desc: '상대방의 점수를 깎았습니다!' };
     if (e === 'donate') return { icon: '📤', text: '점수 기부!', color: 'bg-emerald-500', desc: '팀원들에게 점수를 나누어 주었습니다!' };

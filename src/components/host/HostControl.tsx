@@ -644,6 +644,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               }
             };
 
+            console.log("[Host] Updating DB with next swap state:", nextSwapper?.nickname || "none");
             await supabase.from("games").update({ options: newOptions }).eq("id", game.id);
 
             setSwapQueue(nextQueue);
@@ -651,17 +652,23 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             swapQueueRef.current = nextQueue;
             currentSwapperIdRef.current = nextSwapper?.id || null;
 
-            // Broadcast status change immediately
-            await channel.send({ type: 'broadcast', event: 'GAME_UPDATE', payload: { status: "RESULT" } });
+            // 1. Sync game state immediately via broadcast
+            await channel.send({ 
+              type: 'broadcast', 
+              event: 'GAME_UPDATE', 
+              payload: { status: "RESULT", options: newOptions } 
+            });
 
             if (nextSwapper) {
+              console.log("[Host] Broadcasting NEXT swap start:", nextSwapper.nickname);
+              // Wait slightly for DB and GAME_UPDATE to settle
               setTimeout(async () => {
                 await channel.send({
                   type: 'broadcast',
                   event: 'START_SWAP',
                   payload: { playerId: String(nextSwapper.id), nickname: nextSwapper.nickname }
                 });
-              }, 1000);
+              }, 800);
             } else {
               console.log("[Host] All swaps completed.");
               await refreshAllData();
@@ -678,13 +685,16 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           if (!swapper) { await advanceQueue(); return; }
 
           if (!targetId) {
+            console.log("[Host] User skipped swap.");
             await channel.send({
               type: 'broadcast',
               event: 'SWAP_COMPLETED',
               payload: { swapperId, swapperName: swapper.nickname, targetId: null, targetName: null, skipped: true }
             });
           } else {
-            const { data: target } = await supabase.from('players').select('score, nickname, buffs').eq('id', targetId).single();
+            console.log(`[Host] Fetching target ${targetId}`);
+            const { data: target } = await supabase.from('players').select('score, nickname, buffs').eq('id', targetId).maybeSingle();
+            
             if (target) {
               if (target.buffs?.includes('SHIELD')) {
                 const newBuffs = target.buffs.filter((b: string) => b !== 'SHIELD');
@@ -696,14 +706,26 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                   payload: { swapperId, swapperName: swapper.nickname, targetId, targetName: target.nickname, skipped: false, blocked: true }
                 });
               } else {
-                await supabase.from('players').update({ score: target.score }).eq('id', swapperId);
-                await supabase.from('players').update({ score: swapper.score }).eq('id', targetId);
+                console.log(`[Host] Executing score swap: ${swapper.score} <-> ${target.score}`);
+                // Perform updates sequentially
+                const { error: e1 } = await supabase.from('players').update({ score: target.score }).eq('id', swapperId);
+                const { error: e2 } = await supabase.from('players').update({ score: swapper.score }).eq('id', targetId);
+                
+                if (e1 || e2) console.error("[Host] Score update error:", e1, e2);
+
                 await channel.send({
                   type: 'broadcast',
                   event: 'SWAP_COMPLETED',
                   payload: { swapperId, swapperName: swapper.nickname, targetId, targetName: target.nickname, swapperScore: target.score, targetScore: swapper.score, skipped: false }
                 });
               }
+            } else {
+              console.warn("[Host] Target player not found in DB.");
+              await channel.send({
+                type: 'broadcast',
+                event: 'SWAP_COMPLETED',
+                payload: { swapperId, swapperName: swapper.nickname, targetId: null, targetName: "나간 학생", skipped: true, error: "target_missing" }
+              });
             }
           }
           await refreshAllData();
@@ -1053,7 +1075,8 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                     if (e === 'double') return { icon: '✨', text: '두배', desc: '행운의 찬스! 다음 문제에서 정답 시 획득하는 점수가 2배가 됩니다!' };
                     if (e === 'strike_bonus') return { icon: '🔥', text: '콤보', desc: '연속 정답 보너스가 적용되었습니다!' };
                     if (e === 'strike_double') return { icon: '💥', text: '슈퍼', desc: '강력한 콤보 보너스가 적용되었습니다!' };
-                    if (e === 'swap') return { icon: '🔄', text: '교체', desc: '다른 친구 중 한 명과 내 점수를 바꿀 수 있는 기회입니다!' };
+                    if (e === 'swap') return { icon: '🔄', text: '교체 대기', desc: '다른 친구 중 한 명과 내 점수를 바꿀 수 있는 기회입니다!' };
+                    if (e === 'swap_done') return { icon: '✅', text: '교체 완료', desc: '점수 바꾸기를 완료한 상태입니다.' };
                     if (e === 'strike') return { icon: '⚡', text: '콤보+', desc: '다음 문제 정답 시 추가 보너스를 획득할 수 있습니다!' };
                     if (e === 'shield') return { icon: '🛡️', text: '방어', desc: '상대방의 점수 삭감 공격을 1회 방어할 수 있는 방어막을 얻었습니다!' };
                     if (e === 'cut') return { icon: '✂️', text: '삭감', desc: '가장 높은 점수의 학생의 점수를 일부 삭감시켰습니다!' };
@@ -1131,14 +1154,16 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                                     <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-indigo-900/95 rotate-45 border-r border-b border-white/20" />
                                   </div>
 
-                                  {String(currentSwapperId) === String(player.id) && e === 'swap' ? (
-                                    <>
-                                      <RefreshCw className="text-white animate-spin" size={12} />
-                                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[8px] px-1.5 py-0.5 rounded-full whitespace-nowrap font-black shadow-lg border border-indigo-300">교체 중</span>
-                                    </>
-                                  ) : (
-                                    <span className="text-sm leading-none drop-shadow-md">{evt.icon}</span>
-                                  )}
+                                    {String(currentSwapperId) === String(player.id) && e === 'swap' ? (
+                                      <>
+                                        <RefreshCw className="text-white animate-spin" size={12} />
+                                        <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap font-black shadow-xl border-2 border-white/50 animate-bounce">교체 중!</span>
+                                      </>
+                                    ) : e === 'swap_done' ? (
+                                      <Check className="text-emerald-400" size={12} />
+                                    ) : (
+                                      <span className="text-sm leading-none drop-shadow-md">{evt.icon}</span>
+                                    )}
                                 </div>
                               );
                             })
