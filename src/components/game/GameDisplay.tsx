@@ -71,6 +71,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const [activeSwapperName, setActiveSwapperName] = useState<string | null>(null);
   const [swapResultText, setSwapResultText] = useState<string | null>(null);
   const [pendingSwapTarget, setPendingSwapTarget] = useState<any>(null);
+  const prevQIndexRef = useRef<number>(game.current_q_index);
 
   const handleSwapSelection = async (targetId: string | null, targetName: string | null) => {
     if (isSwapExecuting || !isMyTurnToSwap) return;
@@ -83,6 +84,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
     setIsSwapExecuting(true);
     setPendingSwapTarget(null);
+    setIsMyTurnToSwap(false); // 즉시 끔으로써 선택 화면 재진입 방지
     
     try {
       if (result?.id) {
@@ -133,7 +135,14 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     if (game.current_hint_stage !== undefined) {
       setHintStage(game.current_hint_stage);
     }
-  }, [game.status, game.options?.swapState, game.current_hint_stage, player.id]);
+
+    // Force clear results/pending states when moving to a new question or status changes away from RESULT
+    if (game.status === 'PLAYING' || game.status === 'WAITING' || (prevQIndexRef.current !== -1 && prevQIndexRef.current !== game.current_q_index)) {
+      setSwapResultText(null);
+      setPendingSwapTarget(null);
+    }
+    prevQIndexRef.current = game.current_q_index;
+  }, [game.status, game.options?.swapState, game.current_hint_stage, game.current_q_index, player.id]);
 
   useEffect(() => {
     if (!game?.id || !player.id) return;
@@ -323,20 +332,35 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const eventInfos = (result?.event || "").split(',').map(getEventInfo).filter(Boolean);
 
   const helpSections = [
-    { title: "기본 규칙", items: [
-      { icon: "✅", label: "정답 제출", desc: "정답 입력 후 제출 버튼을 누르세요." },
-      { icon: "⌨️", label: "수식 키보드", desc: "수식 입력 시 자판 아이콘을 활용하세요." },
-      { icon: "🔄", label: "새로고침", desc: "입력창이 이상할 때 새로고침을 누르세요." }
-    ]},
-    { title: "아이템 인 행운", items: [
-      { icon: "⚡", label: "점수 2배", desc: "정답 시 획득 점수가 2배가 됩니다." },
-      { icon: "🔄", label: "점수 교체", desc: "친구와 내 점수를 바꿀 수 있습니다." },
-      { icon: "🛡️", label: "방어권", desc: "공격 아이템을 1회 방어합니다." }
-    ]}
+    { 
+      title: "기본 규칙", 
+      items: [
+        { icon: "✅", label: "정답 제출", desc: "문제를 풀고 '정답 제출하기' 버튼을 누르면 점수를 얻을 수 있습니다." },
+        { icon: "🚀", label: "빠른 제출 보너스", desc: "가장 빠르게 정답을 맞힌 3명에게는 보너스 점수가 지급됩니다! (1등 +5점, 2등 +3점, 3등 +1점)" },
+        { icon: "🔥", label: "연속 정답 보너스", desc: "3연속(+5), 5연속(+10), 10연속(+20) 정답 시 대량의 보너스 점수를 얻습니다!" }
+      ]
+    },
+    { 
+      title: "🍀 행운의 아이템 (정답 시 5% 확률)", 
+      items: [
+        { icon: "✨", label: "2배 찬스", desc: "현재 획득한 문제 점수가 2배로 뻥튀기됩니다!" },
+        { icon: "🔄", label: "점수 바꾸기", desc: "나보다 점수가 높은 친구를 한 명 골라 점수를 즉시 바꿀 수 있습니다. (역전의 기회!)" },
+        { icon: "⚡", label: "스트라이크", desc: "다음 문제에서 정답을 맞히면 획득 점수가 2배가 되는 강력한 버프입니다." },
+        { icon: "🛡️", label: "방어막", desc: "상대방의 '삭감'이나 '기부' 공격을 한 번 자동으로 막아냅니다." }
+      ]
+    },
+    { 
+      title: "👿 불운의 효과 (오답 시 5% 확률)", 
+      items: [
+        { icon: "✂️", label: "점수 삭감", desc: "현재 문제 배점만큼 나의 소중한 점수가 깎이게 됩니다. 신중하게 답을 골라주세요!" },
+        { icon: "📤", label: "점수 기부", desc: "나의 점수 중 30점을 정답을 맞힌 다른 친구들에게 10점씩 골고루 나누어 줍니다." }
+      ]
+    }
   ];
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center p-3 md:p-6 overflow-hidden">
+    <>
+      <div className="relative w-full h-full flex flex-col items-center justify-center p-3 md:p-6 overflow-hidden">
       {/* Main Content Area */}
       {game.status === 'RESULT' && result ? (
         <div className="flex flex-col items-center justify-center min-h-[600px] w-full max-w-2xl mx-auto p-4 md:p-8 animate-in fade-in duration-500 relative">
@@ -369,7 +393,13 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           {(swapResultText || pendingSwapTarget || isMyTurnToSwap) && (
              <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
                 <div className="bg-white rounded-[3rem] p-8 max-w-md w-full shadow-2xl animate-in zoom-in duration-300 border-8 border-indigo-500 flex flex-col items-center text-center">
-                   {pendingSwapTarget ? (
+                   {swapResultText ? (
+                      <>
+                         <div className="text-5xl mb-4">✨</div>
+                         <h3 className="text-2xl font-black text-indigo-900 mb-4">{swapResultText}</h3>
+                         <Button size="lg" className="w-full rounded-2xl bg-indigo-600" onClick={() => { setSwapResultText(null); if (swapCommitted) refresh(); }}>확인</Button>
+                      </>
+                   ) : pendingSwapTarget ? (
                       <>
                          <div className="text-5xl mb-4">🔄</div>
                          <h3 className="text-2xl font-black text-indigo-900 mb-2">{pendingSwapTarget.nickname} 학생과<br/>점수를 바꿀까요?</h3>
@@ -399,13 +429,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                           </div>
                           <Button variant="ghost" className="w-full rounded-2xl border-2 border-slate-100 py-4" onClick={() => handleSwapSelection(null, null)}>넘어가기 (선택 안함)</Button>
                        </div>
-                   ) : (
-                      <>
-                         <div className="text-5xl mb-4">✨</div>
-                         <h3 className="text-2xl font-black text-indigo-900 mb-4">{swapResultText}</h3>
-                         <Button size="lg" className="w-full rounded-2xl bg-indigo-600" onClick={() => { setSwapResultText(null); if (swapCommitted) refresh(); }}>확인</Button>
-                      </>
-                   )}
+                   ) : null}
                 </div>
              </div>
           )}
@@ -556,43 +580,69 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           </div>
         </div>
       )}
-
-      {/* Floating UI Elements (Persistent Sidebars as Slide-out Drawers) */}
+    </div>
+    
+    {/* Floating UI Elements (Persistent Sidebars as Slide-out Drawers) */}
       
       {/* 1. Ranking Sidebar */}
       <div 
         ref={sidebarRef}
         className={cn(
-          "fixed right-0 top-1/2 -translate-y-1/2 z-[150] transition-transform duration-300 flex items-center",
-          showScoreTab ? "translate-x-0" : "translate-x-[calc(100%-40px)]"
+          "fixed right-0 top-[40%] -translate-y-1/2 z-[200] transition-all duration-500 ease-out flex items-center group",
+          showScoreTab ? "translate-x-0" : "translate-x-[calc(100%-48px)]"
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <button onClick={() => { setShowScoreTab(!showScoreTab); setShowHelpTab(false); }} className="w-10 h-24 bg-indigo-600 text-white rounded-l-2xl flex flex-col items-center justify-center gap-2 shadow-lg hover:bg-indigo-700 transition-colors">
-          <Trophy size={18} />
-          <span className="text-[8px] font-black [writing-mode:vertical-lr]">RANKING</span>
-          {showScoreTab ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        <button 
+          onClick={() => { setShowScoreTab(!showScoreTab); setShowHelpTab(false); }} 
+          className={cn(
+            "w-12 h-28 flex flex-col items-center justify-center gap-2 rounded-l-3xl shadow-[-10px_0_30px_rgba(0,0,0,0.1)] transition-all",
+            showScoreTab ? "bg-indigo-600 text-white" : "bg-white text-indigo-600 hover:bg-indigo-50 border-y-2 border-l-2 border-indigo-100"
+          )}
+        >
+          <Trophy size={20} className={cn(showScoreTab && "animate-bounce")} />
+          <span className="text-[10px] font-black [writing-mode:vertical-lr] tracking-tighter">RANKING</span>
+          {showScoreTab ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
-        <div className="w-64 md:w-72 h-[65vh] bg-white shadow-[0_0_50px_rgba(0,0,0,0.1)] border-2 border-indigo-100 rounded-l-2xl p-4 overflow-y-auto custom-scrollbar flex flex-col">
-          <div className="flex items-center justify-between border-b pb-2 mb-3">
-            <h3 className="font-black text-indigo-900">순위 현황</h3>
-            <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Live</span>
+        <div className="w-72 md:w-80 h-[70vh] bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.15)] border-l-4 border-indigo-500/10 p-5 flex flex-col">
+          <div className="flex items-center justify-between border-b-2 border-slate-50 pb-3 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-indigo-100 rounded-lg"><Trophy size={16} className="text-indigo-600" /></div>
+              <h3 className="font-black text-slate-800">실시간 순위</h3>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+              </span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Live</span>
+            </div>
           </div>
+          
           {game?.options?.isTeamMode && (
-            <div className="flex gap-1 mb-3 p-1 bg-slate-100 rounded-xl">
-              <button onClick={() => setRankingTab('individual')} className={cn("flex-1 py-1 text-[10px] font-black rounded-lg transition-all", rankingTab === 'individual' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400")}>개인별</button>
-              <button onClick={() => setRankingTab('team')} className={cn("flex-1 py-1 text-[10px] font-black rounded-lg transition-all", rankingTab === 'team' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400")}>팀별</button>
+            <div className="flex gap-1 mb-4 p-1 bg-slate-100 rounded-2xl">
+              <button onClick={() => setRankingTab('individual')} className={cn("flex-1 py-2 text-[11px] font-black rounded-xl transition-all", rankingTab === 'individual' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}>개인별</button>
+              <button onClick={() => setRankingTab('team')} className={cn("flex-1 py-2 text-[11px] font-black rounded-xl transition-all", rankingTab === 'team' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}>팀별</button>
             </div>
           )}
+          
           <div className="space-y-2 overflow-y-auto flex-1 pr-1 custom-scrollbar">
             {rankingTab === 'individual' ? (
               [...players].sort((a: any, b: any) => (b.score || 0) - (a.score || 0)).map((p: any, i: number) => (
-                <div key={p.id} className={cn("flex justify-between items-center p-2.5 rounded-xl border transition-all", p.id === player.id ? "bg-indigo-50 border-indigo-200" : "bg-white border-slate-50")}>
+                <div key={p.id} className={cn(
+                  "flex justify-between items-center p-3 rounded-2xl border transition-all animate-in slide-in-from-right-4 duration-300",
+                  p.id === player.id ? "bg-indigo-600 border-indigo-400 shadow-lg shadow-indigo-100 scale-[1.02]" : "bg-white border-slate-100 hover:border-indigo-100"
+                )} style={{ animationDelay: `${i * 50}ms` }}>
                    <div className="flex items-center gap-3">
-                      <span className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-full text-[9px] font-black">{i+1}</span>
-                      <span className="text-xs font-bold text-slate-700">{p.nickname}</span>
+                      <span className={cn(
+                        "w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-black shadow-sm",
+                        p.id === player.id ? "bg-white text-indigo-600" : "bg-slate-100 text-slate-500"
+                      )}>{i+1}</span>
+                      <span className={cn("text-[13px] font-bold", p.id === player.id ? "text-white" : "text-slate-700")}>{p.nickname}</span>
                    </div>
-                   <span className="text-xs font-black text-indigo-600">{(p.score||0).toLocaleString()}</span>
+                   <div className="flex flex-col items-end">
+                      <span className={cn("text-xs font-black", p.id === player.id ? "text-indigo-100" : "text-indigo-600")}>{(p.score||0).toLocaleString()} <span className="text-[9px]">pts</span></span>
+                   </div>
                 </div>
               ))
             ) : (
@@ -605,13 +655,13 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                 const teamNames = { RED: '빨강팀', BLUE: '파랑팀', GREEN: '초록팀', YELLOW: '노랑팀' } as Record<string, string>;
                 const teamColors = { RED: 'bg-red-500', BLUE: 'bg-blue-500', GREEN: 'bg-green-500', YELLOW: 'bg-yellow-500' } as Record<string, string>;
                 return (
-                  <div key={team} className={cn("flex justify-between items-center p-2.5 rounded-xl border bg-white border-slate-50")}>
+                  <div key={team} className="flex justify-between items-center p-3.5 rounded-2xl border bg-white border-slate-100 hover:border-indigo-100 transition-all animate-in slide-in-from-right-4 duration-300" style={{ animationDelay: `${i * 50}ms` }}>
                      <div className="flex items-center gap-3">
-                        <span className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-full text-[9px] font-black">{i+1}</span>
-                        <div className={cn("w-2 h-2 rounded-full", teamColors[team])} />
-                        <span className="text-xs font-bold text-slate-700">{teamNames[team] || team}</span>
+                        <span className="w-6 h-6 flex items-center justify-center bg-slate-100 rounded-full text-[10px] font-black text-slate-500">{i+1}</span>
+                        <div className={cn("w-3 h-3 rounded-full shadow-sm", teamColors[team])} />
+                        <span className="text-[13px] font-black text-slate-700">{teamNames[team] || team}</span>
                      </div>
-                     <span className="text-xs font-black text-indigo-600">{score.toLocaleString()}</span>
+                     <span className="text-xs font-black text-indigo-600">{score.toLocaleString()} <span className="text-[9px]">pts</span></span>
                   </div>
                 );
               })
@@ -659,6 +709,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
