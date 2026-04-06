@@ -162,7 +162,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         const { swapperId, targetId, skipped, targetName, swapperName } = payload;
         setActiveSwapperName(null);
         setIsSwapExecuting(false);
-        setIsMyTurnToSwap(false);
+        
+        // 중요: 본인이 방금 교체를 수행한 학생인 경우에만 상태를 초기화합니다.
+        // 다른 학생(다음 순번일 수 있음)의 isMyTurnToSwap 상태를 건드리지 않습니다.
+        if (String(swapperId) === String(player.id)) {
+          setIsMyTurnToSwap(false);
+        }
 
         if (swapperId === player.id) {
           if (skipped) setSwapResultText("점수 바꾸기를 하지 않고 넘어갔습니다.");
@@ -331,32 +336,41 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
   const eventInfos = (result?.event || "").split(',').map(getEventInfo).filter(Boolean);
 
-  const helpSections = [
-    { 
-      title: "기본 규칙", 
-      items: [
-        { icon: "✅", label: "정답 제출", desc: "문제를 풀고 '정답 제출하기' 버튼을 누르면 점수를 얻을 수 있습니다." },
-        { icon: "🚀", label: "빠른 제출 보너스", desc: "가장 빠르게 정답을 맞힌 3명에게는 보너스 점수가 지급됩니다! (1등 +5점, 2등 +3점, 3등 +1점)" },
-        { icon: "🔥", label: "연속 정답 보너스", desc: "3연속(+5), 5연속(+10), 10연속(+20) 정답 시 대량의 보너스 점수를 얻습니다!" }
-      ]
-    },
-    { 
-      title: "🍀 행운의 아이템 (정답 시 5% 확률)", 
-      items: [
-        { icon: "✨", label: "2배 찬스", desc: "현재 획득한 문제 점수가 2배로 뻥튀기됩니다!" },
-        { icon: "🔄", label: "점수 바꾸기", desc: "나보다 점수가 높은 친구를 한 명 골라 점수를 즉시 바꿀 수 있습니다. (역전의 기회!)" },
-        { icon: "⚡", label: "스트라이크", desc: "다음 문제에서 정답을 맞히면 획득 점수가 2배가 되는 강력한 버프입니다." },
-        { icon: "🛡️", label: "방어막", desc: "상대방의 '삭감'이나 '기부' 공격을 한 번 자동으로 막아냅니다." }
-      ]
-    },
-    { 
-      title: "👿 불운의 효과 (오답 시 5% 확률)", 
-      items: [
-        { icon: "✂️", label: "점수 삭감", desc: "현재 문제 배점만큼 나의 소중한 점수가 깎이게 됩니다. 신중하게 답을 골라주세요!" },
-        { icon: "📤", label: "점수 기부", desc: "나의 점수 중 30점을 정답을 맞힌 다른 친구들에게 10점씩 골고루 나누어 줍니다." }
-      ]
+  const helpSections = React.useMemo(() => {
+    const opts = game.options || {};
+    const probs = opts.probabilities || { double: 5, swap: 5, strike: 5, shield: 5, cut: 5, donate: 5 };
+    
+    const sections = [
+      { 
+        title: "기본 규칙", 
+        items: [
+          { icon: "✅", label: "정답 제출", desc: "문제를 풀고 '정답 제출하기' 버튼을 누르면 점수를 얻을 수 있습니다." },
+          { icon: "🚀", label: "빠른 제출 보너스", desc: "가장 빠르게 정답을 맞힌 3명에게는 보너스 점수가 지급됩니다! (1등 +5점, 2등 +3점, 3등 +1점)" },
+          { icon: "🔥", label: "연속 정답 보너스", desc: "3연속(+5), 5연속(+10), 10연속(+20) 정답 시 대량의 보너스 점수를 얻습니다!" }
+        ]
+      }
+    ];
+
+    const luckyItems = [];
+    if (opts.double !== false) luckyItems.push({ icon: "✨", label: "2배 찬스", desc: `현재 획득한 문제 점수가 2배로 뻥튀기됩니다! (확률: ${probs.double}%)` });
+    if (opts.swap !== false) luckyItems.push({ icon: "🔄", label: "점수 바꾸기", desc: `나보다 점수가 높은 친구를 한 명 골라 점수를 즉시 바꿀 수 있습니다. (확률: ${probs.swap}%)` });
+    if (opts.strike !== false) luckyItems.push({ icon: "⚡", label: "스트라이크", desc: `다음 문제에서 정답을 맞히면 획득 점수가 2배가 되는 효과입니다. (확률: ${probs.strike}%)` });
+    if (opts.shield !== false) luckyItems.push({ icon: "🛡️", label: "방어막", desc: `상대방의 '삭감'이나 '기부' 공격을 한 번 자동으로 막아냅니다. (확률: ${probs.shield}%)` });
+
+    if (luckyItems.length > 0) {
+      sections.push({ title: "🍀 행운의 아이템 (정답 시 획득)", items: luckyItems });
     }
-  ];
+
+    const unluckyItems = [];
+    if (opts.cut !== false) unluckyItems.push({ icon: "✂️", label: "점수 삭감", desc: `현재 문제 배점만큼 나의 소중한 점수가 깎이게 됩니다. (확률: ${probs.cut}%)` });
+    if (opts.donate !== false) unluckyItems.push({ icon: "📤", label: "점수 기부", desc: `나의 점수 중 30점을 정답을 맞힌 다른 친구들에게 나누어 줍니다. (확률: ${probs.donate}%)` });
+
+    if (unluckyItems.length > 0) {
+      sections.push({ title: "👿 불운의 효과 (오답 시 발생)", items: unluckyItems });
+    }
+
+    return sections;
+  }, [game.options]);
 
   return (
     <>
@@ -670,26 +684,24 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         </div>
       </div>
 
-      {/* 2. Guide Sidebar */}
+      {/* 2. Guide Sidebar (Top-Left) */}
       <div 
         ref={helpSidebarRef}
         className={cn(
-          "fixed right-0 top-[75%] -translate-y-1/2 z-[150] transition-transform duration-300 flex items-center",
-          showHelpTab ? "translate-x-0" : "translate-x-[calc(100%-40px)]"
+          "fixed left-0 top-[15%] z-[250] transition-transform duration-300 flex items-start",
+          showHelpTab ? "translate-x-0" : "translate-x-[calc(-100%+40px)]"
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <button onClick={() => { setShowHelpTab(!showHelpTab); setShowScoreTab(false); }} className="w-10 h-20 bg-slate-800 text-white rounded-l-2xl flex flex-col items-center justify-center gap-2 shadow-xl hover:bg-slate-700 transition-colors">
-          <HelpCircle size={18} />
-          <span className="text-[8px] font-black [writing-mode:vertical-lr]">GUIDE</span>
-          {showHelpTab ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-        </button>
-        <div className="w-64 md:w-72 h-[60vh] bg-white shadow-[0_0_50px_rgba(0,0,0,0.1)] border-2 border-slate-200 rounded-l-2xl p-4 flex flex-col">
-          <div className="flex items-center justify-between border-b pb-2 mb-3">
-            <h3 className="font-black text-slate-800">게임 가이드</h3>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Help</span>
+        <div className="w-64 md:w-72 h-[calc(80vh-100px)] bg-white shadow-[10px_0_40px_rgba(0,0,0,0.1)] border-2 border-indigo-100 rounded-r-3xl p-5 flex flex-col">
+          <div className="flex items-center justify-between border-b-2 border-indigo-50 pb-3 mb-4">
+            <h3 className="font-black text-slate-800 flex items-center gap-2">
+              <span className="p-1 bg-indigo-50 rounded-lg"><HelpCircle size={14} className="text-indigo-600" /></span>
+              게임 가이드
+            </h3>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded-full">Help</span>
           </div>
-          <div className="space-y-6 overflow-y-auto max-h-full pr-1 custom-scrollbar">
+          <div className="space-y-6 overflow-y-auto flex-1 pr-1 custom-scrollbar">
             {helpSections.map((section: any, idx: number) => (
               <div key={idx} className="space-y-3">
                 <div className="text-[11px] font-black text-indigo-600 uppercase tracking-tighter">{section.title}</div>
@@ -708,6 +720,17 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             ))}
           </div>
         </div>
+        <button 
+          onClick={() => { setShowHelpTab(!showHelpTab); setShowScoreTab(false); }} 
+          className={cn(
+            "w-10 h-24 flex flex-col items-center justify-center gap-2 rounded-r-2xl shadow-[10px_0_20px_rgba(0,0,0,0.05)] transition-all",
+            showHelpTab ? "bg-indigo-600 text-white" : "bg-slate-800 text-white hover:bg-slate-700"
+          )}
+        >
+          <HelpCircle size={18} className={cn(showHelpTab && "animate-pulse")} />
+          <span className="text-[8px] font-black [writing-mode:vertical-lr] tracking-tighter">GUIDE</span>
+          {showHelpTab ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+        </button>
       </div>
     </>
   );

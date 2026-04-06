@@ -99,7 +99,7 @@ export function Leaderboard({ players }: LeaderboardProps) {
           )}
 
           {/* 3rd Place */}
-          {top3[2] && (
+          {top3[2] && top3[2].nickname && (
             <div className="flex flex-col items-center animate-pop" style={{ animationDelay: '400ms' }}>
               <div className="relative">
                 <div className="bg-orange-600 w-20 h-20 rounded-full border-4 border-white flex items-center justify-center text-3xl mb-4 shadow-xl">

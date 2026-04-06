@@ -615,7 +615,9 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             }
           };
 
-          await supabase.from("games").update({ options: newOptions }).eq("id", gameRef.current.id);
+          // 1. Update DB FIRST so student-side state sync sees it
+          const { error: updateErr } = await supabase.from("games").update({ options: newOptions }).eq("id", gameRef.current.id);
+          if (updateErr) console.error("[Host] Swap state DB update failed:", updateErr);
 
           setSwapQueue(nextQueue);
           setCurrentSwapperId(nextSwapper?.id || null);
@@ -623,13 +625,16 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           currentSwapperIdRef.current = nextSwapper?.id || null;
 
           if (nextSwapper) {
+            // Increased delay slightly (1000ms) to ensure DB propagates properly before manual sync
             setTimeout(async () => {
-              await channel.send({
-                type: 'broadcast',
-                event: 'START_SWAP',
-                payload: { playerId: nextSwapper.id, nickname: nextSwapper.nickname }
-              });
-            }, 800);
+              if (channel) {
+                await channel.send({
+                  type: 'broadcast',
+                  event: 'START_SWAP',
+                  payload: { playerId: String(nextSwapper.id), nickname: nextSwapper.nickname }
+                });
+              }
+            }, 1000);
           }
         };
 
@@ -1040,7 +1045,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                           {ans?.event && ans.event !== 'none' ? (
                             ans.event.split(',').slice(0, 3).map((e: string, eIdx: number) => {
                               const evt = getEventInfo(e);
-                              if (!evt) return null;
+                              if (!evt || e === 'shield') return null; // 방패 아이템은 교사 화면에서 전략적으로 숨김
                               
                               return (
                                 <div key={eIdx} className={cn(

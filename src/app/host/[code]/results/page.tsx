@@ -198,7 +198,7 @@ export default function ResultsPage() {
             </div>
           )}
 
-          {finalSortedPlayers[2] && (
+          {finalSortedPlayers[2] && finalSortedPlayers[2].nickname && (
             <div className="flex flex-col items-center animate-in slide-in-from-bottom-16 duration-700 delay-500">
               <div className="mb-6 text-center z-20">
                 <div className="text-xl md:text-3xl font-black truncate max-w-[120px] text-orange-300 drop-shadow-lg uppercase tracking-tight">
