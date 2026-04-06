@@ -138,7 +138,7 @@ export function MathInput({
           menuIcon: 'none',
           keypressSound: 'none',
           plonkSound: 'none',
-          soundsDirectory: "", // Set to empty string to prevent default path lookup
+          soundsDirectory: null, // Set to null to prevent default path lookup
           onKeystroke: (mf: any, keystroke: string, ev: KeyboardEvent) => {
             if (keystroke === '*' || keystroke === '/') {
               return false; // Prevent default MathLive keystroke handling
@@ -146,9 +146,10 @@ export function MathInput({
             return true;
           }
         });
-        mfRef.current.soundsDirectory = ""; // Also set on instance directly
-        mfRef.current.keypressSound = "none";
-        mfRef.current.plonkSound = "none";
+        
+        // Also set as attributes for double safety
+        mfRef.current.setAttribute("keypress-sound", "none");
+        mfRef.current.setAttribute("plonk-sound", "none");
         
         // Add shortcuts for arithmetic symbols and SPACES
         mfRef.current.inlineShortcuts = {
@@ -324,7 +325,10 @@ export function MathInput({
 
         if (onEnterRef.current) {
           e.preventDefault();
-          onEnterRef.current();
+          // Added a small delay to ensure IME composition is finished before submission
+          setTimeout(() => {
+            if (onEnterRef.current) onEnterRef.current();
+          }, 30);
         }
       }
 

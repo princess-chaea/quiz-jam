@@ -247,6 +247,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
   // Backup sync for Swap: Monitor game options in case broadcast is missed
   useEffect(() => {
+    if (game?.status === 'RESULT' && game?.options?.swapState?.currentSwapperId !== player.id) {
+      if (isSwapExecuting) {
+        console.log("[Game] Clearing stuck executing state based on swapState");
+        setIsSwapExecuting(false);
+      }
+    }
     if (game?.status === 'RESULT' && game?.options?.swapState?.currentSwapperId === player.id) {
       if (!isMyTurnToSwap && !isSwapExecuting) {
         console.log("[Game] State-based swap trigger activated for:", player.nickname);

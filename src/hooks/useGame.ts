@@ -174,29 +174,37 @@ export function useGame(quizCode: string) {
     };
   }, [quizCode]);
 
-  const refreshAction = async () => {
+  const refresh = useCallback(async () => {
     if (!quizCode) return;
-    const { data: g } = await supabase.from('games').select('*').eq('code', quizCode).single();
-    if (g) {
-      setGame(g);
-      const { data: p } = await supabase.from('players').select('*').eq('game_id', g.id);
-      if (p) setPlayers(p);
+    try {
+      const { data: g } = await supabase.from('games').select('*').eq('code', quizCode).single();
+      if (g) {
+        setGame(g);
+        const { data: p } = await supabase.from('players').select('*').eq('game_id', g.id);
+        if (p) setPlayers(p);
+      }
+    } catch (err) {
+      console.error("[useGame] manual refresh failed:", err);
     }
-  };
+  }, [quizCode]);
 
-  const refreshPlayers = async () => {
+  const refreshPlayers = useCallback(async () => {
     if (!game?.id) return;
-    const { data, error } = await supabase
-      .from('players')
-      .select('*')
-      .eq('game_id', game.id)
-      .order('score', { ascending: false })
-      .order('created_at', { ascending: true });
-    
-    if (!error && data) {
-      setPlayers(data);
+    try {
+      const { data, error } = await supabase
+        .from('players')
+        .select('*')
+        .eq('game_id', game.id)
+        .order('score', { ascending: false })
+        .order('created_at', { ascending: true });
+      
+      if (!error && data) {
+        setPlayers(data);
+      }
+    } catch (err) {
+      console.error("[useGame] refreshPlayers failed:", err);
     }
-  };
+  }, [game?.id]);
 
   return { 
     game, 
@@ -204,7 +212,7 @@ export function useGame(quizCode: string) {
     setPlayers,
     loading, 
     error, 
-    refresh: refreshAction, 
+    refresh, 
     refreshPlayers
   };
 }

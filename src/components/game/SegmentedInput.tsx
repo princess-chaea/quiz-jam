@@ -68,7 +68,10 @@ export function SegmentedInput({
     if (e.key === "Enter") {
       // Ensure current local value is synced before Enter
       onChange(localValue.slice(0, length));
-      onEnter?.();
+      // Added a small delay to ensure IME composition is finished before submission
+      setTimeout(() => {
+        onEnter?.();
+      }, 30);
     }
   };
 

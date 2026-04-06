@@ -609,6 +609,14 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         console.log(`[Host] EXECUTE_SWAP received from ${swapperId} to ${targetId}`);
         
         isSwappingRef.current = true;
+        
+        // Safety timeout to prevent permanent stall if swap logic fails
+        const swapTimeout = setTimeout(() => {
+          if (isSwappingRef.current) {
+            console.warn("[Host] Swap processing timed out (10s). Resetting lock.");
+            isSwappingRef.current = false;
+          }
+        }, 10000);
 
         const refreshAllData = async () => {
           if (refreshPlayers) await refreshPlayers();
@@ -660,8 +668,9 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             swapQueueRef.current = nextQueue;
             currentSwapperIdRef.current = nextSwapper?.id || null;
 
-            // Sync all clients via broadcast
-            console.log("[Host] Broadcasting GAME_UPDATE with new swapState.");
+            // Sync all clients via broadcast - WE DO THIS AFTER REFRESHING DATA
+            // AND SENDING SWAP_COMPLETED TO ENSURE STUDENTS RECEIVE RESULTS FIRST
+            console.log("[Host] Broadcasting GAME_UPDATE with current status:", freshGame.status);
             await channel.send({ 
               type: 'broadcast', 
               event: 'GAME_UPDATE', 
@@ -690,8 +699,9 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             console.error("[Host] CRITICAL ERROR in advanceQueue:", err);
             // Even on error, we must allow the game to proceed if possible or at least reset the lock
           } finally {
-            console.log("[Host] Resetting isSwappingRef to false.");
+            console.log("[Host] advanceQueue finished. Resetting isSwappingRef.");
             isSwappingRef.current = false;
+            clearTimeout(swapTimeout);
           }
         };
 
