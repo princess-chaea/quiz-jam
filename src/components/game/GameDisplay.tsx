@@ -600,8 +600,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                 if (p.team) acc[p.team] = (acc[p.team] || 0) + (p.score || 0);
                 return acc;
               }, {} as Record<string, number>))
-              .sort((a, b) => b[1] - a[1])
-              .map(([team, score], i) => {
+              .sort((a: any, b: any) => b[1] - a[1])
+              .map(([team, score]: [string, any], i) => {
                 const teamNames = { RED: '빨강팀', BLUE: '파랑팀', GREEN: '초록팀', YELLOW: '노랑팀' } as Record<string, string>;
                 const teamColors = { RED: 'bg-red-500', BLUE: 'bg-blue-500', GREEN: 'bg-green-500', YELLOW: 'bg-yellow-500' } as Record<string, string>;
                 return (
