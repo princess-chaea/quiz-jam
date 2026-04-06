@@ -168,8 +168,9 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         }
 
         let newBuffs = [...(player.buffs || [])];
-        // Strike is consumed after ANY answer attempt
-        if (newBuffs.includes('STRIKE')) {
+        
+        // Strike is only consumed if user was actually correct and used it
+        if (isCorrect && newBuffs.includes('STRIKE')) {
           newBuffs = newBuffs.filter(b => b !== 'STRIKE');
         }
 
@@ -264,24 +265,24 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         })
         .sort((a, b) => b.submitted_at - a.submitted_at);
 
-      // Handle Donation BEFORE creating final arrays
-      calculatedResults.forEach(res => {
+      // Handle Donation: Apply to resultsWithBonuses so it reflects in the final state
+      resultsWithBonuses.forEach(res => {
         if (res.event.includes('donate')) {
           const donorNick = res.player.nickname;
           const donorTeam = res.player.team;
 
           // Find candidates: correct answer, NOT the donor, and NOT donor's teammate (if team mode)
-          const candidates = calculatedResults.filter((r: any) => {
+          const candidates = resultsWithBonuses.filter((r: any) => {
             if (!r.isCorrect) return false;
             if (r.player.id === res.player.id) return false;
-            // Team mode exclusion
-            if (game.options?.isTeamMode && donorTeam && r.player.team === donorTeam) return false;
+            // Team mode exclusion: only donate to OPPONENTS
+            if (currentGame.options?.isTeamMode && donorTeam && r.player.team === donorTeam) return false;
             return true;
           });
 
           if (candidates.length > 0) {
-            // Pick up to 3 random candidates
-            const targets = candidates.sort(() => 0.5 - Math.random()).slice(0, 3);
+            // Pick up to 5 random candidates (up to 50 pts donation)
+            const targets = candidates.sort(() => 0.5 - Math.random()).slice(0, 5);
 
             // Donor loses 10 points per recipient
             res.points -= (10 * targets.length);
