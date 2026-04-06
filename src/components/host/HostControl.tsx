@@ -19,7 +19,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import { IntroOverlay } from '@/components/game/IntroOverlay';
 
 interface HostControlProps {
   game: any;
@@ -592,6 +591,8 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   useEffect(() => { currentSwapperIdRef.current = currentSwapperId; }, [currentSwapperId]);
   useEffect(() => { finishRoundRef.current = handleFinishRound; });
 
+  const [swapNotification, setSwapNotification] = useState<{message: string, type: 'success' | 'info' | 'error'} | null>(null);
+
   // Sequential Swap Listener
   const isSwappingRef = useRef(false);
   useEffect(() => {
@@ -609,13 +610,23 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         
         isSwappingRef.current = true;
 
+        const refreshAllData = async () => {
+          if (refreshPlayers) await refreshPlayers();
+          // Refetch submissions to update events and correct/wrong status shown on teacher UI
+          const { data: latestAnswers } = await supabase
+            .from('answers')
+            .select('*')
+            .eq('game_id', game.id)
+            .eq('q_index', game.current_q_index);
+          if (latestAnswers) setAnswers(latestAnswers);
+        };
+
         const advanceQueue = async () => {
           try {
-            // Fetch FRESH game from DB to avoid staleness
-            const { data: freshGame } = await supabase.from('games').select('options, id').eq('id', game.id).single();
+            const { data: freshGame } = await supabase.from('games').select('options').eq('id', game.id).single();
             const currentOptions = freshGame?.options || gameRef.current?.options || {};
-            
             const currentQueue = currentOptions.swapState?.queue || swapQueueRef.current || [];
+            
             if (currentQueue.length === 0) {
               isSwappingRef.current = false;
               return;
@@ -633,26 +644,27 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               }
             };
 
-            // 1. Update DB FIRST
-            const { error: updateErr } = await supabase.from("games").update({ options: newOptions }).eq("id", game.id);
-            if (updateErr) console.error("[Host] Swap state DB update failed:", updateErr);
+            await supabase.from("games").update({ options: newOptions }).eq("id", game.id);
 
             setSwapQueue(nextQueue);
             setCurrentSwapperId(nextSwapper?.id || null);
             swapQueueRef.current = nextQueue;
             currentSwapperIdRef.current = nextSwapper?.id || null;
 
+            // Broadcast status change immediately
+            await channel.send({ type: 'broadcast', event: 'GAME_UPDATE', payload: { status: "RESULT" } });
+
             if (nextSwapper) {
-              console.log("[Host] Notifying next swapper:", nextSwapper.nickname);
               setTimeout(async () => {
                 await channel.send({
                   type: 'broadcast',
                   event: 'START_SWAP',
                   payload: { playerId: String(nextSwapper.id), nickname: nextSwapper.nickname }
                 });
-                // Force sync for others
-                await channel.send({ type: 'broadcast', event: 'GAME_UPDATE', payload: { status: "RESULT" } });
-              }, 1200);
+              }, 1000);
+            } else {
+              console.log("[Host] All swaps completed.");
+              await refreshAllData();
             }
           } catch (err) {
             console.error("[Host] Error advancing queue:", err);
@@ -694,12 +706,16 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               }
             }
           }
+          await refreshAllData();
           await advanceQueue();
-          if (refreshPlayers) await refreshPlayers();
+          setSwapNotification({ message: "점수 교체가 완료되었습니다.", type: 'success' });
+          setTimeout(() => setSwapNotification(null), 3000);
         } catch (err) {
           console.error("[Host] Error in swap processing:", err);
           isSwappingRef.current = false;
           await advanceQueue();
+          setSwapNotification({ message: "교체 중 오류가 발생했습니다.", type: 'error' });
+          setTimeout(() => setSwapNotification(null), 3000);
         }
       })
       .on('broadcast', { event: 'PLAYER_UPDATE' }, () => {
@@ -966,21 +982,38 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
               {/* Team Scores Mini List */}
               {(() => {
-                const teamScores: Record<string, number> = {};
+                const teamData: Record<string, { score: number, members: any[] }> = {};
                 players.forEach((p: any) => {
                   if (p.team) {
-                    teamScores[p.team] = (teamScores[p.team] || 0) + p.score;
+                    if (!teamData[p.team]) teamData[p.team] = { score: 0, members: [] };
+                    teamData[p.team].score += p.score;
+                    teamData[p.team].members.push(p);
                   }
                 });
 
-                if (Object.keys(teamScores).length > 0) {
-                  const teamColors: Record<string, string> = { RED: 'bg-red-500', BLUE: 'bg-blue-500', GREEN: 'bg-green-500', YELLOW: 'bg-yellow-400' };
+                if (Object.keys(teamData).length > 0) {
+                  const teamColors: Record<string, string> = { RED: 'bg-red-500 shadow-red-500/50', BLUE: 'bg-blue-500 shadow-blue-500/50', GREEN: 'bg-green-500 shadow-green-500/50', YELLOW: 'bg-yellow-400 shadow-yellow-400/50' };
+                  const teamNames: Record<string, string> = { RED: '빨강팀', BLUE: '파랑팀', GREEN: '초록팀', YELLOW: '노랑팀' };
+                  
                   return (
                     <div className="flex gap-2">
-                      {Object.entries(teamScores).sort((a, b) => b[1] - a[1]).map(([team, score]) => (
-                        <div key={team} className="bg-white/5 px-3 py-1.5 rounded-xl border border-white/5 flex flex-col items-center">
-                          <span className={cn("inline-block w-2 h-2 rounded-full mb-1", teamColors[team])} />
-                          <span className="text-xs font-black text-white">{score.toLocaleString()}</span>
+                      {Object.entries(teamData).sort((a, b) => b[1].score - a[1].score).map(([team, data]) => (
+                        <div key={team} className="group relative bg-white/5 px-3 py-1.5 rounded-xl border border-white/5 flex flex-col items-center hover:bg-white/10 transition-all cursor-default">
+                          <span className={cn("inline-block w-2 h-2 rounded-full mb-1 shadow-sm", teamColors[team])} />
+                          <span className="text-xs font-black text-white">{data.score.toLocaleString()}</span>
+                          
+                          {/* Team Members Tooltip */}
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-40 bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-xl p-2 shadow-2xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-50 scale-95 group-hover:scale-100">
+                            <div className="text-[9px] font-black text-white/40 mb-1.5 px-1 uppercase tracking-tighter border-b border-white/5 pb-1">{teamNames[team]} 팀원</div>
+                            <div className="space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
+                              {data.members.sort((a, b) => b.score - a.score).map((m: any) => (
+                                <div key={m.id} className="flex justify-between items-center px-1">
+                                   <span className="text-[10px] font-bold text-white/80 truncate max-w-[70px]">{m.nickname}</span>
+                                   <span className="text-[10px] font-black text-indigo-400">{m.score.toLocaleString()}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -999,7 +1032,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                 <div className="h-1 w-12 bg-indigo-500 rounded-full mt-2" />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-32 pb-20">
                 {[...players].sort((a: any, b: any) => (b.score || 0) - (a.score || 0)).map((player: any, idx: number, sortedPlayers: any[]) => {
                   const ans = answers.find((a: any) => a.player_id === player.id);
                   let rank = idx + 1;
@@ -1405,6 +1438,20 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         hideBuffs={true}
       />
 
+      {/* Swap Status Overlay/Notification */}
+      {swapNotification && (
+        <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-[250] animate-in slide-in-from-bottom-5">
+          <div className={cn(
+            "px-6 py-3 rounded-2xl font-black shadow-2xl flex items-center gap-3 border-2",
+            swapNotification.type === 'success' ? "bg-emerald-500 text-white border-emerald-400" :
+            swapNotification.type === 'error' ? "bg-red-500 text-white border-red-400" : "bg-indigo-600 text-white border-indigo-400"
+          )}>
+            {swapNotification.type === 'success' ? <Check size={20} /> : <X size={20} />}
+            {swapNotification.message}
+          </div>
+        </div>
+      )}
+
       {/* Floating Emojis Container */}
       <div className="fixed inset-0 pointer-events-none z-[200] overflow-hidden">
         {floatingEmojis.map((emoji: any) => (
@@ -1417,7 +1464,6 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           </div>
         ))}
       </div>
-      {showIntro && <IntroOverlay isTeacher={true} onClose={() => setShowIntro(false)} />}
     </div>
   );
 }

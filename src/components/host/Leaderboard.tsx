@@ -42,21 +42,34 @@ export function Leaderboard({ players }: LeaderboardProps) {
                 <div className="bg-indigo-800/50 px-6 py-2 rounded-2xl border border-white/10 text-indigo-200 text-sm font-black uppercase tracking-widest mb-2">Team Ranking</div>
                 <div className="h-1 w-20 bg-indigo-500 rounded-full" />
              </div>
-             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {sortedTeams.map(([team, score], idx) => (
-                  <div key={team} className={cn(
-                    "relative p-6 rounded-3xl border-b-4 flex flex-col items-center shadow-xl transition-all hover:scale-105",
-                    team === 'RED' ? "bg-red-500 border-red-700 text-white" :
-                    team === 'BLUE' ? "bg-blue-500 border-blue-700 text-white" :
-                    team === 'GREEN' ? "bg-green-500 border-green-700 text-white" : 
-                    "bg-yellow-400 border-yellow-600 text-indigo-900"
-                  )}>
-                    {idx === 0 && <div className="absolute -top-3 -right-3 bg-white text-indigo-900 px-3 py-1 rounded-xl font-black text-[10px] shadow-lg animate-bounce border-2 border-indigo-100">WINNING TEAM</div>}
-                    <span className="text-xs font-black opacity-80 uppercase mb-1">{teamNames[team]}</span>
-                    <span className="text-3xl font-black">{score.toLocaleString()}</span>
-                    <span className="text-[10px] font-bold opacity-70">POINTS</span>
-                  </div>
-                ))}
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {sortedTeams.map(([team, score], idx) => {
+                  const teamMembers = players.filter(p => p.team === team).sort((a, b) => b.score - a.score);
+                  return (
+                    <div key={team} className={cn(
+                      "relative p-6 rounded-3xl border-b-4 flex flex-col items-center shadow-xl transition-all hover:scale-105",
+                      team === 'RED' ? "bg-red-500 border-red-700 text-white" :
+                      team === 'BLUE' ? "bg-blue-500 border-blue-700 text-white" :
+                      team === 'GREEN' ? "bg-green-500 border-green-700 text-white" : 
+                      "bg-yellow-400 border-yellow-600 text-indigo-900"
+                    )}>
+                      {idx === 0 && <div className="absolute -top-3 -right-3 bg-white text-indigo-900 px-3 py-1 rounded-xl font-black text-[10px] shadow-lg animate-bounce border-2 border-indigo-100">WINNING TEAM</div>}
+                      <span className="text-xs font-black opacity-80 uppercase mb-1">{teamNames[team]}</span>
+                      <span className="text-3xl font-black">{score.toLocaleString()}</span>
+                      <span className="text-[10px] font-bold opacity-70 mb-4">TOTAL POINTS</span>
+                      
+                      {/* Member Contributions */}
+                      <div className="w-full space-y-1.5 mt-2 pt-4 border-t border-white/20">
+                        {teamMembers.map((m) => (
+                          <div key={m.id} className="flex justify-between items-center text-[11px] font-bold group">
+                            <span className="opacity-80 group-hover:opacity-100 transition-opacity truncate max-w-[80px]">{m.nickname}</span>
+                            <span className={cn("font-black", team === 'YELLOW' ? "text-indigo-700" : "text-yellow-200")}>{m.score.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
              </div>
           </div>
         )}

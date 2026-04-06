@@ -347,31 +347,32 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     
     const sections = [
       { 
-        title: "기본 규칙", 
+        title: "🎮 게임 시스템", 
         items: [
-          { icon: "✅", label: "정답 제출", desc: "문제를 풀고 '정답 제출하기' 버튼을 누르면 점수를 얻을 수 있습니다." },
-          { icon: "🚀", label: "빠른 제출 보너스", desc: "가장 빠르게 정답을 맞힌 3명에게는 보너스 점수가 지급됩니다! (1등 +5점, 2등 +3점, 3등 +1점)" },
-          { icon: "🔥", label: "연속 정답 보너스", desc: "3연속(+5), 5연속(+10), 10연속(+20) 정답 시 대량의 보너스 점수를 얻습니다!" }
+          { icon: "🎁", label: "행운의 뽑기", desc: `정답을 맞히면 ${game.options?.luckyProb || 40}% 확률로 행운의 아이템을 얻거나, 오답일 경우 ${game.options?.unluckyProb || 20}% 확률로 불운의 효과가 발생합니다.` },
+          { icon: "✅", label: "정답 제출", desc: "문제를 맞히면 기본 점수를 획득합니다." },
+          { icon: "🚀", label: "스피드 보너스", desc: "빠르게 맞힌 선착순 3명에게 추가 점수(+5, +3, +1)를 드립니다." },
+          { icon: "🔥", label: "콤보 보너스", desc: "연속해서 맞히면 더 큰 점수를 얻습니다! (3/5/10연속)" }
         ]
       }
     ];
 
     const luckyItems = [];
-    if (opts.double !== false) luckyItems.push({ icon: "✨", label: "2배 찬스", desc: `현재 획득한 문제 점수가 2배로 뻥튀기됩니다! (확률: ${probs.double}%)` });
-    if (opts.swap !== false) luckyItems.push({ icon: "🔄", label: "점수 바꾸기", desc: `나보다 점수가 높은 친구를 한 명 골라 점수를 즉시 바꿀 수 있습니다. (확률: ${probs.swap}%)` });
-    if (opts.strike !== false) luckyItems.push({ icon: "⚡", label: "스트라이크", desc: `다음 문제에서 정답을 맞히면 획득 점수가 2배가 되는 효과입니다. (확률: ${probs.strike}%)` });
-    if (opts.shield !== false) luckyItems.push({ icon: "🛡️", label: "방어막", desc: `상대방의 '삭감'이나 '기부' 공격을 한 번 자동으로 막아냅니다. (확률: ${probs.shield}%)` });
+    if (opts.double !== false) luckyItems.push({ icon: "✨", label: "2배 찬스", desc: `이번 문제 점수를 2배로 받습니다. (개별 확률: ${probs.double}%)` });
+    if (opts.swap !== false) luckyItems.push({ icon: "🔄", label: "점수 바꾸기", desc: `나보다 점수 높은 사람과 내 점수를 바꿉니다. (개별 확률: ${probs.swap}%)` });
+    if (opts.strike !== false) luckyItems.push({ icon: "⚡", label: "스트라이크", desc: `다음 문제를 맞히면 점수가 2배가 됩니다. (개별 확률: ${probs.strike}%)` });
+    if (opts.shield !== false) luckyItems.push({ icon: "🛡️", label: "방어막", desc: `상대방의 점수 삭감/기부 공격을 자동으로 1회 방어합니다. (개별 확률: ${probs.shield}%)` });
 
     if (luckyItems.length > 0) {
-      sections.push({ title: "🍀 행운의 아이템 (정답 시 획득)", items: luckyItems });
+      sections.push({ title: "🍀 행운의 아이템 (정답 시)", items: luckyItems });
     }
 
     const unluckyItems = [];
-    if (opts.cut !== false) unluckyItems.push({ icon: "✂️", label: "점수 삭감", desc: `현재 문제 배점만큼 나의 소중한 점수가 깎이게 됩니다. (확률: ${probs.cut}%)` });
-    if (opts.donate !== false) unluckyItems.push({ icon: "📤", label: "점수 기부", desc: `나의 점수 중 30점을 정답을 맞힌 다른 친구들에게 나누어 줍니다. (확률: ${probs.donate}%)` });
+    if (opts.cut !== false) unluckyItems.push({ icon: "✂️", label: "점수 삭감", desc: `내 점수에서 문제 배점만큼 깎입니다. (개별 확률: ${probs.cut}%)` });
+    if (opts.donate !== false) unluckyItems.push({ icon: "📤", label: "점수 기부", desc: `내 점수 중 30점을 다른 정답자들에게 나눠줍니다. (개별 확률: ${probs.donate}%)` });
 
     if (unluckyItems.length > 0) {
-      sections.push({ title: "👿 불운의 효과 (오답 시 발생)", items: unluckyItems });
+      sections.push({ title: "👿 불운의 효과 (오답 시)", items: unluckyItems });
     }
 
     return sections;
@@ -539,10 +540,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             <div className="space-y-2 flex flex-col flex-1">
               {(submitted || internalSubmitted) ? (
                 <div className="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-50/50 rounded-[2.5rem] border-2 border-indigo-100 border-dashed animate-in zoom-in relative">
-                  <div className="absolute top-6 right-6 flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border-2 border-indigo-100 shadow-sm">
-                    <Clock size={14} className={timeLeft <= 5 ? "text-red-500 animate-pulse" : "text-indigo-400"} />
-                    <span className={cn("text-lg font-black tabular-nums", timeLeft <= 5 ? "text-red-600" : "text-indigo-600")}>{timeLeft}</span>
-                  </div>
                   <div className="text-4xl md:text-6xl mb-4 animate-bounce">✨</div>
                   <h3 className="text-2xl md:text-3xl font-black text-indigo-900 mb-2 italic">정답 제출 완료!</h3>
                   <p className="text-slate-500 font-bold text-center">우와! 정답을 잘 제출했어요. <br/>다른 친구들이 문제를 다 풀 때까지 우리 조금만 기다려 볼까요? 😊</p>
@@ -665,21 +662,42 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
               ))
             ) : (
               Object.entries(players.reduce((acc, p) => {
-                if (p.team) acc[p.team] = (acc[p.team] || 0) + (p.score || 0);
+                if (p.team) {
+                  if (!acc[p.team]) acc[p.team] = { score: 0, members: [] };
+                  acc[p.team].score += (p.score || 0);
+                  acc[p.team].members.push(p);
+                }
                 return acc;
-              }, {} as Record<string, number>))
-              .sort((a: any, b: any) => b[1] - a[1])
-              .map(([team, score]: [string, any], i) => {
+              }, {} as Record<string, { score: number, members: any[] }>))
+              .sort((a: any, b: any) => b[1].score - a[1].score)
+              .map(([team, data]: [string, any], i) => {
                 const teamNames = { RED: '빨강팀', BLUE: '파랑팀', GREEN: '초록팀', YELLOW: '노랑팀' } as Record<string, string>;
                 const teamColors = { RED: 'bg-red-500', BLUE: 'bg-blue-500', GREEN: 'bg-green-500', YELLOW: 'bg-yellow-500' } as Record<string, string>;
+                const teamBorderColors = { RED: 'border-red-100', BLUE: 'border-blue-100', GREEN: 'border-green-100', YELLOW: 'border-yellow-100' } as Record<string, string>;
+                
                 return (
-                  <div key={team} className="flex justify-between items-center p-3.5 rounded-2xl border bg-white border-slate-100 hover:border-indigo-100 transition-all animate-in slide-in-from-right-4 duration-300" style={{ animationDelay: `${i * 50}ms` }}>
-                     <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 flex items-center justify-center bg-slate-100 rounded-full text-[10px] font-black text-slate-500">{i+1}</span>
-                        <div className={cn("w-3 h-3 rounded-full shadow-sm", teamColors[team])} />
-                        <span className="text-[13px] font-black text-slate-700">{teamNames[team] || team}</span>
+                  <div key={team} className="flex flex-col gap-2 p-3.5 rounded-2xl border bg-white border-slate-100 hover:border-indigo-100 transition-all animate-in slide-in-from-right-4 duration-300" style={{ animationDelay: `${i * 50}ms` }}>
+                     <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                           <span className="w-6 h-6 flex items-center justify-center bg-slate-100 rounded-full text-[10px] font-black text-slate-500">{i+1}</span>
+                           <div className={cn("w-3 h-3 rounded-full shadow-sm", teamColors[team])} />
+                           <span className="text-[13px] font-black text-slate-700">{teamNames[team] || team}</span>
+                        </div>
+                        <span className="text-xs font-black text-indigo-600">{data.score.toLocaleString()} <span className="text-[9px]">pts</span></span>
                      </div>
-                     <span className="text-xs font-black text-indigo-600">{score.toLocaleString()} <span className="text-[9px]">pts</span></span>
+                     
+                     {/* Team Members List */}
+                     <div className={cn("mt-2 pt-2 border-t flex flex-wrap gap-1.5", teamBorderColors[team])}>
+                        {data.members.sort((a: any, b: any) => (b.score || 0) - (a.score || 0)).map((m: any) => (
+                           <div key={m.id} className={cn(
+                             "px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1",
+                             m.id === player.id ? "bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400" : "bg-slate-50 text-slate-500 border border-slate-100"
+                           )}>
+                              <span>{m.nickname}</span>
+                              <span className={cn("opacity-70 font-black", m.id === player.id ? "text-indigo-100" : "text-indigo-400")}>{m.score || 0}</span>
+                           </div>
+                        ))}
+                     </div>
                   </div>
                 );
               })
@@ -692,12 +710,12 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       <div 
         ref={helpSidebarRef}
         className={cn(
-          "fixed left-0 top-[15%] z-[250] transition-transform duration-300 flex items-start",
+          "fixed left-0 top-4 z-[250] transition-transform duration-300 flex items-start",
           showHelpTab ? "translate-x-0" : "translate-x-[calc(-100%+40px)]"
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-64 md:w-72 h-[calc(80vh-100px)] bg-white shadow-[10px_0_40px_rgba(0,0,0,0.1)] border-2 border-indigo-100 rounded-r-3xl p-5 flex flex-col">
+        <div className="w-64 md:w-72 h-[calc(90vh-40px)] bg-white shadow-[10px_0_40px_rgba(0,0,0,0.1)] border-2 border-indigo-100 rounded-r-3xl p-5 flex flex-col">
           <div className="flex items-center justify-between border-b-2 border-indigo-50 pb-3 mb-4">
             <h3 className="font-black text-slate-800 flex items-center gap-2">
               <span className="p-1 bg-indigo-50 rounded-lg"><HelpCircle size={14} className="text-indigo-600" /></span>

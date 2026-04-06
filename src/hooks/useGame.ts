@@ -102,6 +102,14 @@ export function useGame(quizCode: string) {
           console.log("[useGame] Broadcast HINT_REVEAL received:", payload);
           setGame(prev => prev ? { ...prev, current_hint_stage: payload.stage } : null);
         })
+        .on('broadcast', { event: 'GAME_UPDATE' }, async () => {
+          console.log("[useGame] Broadcast GAME_UPDATE received. Refreshing...");
+          // Refresh game data
+          const { data: g } = await supabase.from('games').select('*').eq('id', gameId).maybeSingle();
+          if (g) setGame(prev => ({ ...(prev || {}), ...g }));
+          // Also refresh players
+          fetchPlayersThrottled(gameId);
+        })
         .subscribe((status) => {
           console.log(`[useGame] Game channel status: ${status}`);
         });
