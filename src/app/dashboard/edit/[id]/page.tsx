@@ -68,6 +68,7 @@ export default function QuizEditor() {
   
   const lastSwapTime = useRef<number>(0);
   const lastScrollTime = useRef<number>(0);
+  const lastSavedRef = useRef<string>("");
 
   useEffect(() => {
     if (!authLoading && !user) router.push("/");
@@ -95,30 +96,34 @@ export default function QuizEditor() {
         }))
       };
       setQuiz(dataWithIds);
+      
+      // After fetching the original quiz, check for drafts
+      if (!draftChecked && id) {
+        checkDraft(dataWithIds);
+      }
     } catch (err) {
       console.error("퀴즈 가져오기 실패:", err);
       await showAlert({ message: "퀴즈를 불러올 수 없습니다." });
       router.push("/dashboard");
     } finally {
       setLoading(false);
-      
-      // After fetching the original quiz, check for drafts
-      if (!draftChecked && id) {
-        checkDraft();
-      }
     }
   };
 
-  const checkDraft = useCallback(async () => {
+  const checkDraft = useCallback(async (currentQuiz?: any) => {
     if (!id) return;
     const draftKey = `quiz_draft_${id}`;
     const savedDraft = localStorage.getItem(draftKey);
     
+    // Use the passed quiz or the state quiz
+    const compareQuiz = currentQuiz || quiz;
+    if (!compareQuiz) return;
+    
     if (savedDraft) {
       try {
         const parsedDraft = JSON.parse(savedDraft);
-        const hasChanges = JSON.stringify(parsedDraft.questions) !== JSON.stringify(quiz?.questions) || 
-                          parsedDraft.title !== quiz?.title;
+        const hasChanges = JSON.stringify(parsedDraft.questions) !== JSON.stringify(compareQuiz.questions) || 
+                          parsedDraft.title !== compareQuiz.title;
 
         if (hasChanges) {
           const restore = await showConfirm({
@@ -127,6 +132,7 @@ export default function QuizEditor() {
           
           if (restore) {
             setQuiz(parsedDraft);
+            setIsDirty(true);
             await showAlert({ message: "초안이 성공적으로 복구되었습니다." });
           } else {
              localStorage.removeItem(draftKey);
@@ -139,15 +145,26 @@ export default function QuizEditor() {
         console.error("Draft restoration error:", err);
       }
     }
+    
+    // Once we have checked the draft, we can consider the current state as the starting point
+    lastSavedRef.current = JSON.stringify({ 
+      title: compareQuiz.title, 
+      questions: compareQuiz.questions 
+    });
     setDraftChecked(true);
   }, [id, quiz, showConfirm, showAlert]);
 
   // Save draft whenever quiz changes
   useEffect(() => {
     if (quiz && id && draftChecked && !saving) {
-      const draftKey = `quiz_draft_${id}`;
-      localStorage.setItem(draftKey, JSON.stringify(quiz));
-      setIsDirty(true);
+      const currentData = JSON.stringify({ title: quiz.title, questions: quiz.questions });
+      
+      // Only save and set dirty if something actually changed from what we loaded or saved to server
+      if (currentData !== lastSavedRef.current) {
+        const draftKey = `quiz_draft_${id}`;
+        localStorage.setItem(draftKey, JSON.stringify(quiz));
+        setIsDirty(true);
+      }
     }
   }, [quiz, id, draftChecked, saving]);
 
@@ -260,6 +277,7 @@ export default function QuizEditor() {
       
       // Clear draft on successful save
       localStorage.removeItem(`quiz_draft_${id}`);
+      lastSavedRef.current = JSON.stringify({ title: quiz.title, questions: quiz.questions });
       setIsDirty(false);
       
       await showAlert({ message: "저장되었습니다!" });

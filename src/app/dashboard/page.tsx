@@ -115,11 +115,11 @@ export default function Dashboard() {
         
         const { error } = await supabase
           .from("profiles")
-          .update({ 
+          .upsert({ 
+            id: user.id, 
             settings: { ...currentSettings, probabilities: newProbs },
             updated_at: new Date().toISOString()
-          })
-          .eq("id", user.id);
+          });
           
         if (error) throw error;
         // Optional: show small success toast if available, or just close modal

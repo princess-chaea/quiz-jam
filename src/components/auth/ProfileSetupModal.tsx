@@ -18,8 +18,9 @@ export function ProfileSetupModal() {
   // 학생용 페이지(/join, /play)에서는 프로필 설정 모달을 표시하지 않음
   const isStudentPage = pathname?.startsWith('/join') || pathname?.startsWith('/play');
 
-  // Show only if we have a logged-in user but no profile, and not on student pages
-  if (loading || !user || profile || isStudentPage) return null;
+  // Show only if we have a logged-in user but no full profile, and not on student pages
+  const isProfileIncomplete = !profile || !profile.school_name || !profile.name;
+  if (loading || !user || !isProfileIncomplete || isStudentPage) return null;
 
   const handleSave = async () => {
     if (!schoolName.trim() || !name.trim()) {
