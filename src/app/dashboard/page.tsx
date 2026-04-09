@@ -117,8 +117,7 @@ export default function Dashboard() {
           .from("profiles")
           .upsert({ 
             id: user.id, 
-            settings: { ...currentSettings, probabilities: newProbs },
-            updated_at: new Date().toISOString()
+            settings: { ...currentSettings, probabilities: newProbs }
           });
           
         if (error) throw error;
