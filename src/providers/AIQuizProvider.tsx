@@ -151,7 +151,7 @@ export function AIQuizProvider({ children }: { children: React.ReactNode }) {
              const detectedBlanks: number[] = [];
              
              let answerPtr = 0;
-             words.forEach((word, idx) => {
+             words.forEach((word: string, idx: number) => {
                if (answerPtr < extractedAnswers.length && word.includes(extractedAnswers[answerPtr])) {
                  detectedBlanks.push(idx);
                  answerPtr++;
