@@ -135,7 +135,7 @@ export function AIQuizProvider({ children }: { children: React.ReactNode }) {
 
          if (type === 'BLANK') {
            let questionText = processed.q || "";
-           const bracketRegex = /\[\[(.*?)\]\]/g;
+           const bracketRegex = /\{\{(.*?)\}\}/g;
            const matches = [...questionText.matchAll(bracketRegex)];
 
            if (matches.length > 0) {
@@ -143,7 +143,7 @@ export function AIQuizProvider({ children }: { children: React.ReactNode }) {
              const extractedAnswers = matches.map(m => m[1].trim());
              processed.a = extractedAnswers.join(", ");
              
-             const cleanQuestion = questionText.replace(/\[\[/g, "").replace(/\]\]/g, "");
+             const cleanQuestion = questionText.replace(/\{\{/g, "").replace(/\}\}/g, "");
              processed.q = cleanQuestion;
 
              // 2. Re-calculate blanks indices based on cleanQuestion
