@@ -133,15 +133,44 @@ export function AIQuizProvider({ children }: { children: React.ReactNode }) {
          let processed = { ...q };
          const type = q.type || (types.length === 1 ? types[0] : "SHORT_ANSWER");
 
-         if (type === 'BLANK' && (!processed.blanks || processed.blanks.length === 0)) {
-           const words = (processed.q || "").split(/\s+/).filter(Boolean);
-           const detectedBlanks: number[] = [];
-           words.forEach((word: string, idx: number) => {
-             if (word.includes('\\square') || word.includes('□') || word.includes('____')) {
-               detectedBlanks.push(idx);
-             }
-           });
-           if (detectedBlanks.length > 0) processed.blanks = detectedBlanks;
+         if (type === 'BLANK') {
+           let questionText = processed.q || "";
+           const bracketRegex = /\[\[(.*?)\]\]/g;
+           const matches = [...questionText.matchAll(bracketRegex)];
+
+           if (matches.length > 0) {
+             // 1. Extract answers and update q (without brackets)
+             const extractedAnswers = matches.map(m => m[1].trim());
+             processed.a = extractedAnswers.join(", ");
+             
+             const cleanQuestion = questionText.replace(/\[\[/g, "").replace(/\]\]/g, "");
+             processed.q = cleanQuestion;
+
+             // 2. Re-calculate blanks indices based on cleanQuestion
+             const words = cleanQuestion.trim().split(/\s+/).filter(Boolean);
+             const detectedBlanks: number[] = [];
+             
+             let answerPtr = 0;
+             words.forEach((word, idx) => {
+               if (answerPtr < extractedAnswers.length && word.includes(extractedAnswers[answerPtr])) {
+                 detectedBlanks.push(idx);
+                 answerPtr++;
+               }
+             });
+             processed.blanks = detectedBlanks;
+             // Ensure q is also trimmed for consistency
+             processed.q = cleanQuestion.trim();
+           } else if (!processed.blanks || processed.blanks.length === 0) {
+             // Fallback for old □ or ____ detection
+             const words = (processed.q || "").split(/\s+/).filter(Boolean);
+             const detectedBlanks: number[] = [];
+             words.forEach((word: string, idx: number) => {
+               if (word.includes('\\square') || word.includes('□') || word.includes('____')) {
+                 detectedBlanks.push(idx);
+               }
+             });
+             if (detectedBlanks.length > 0) processed.blanks = detectedBlanks;
+           }
          }
 
          return {

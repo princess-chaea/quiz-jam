@@ -304,10 +304,11 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const handleBlankChange = (wordIdx: number, val: string, blanks: number[]) => {
     setBlankAnswers((prev: Record<number, string>) => {
       const next = { ...prev, [wordIdx]: val };
-      const sortedBlanks = [...blanks].sort((a, b) => a - b);
+      // Unique-ify and sort indices
+      const uniqueBlanks = Array.from(new Set(blanks)).sort((a, b) => a - b);
       
-      // Filter out empty parts and trim each one, then join with ", "
-      const joined = sortedBlanks
+      // Map to values, trim, filter then join
+      const joined = uniqueBlanks
         .map(idx => (next[idx] || "").trim())
         .filter(p => p !== "")
         .join(", ");
@@ -538,7 +539,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           </div>
 
           <div className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar px-2">
-            {hintStage > 0 && currentQuestion.type !== "BLANK" && (
+            {hintStage > 0 && (
               <div className="mb-4 flex flex-col items-center gap-1">
                  <div className="flex flex-wrap justify-center gap-1.5 animate-in fade-in zoom-in duration-500">
                     {currentQuestion.a.split('').map((char: string, idx: number) => {
@@ -608,7 +609,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                             const blanks = currentQuestion.blanks || [];
                             const bIdx = blanks.indexOf(wordIdx);
                             if (bIdx !== -1) {
-                              const choseongHint = (hintStage >= 2) ? getChoseong(word) : undefined;
+                              const choseongHint = (hintStage >= 1) ? getChoseong(word) : undefined;
                               return (
                                 <SegmentedInput key={wordIdx} value={blankAnswers[wordIdx] || ""} length={word.length} hint={choseongHint} onChange={(val) => handleBlankChange(wordIdx, val, blanks)} onEnter={() => handleSubmit()} autoFocus={bIdx === 0} firstRef={bIdx === 0 ? firstBlankRef : undefined} />
                               );

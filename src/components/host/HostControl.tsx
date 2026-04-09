@@ -1408,36 +1408,21 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           <div className="flex flex-wrap justify-center gap-6 mt-6 items-center">
             {(currentQuestion?.type === "SHORT_ANSWER" || currentQuestion?.type === "BLANK") && (
               <div className="flex bg-slate-100 p-2 rounded-2xl gap-2">
-                {currentQuestion?.type === "BLANK" ? (
+                {[1, 2].map((s) => (
                   <button
-                    onClick={() => handleHintStage(1)}
+                    key={s}
+                    onClick={() => handleHintStage(s)}
                     className={cn(
-                      "px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2",
-                      game.current_hint_stage >= 1
+                      "px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2",
+                      game.current_hint_stage >= s
                         ? "bg-indigo-600 text-white shadow-lg"
                         : "text-slate-500 hover:bg-slate-200"
                     )}
                   >
-                    <Zap size={18} className={game.current_hint_stage >= 1 ? "fill-white" : ""} />
-                    힌트 보여주기
+                    <Zap size={18} className={game.current_hint_stage >= s ? "fill-white" : ""} />
+                    {s === 1 ? (currentQuestion?.type === "BLANK" ? "1단계: 초성" : "1단계: 글자수") : "2단계: 초성"}
                   </button>
-                ) : (
-                  [1, 2].map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => handleHintStage(s)}
-                      className={cn(
-                        "px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2",
-                        game.current_hint_stage >= s
-                          ? "bg-indigo-600 text-white shadow-lg"
-                          : "text-slate-500 hover:bg-slate-200"
-                      )}
-                    >
-                      <Zap size={18} className={game.current_hint_stage >= s ? "fill-white" : ""} />
-                      {s === 1 ? "1단계: 글자수" : "2단계: 초성"}
-                    </button>
-                  ))
-                )}
+                ))}
               </div>
             )}
 
