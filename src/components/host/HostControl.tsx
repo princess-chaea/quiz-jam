@@ -374,7 +374,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       // 4. Handle Broadcasts (Shield Block, etc.)
       const blockedResults = finalResults.filter((r: any) => r.event.includes('_blocked'));
       if (blockedResults.length > 0) {
-        const eventChannel = supabase.channel(`game_swaps_${game.id}`);
+        const eventChannel = supabase.channel(`game_realtime:${game.id}`);
         eventChannel.subscribe(async (status: string) => {
           if (status === 'SUBSCRIBED') {
             for (const res of blockedResults) {
@@ -434,7 +434,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       if (statusErr) console.error("[Host] Status update failed:", statusErr);
 
       // 7. Broadcast Results Ready (to trigger student re-fetch)
-      const eventChannel = supabase.channel(`game_events_${game.id}`);
+      const eventChannel = supabase.channel(`game_realtime:${game.id}`);
       eventChannel.subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           console.log("[Host] Broadcasting results and updates...");
@@ -570,7 +570,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     const { error } = await supabase.from("games").update({ current_hint_stage: stage }).eq("id", game.id);
     if (!error) {
       // Broadcast hint reveal for immediate student-side reaction
-      const channel = supabase.channel(`game_events_${game.id}`);
+      const channel = supabase.channel(`game_realtime:${game.id}`);
       channel.subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           await channel.send({

@@ -305,7 +305,14 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     setBlankAnswers((prev: Record<number, string>) => {
       const next = { ...prev, [wordIdx]: val };
       const sortedBlanks = [...blanks].sort((a, b) => a - b);
-      setAnswer(sortedBlanks.map(idx => next[idx] || "").join(", "));
+      
+      // Filter out empty parts and trim each one, then join with ", "
+      const joined = sortedBlanks
+        .map(idx => (next[idx] || "").trim())
+        .filter(p => p !== "")
+        .join(", ");
+        
+      setAnswer(joined);
       return next;
     });
   };
