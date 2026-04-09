@@ -62,7 +62,7 @@ export function Leaderboard({ players }: LeaderboardProps) {
                       <div className="w-full space-y-1.5 mt-2 pt-4 border-t border-white/20">
                         {teamMembers.map((m) => (
                           <div key={m.id} className="flex justify-between items-center text-[11px] font-bold group">
-                            <span className="opacity-80 group-hover:opacity-100 transition-opacity truncate max-w-[80px]">{m.nickname}</span>
+                            <span className="opacity-80 group-hover:opacity-100 transition-opacity truncate max-w-[80px]" title={m.nickname}>{m.nickname}</span>
                             <span className={cn("font-black", team === 'YELLOW' ? "text-indigo-700" : "text-yellow-200")}>{m.score.toLocaleString()}</span>
                           </div>
                         ))}
@@ -86,7 +86,7 @@ export function Leaderboard({ players }: LeaderboardProps) {
                 {top3[1].team && <div className={cn("absolute bottom-4 -right-1 w-8 h-8 rounded-full border-4 border-white shadow-md", teamBgColors[top3[1].team])} />}
               </div>
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 w-32 text-center border border-white/10 shadow-lg">
-                <div className="font-black text-white truncate">{top3[1].nickname}</div>
+                <div className="font-black text-white truncate w-full" title={top3[1].nickname}>{top3[1].nickname}</div>
                 {top3[1].team && (
                   <div className="text-[10px] font-black opacity-60 text-white uppercase tracking-tighter mb-1">
                     {teamNames[top3[1].team]}
@@ -109,7 +109,7 @@ export function Leaderboard({ players }: LeaderboardProps) {
               </div>
               <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-6 w-48 text-center border border-white/20 shadow-2xl relative">
                 <div className="absolute -top-4 -right-4 bg-red-500 text-white p-2 rounded-xl rotate-12 font-black shadow-lg">WINNER</div>
-                <div className="text-2xl font-black text-white truncate">{top3[0].nickname}</div>
+                <div className="text-2xl font-black text-white truncate w-full" title={top3[0].nickname}>{top3[0].nickname}</div>
                 {top3[0].team && (
                   <div className="text-xs font-black opacity-70 text-white uppercase tracking-tight mb-1">
                     {teamNames[top3[0].team]}
@@ -131,7 +131,7 @@ export function Leaderboard({ players }: LeaderboardProps) {
                 {top3[2].team && <div className={cn("absolute bottom-4 -right-1 w-7 h-7 rounded-full border-4 border-white shadow-md", teamBgColors[top3[2].team])} />}
               </div>
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 w-32 text-center border border-white/10 shadow-lg">
-                <div className="font-black text-white truncate">{top3[2].nickname}</div>
+                <div className="font-black text-white truncate w-full" title={top3[2].nickname}>{top3[2].nickname}</div>
                 {top3[2].team && (
                   <div className="text-[10px] font-black opacity-60 text-white uppercase tracking-tighter mb-1">
                     {teamNames[top3[2].team]}
@@ -187,7 +187,7 @@ export function Leaderboard({ players }: LeaderboardProps) {
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">
-                       <span className="text-xl font-bold text-white">{player.nickname}</span>
+                       <span className="text-xl font-bold text-white truncate max-w-[150px] md:max-w-xs" title={player.nickname}>{player.nickname}</span>
                        <div className="flex gap-1">
                          {player.buffs?.includes('STRIKE') && <Zap size={14} className="text-yellow-400 fill-yellow-400 animate-pulse" />}
                          {/* Shield is secret! Hiding it here too */}

@@ -417,7 +417,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     <>
       <div className="relative w-full h-full flex flex-col items-center justify-center p-3 md:p-6 overflow-hidden">
       {/* Main Content Area */}
-      {game.status === 'RESULT' && result ? (
+      {game.status === 'RESULT' && result && result.q_index === game.current_q_index ? (
         <div className="flex flex-col items-center justify-center min-h-[600px] w-full max-w-2xl mx-auto p-4 md:p-8 animate-in fade-in duration-500 relative">
           
           {/* Waiting Overlay for Score Swap */}
@@ -511,16 +511,22 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
               <div className={cn("text-6xl md:text-8xl font-black mb-2", result.is_correct ? "text-indigo-600" : "text-red-500")}>
                 {result.points_added || result.points_awarded || 0}점
               </div>
-              <div className="grid grid-cols-2 gap-4 w-full mt-4">
-                <div className="bg-white p-3 rounded-2xl border text-center">
+                <div className="bg-white p-3 rounded-2xl border text-center relative group">
                   <div className="text-[10px] text-slate-400 font-black uppercase">내가 쓴 답</div>
-                  <div className="font-bold truncate">{answer || "(없음)"}</div>
+                  <div className="font-bold truncate" title={answer}>
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                       {processMathText(answer || "(없음)")}
+                    </ReactMarkdown>
+                  </div>
                 </div>
-                <div className="bg-white p-3 rounded-2xl border border-indigo-100 text-center">
+                <div className="bg-white p-3 rounded-2xl border border-indigo-100 text-center relative group">
                   <div className="text-[10px] text-indigo-400 font-black uppercase">정답</div>
-                  <div className="font-bold text-indigo-600 truncate">{currentQuestion?.a}</div>
+                  <div className="font-bold text-indigo-600 truncate" title={currentQuestion?.a}>
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                       {processMathText(currentQuestion?.a)}
+                    </ReactMarkdown>
+                  </div>
                 </div>
-              </div>
             </div>
           </div>
         </div>
@@ -688,7 +694,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                         "w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-black shadow-sm",
                         p.id === player.id ? "bg-white text-indigo-600" : "bg-slate-100 text-slate-500"
                       )}>{i+1}</span>
-                      <span className={cn("text-[13px] font-bold", p.id === player.id ? "text-white" : "text-slate-700")}>{p.nickname}</span>
+                      <span className={cn("text-[13px] font-bold truncate max-w-[120px]", p.id === player.id ? "text-white" : "text-slate-700")} title={p.nickname}>{p.nickname}</span>
                    </div>
                    <div className="flex flex-col items-end">
                       <span className={cn("text-xs font-black", p.id === player.id ? "text-indigo-100" : "text-indigo-600")}>{(p.score||0).toLocaleString()} <span className="text-[9px]">pts</span></span>

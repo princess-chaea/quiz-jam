@@ -276,7 +276,7 @@ function StudentPlayContent() {
 
     if (game.status === 'RESULT') {
       fetchResult();
-    } else if (game.status === 'PLAYING') {
+    } else {
       setPlayerResult(null);
     }
 

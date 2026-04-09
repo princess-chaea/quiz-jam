@@ -111,7 +111,7 @@ export function PlayerBar({ players, currentNickname, submissions, className, hi
               <div className={cn(
                 "px-2 py-0.5 rounded-lg text-[10px] font-black truncate max-w-[90px] leading-tight",
                 isMe ? "bg-white text-indigo-600 shadow-sm" : "bg-white/90 text-indigo-900 border border-white/50 shadow-sm"
-              )}>
+              )} title={player.nickname}>
                 {player.nickname}
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
