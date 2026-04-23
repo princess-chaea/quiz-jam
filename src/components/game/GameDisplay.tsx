@@ -486,7 +486,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           )}>
             <div className="text-lg md:text-2xl font-black text-slate-800 mb-2 md:mb-4">{result.is_correct ? "정답입니다!" : "아쉬워요!"}</div>
             <div className="mb-4 md:mb-6 flex flex-col items-center gap-2 md:gap-4">
-              {result.is_correct ? <div className="p-3 md:p-4 bg-emerald-50 rounded-full"><Check className="text-emerald-500" size={60} strokeWidth={8} className="md:w-20 md:h-20" /></div> : <div className="p-3 md:p-4 bg-red-50 rounded-full"><X className="text-red-500" size={80} strokeWidth={6} className="md:w-24 md:h-24" /></div>}
+              {result.is_correct ? <div className="p-3 md:p-4 bg-emerald-50 rounded-full"><Check className="text-emerald-500 md:w-20 md:h-20" size={60} strokeWidth={8} /></div> : <div className="p-3 md:p-4 bg-red-50 rounded-full"><X className="text-red-500 md:w-24 md:h-24" size={80} strokeWidth={6} /></div>}
               {eventInfos.length > 0 && (
                 <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
                   {eventInfos.map((info: any, idx: number) => (
