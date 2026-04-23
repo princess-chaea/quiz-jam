@@ -551,17 +551,34 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                     {currentQuestion.a.split('').map((char: string, idx: number) => {
                       const isSpace = /\s/.test(char);
                       if (isSpace) return <div key={idx} className="w-2" />;
-                      const choseong = getChoseong(char);
-                      const showChoseong = hintStage >= 2;
+                      
+                      const isKorean = (c: string) => {
+                        const code = c.charCodeAt(0) - 0xAC00;
+                        return code > -1 && code < 11172;
+                      };
+                      const isAlpha = (c: string) => /^[a-zA-Z0-9]$/.test(c);
+                      const isFirstInWord = idx === 0 || /\s/.test(currentQuestion.a[idx - 1]);
+
+                      let displayChar = "?";
+                      if (hintStage >= 2) {
+                        if (isKorean(char)) {
+                          displayChar = getChoseong(char);
+                        } else if (isAlpha(char)) {
+                          displayChar = isFirstInWord ? char : "?";
+                        } else {
+                          displayChar = char;
+                        }
+                      }
+
                       return (
                         <div key={idx} className={cn(
                           "w-7 h-7 rounded-lg flex items-center justify-center font-black text-sm",
-                          showChoseong ? "bg-white border-2 border-indigo-400 text-indigo-600 shadow-sm" : "bg-indigo-50 border border-indigo-100 text-indigo-200"
-                        )}>{showChoseong ? choseong : "?"}</div>
+                          hintStage >= 2 && displayChar !== "?" ? "bg-white border-2 border-indigo-400 text-indigo-600 shadow-sm" : "bg-indigo-50 border border-indigo-100 text-indigo-200"
+                        )}>{displayChar}</div>
                       );
                     })}
                  </div>
-                  <span className="text-[8px] md:text-[9px] text-indigo-400 font-bold bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 uppercase tracking-tighter">{hintStage >= 2 ? "초성 힌트 공개" : "글자수 힌트 공개"}</span>
+                  <span className="text-[8px] md:text-[9px] text-indigo-400 font-bold bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 uppercase tracking-tighter">{hintStage >= 2 ? "초성/첫글자 힌트 공개" : "글자수 힌트 공개"}</span>
               </div>
             )}
 

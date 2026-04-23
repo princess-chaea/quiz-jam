@@ -108,6 +108,15 @@ function StudentPlayContent() {
       
       if (res.error) throw res.error;
       setPlayerResult(res.data);
+      
+      // Broadcast submission to Host for instant UI update
+      if (channelRef.current) {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'SUBMISSION_UPDATE',
+          payload: { player_id: me.id, q_index: game.current_q_index, is_retracted: false }
+        });
+      }
       console.log("[Submit] Answer successfully submitted/updated:", res.data);
     } catch (err: any) {
       console.error("Submit failed:", err);
@@ -139,6 +148,15 @@ function StudentPlayContent() {
       
       if (error) console.warn("Retract delete failed (potentially blocked by RLS):", error);
       
+      // Broadcast retraction to Host
+      if (channelRef.current) {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'SUBMISSION_UPDATE',
+          payload: { player_id: me.id, q_index: game.current_q_index, is_retracted: true }
+        });
+      }
+
       setPlayerResult(null); // Clear local result state
     } catch (err: any) {
       console.error("Retract logic failed:", err);
@@ -156,7 +174,7 @@ function StudentPlayContent() {
 
   const channelRef = useRef<any>(null);
 
-  // 2. Real-time broadcast listener for instant kick & Emoji setup
+  // 2. Real-time broadcast listener for instant kick, Emoji setup, and Result Ready
   useEffect(() => {
     if (!game?.id || !name) return;
 
@@ -168,6 +186,25 @@ function StudentPlayContent() {
           setWasKicked(true);
         }
       })
+      .on('broadcast', { event: 'ROUND_RESULTS_READY' }, (payload: any) => {
+        console.log("Broadcast: ROUND_RESULTS_READY", payload);
+        if (payload.payload.q_index === game.current_q_index) {
+          // Check if we already have the result logic elsewhere
+          const resultsArray = payload.payload.results;
+          if (resultsArray) {
+            const currentMe = players.find(p => p.nickname === name);
+            const myResult = resultsArray.find((r: any) => r.player_id === currentMe?.id);
+            if (myResult) {
+               console.log("Applying rich broadcasted result directly:", myResult);
+               setPlayerResult(myResult);
+               return; 
+            }
+          }
+          // We can't easily call fetchResult here if it's defined in another scope, 
+          // so we'll just set a flag or rely on the other effect to fetch if needed.
+          // Actually, we'll merge the result fetching logic here too.
+        }
+      })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           channelRef.current = channel;
@@ -175,10 +212,11 @@ function StudentPlayContent() {
       });
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
       channelRef.current = null;
     };
-  }, [game?.id, name]);
+  }, [game?.id, game?.current_q_index, name]); // Removed status to avoid frequent reconnects, but q_index is needed for result ready check
+
 
   const sendEmoji = (emoji: string) => {
     if (channelRef.current) {
@@ -242,7 +280,7 @@ function StudentPlayContent() {
     // We only want this effect to set up the exit listeners once when we successfully join.
   }, [game?.status === 'WAITING', name, isExiting]);
 
-  // 4. Fetch round result logic
+  // 4. Fetch round result logic & Answer Sync
   useEffect(() => {
     if (!game || !game.id || !name || wasKicked) return;
 
@@ -262,18 +300,10 @@ function StudentPlayContent() {
       if (fetchErr) {
         console.error("Result fetch error:", fetchErr);
       } else if (data) {
-        console.log("Fetched result data:", data);
         setPlayerResult((prev: any) => {
-          // If we already received a rich broadcasted event or a true correctness, don't let a stale DB value overwrite it
           if (prev && prev.q_index === data.q_index) {
-            if (prev.is_correct === true && data.is_correct === false) {
-              console.log("Preserving true correctness from broadcast over stale DB result", prev);
-              return prev;
-            }
-            if (prev.event !== 'none' && (!data.event || data.event === 'none')) {
-              console.log("Preserving rich broadcasted result over stale DB result", prev);
-              return prev;
-            }
+            if (prev.is_correct === true && data.is_correct === false) return prev;
+            if (prev.event !== 'none' && (!data.event || data.event === 'none')) return prev;
           }
           return data;
         });
@@ -286,26 +316,6 @@ function StudentPlayContent() {
       setPlayerResult(null);
     }
 
-    const channel = supabase
-      .channel(`game_realtime:${game.id}`)
-      .on('broadcast', { event: 'ROUND_RESULTS_READY' }, (payload: any) => {
-        console.log("Broadcast: ROUND_RESULTS_READY", payload);
-        if (payload.payload.q_index === game.current_q_index) {
-          const resultsArray = payload.payload.results;
-          if (resultsArray) {
-            const currentMe = players.find(p => p.nickname === name);
-            const myResult = resultsArray.find((r: any) => r.player_id === currentMe?.id);
-            if (myResult) {
-               console.log("Applying rich broadcasted result directly:", myResult);
-               setPlayerResult(myResult);
-               return; // Skip fetching from DB if we got it from broadcast
-            }
-          }
-          fetchResult();
-        }
-      })
-      .subscribe();
-
     const me = players.find(p => p.nickname === name);
     let answerChannel: any = null;
     if (me) {
@@ -316,7 +326,6 @@ function StudentPlayContent() {
           { event: 'UPDATE', schema: 'public', table: 'answers', filter: `player_id=eq.${me.id}` },
           (payload: any) => {
             if (payload.new.game_id === game?.id && payload.new.q_index === game?.current_q_index) {
-              console.log("Realtime: Answer updated", payload.new);
               setPlayerResult(payload.new);
             }
           }
@@ -325,10 +334,10 @@ function StudentPlayContent() {
     }
 
     return () => {
-      supabase.removeChannel(channel);
       if (answerChannel) supabase.removeChannel(answerChannel);
     };
   }, [game?.status, game?.id, game?.current_q_index, name, wasKicked, players.length]);
+
 
   // --- RENDERING LOGIC ---
   

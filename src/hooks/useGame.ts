@@ -167,8 +167,8 @@ export function useGame(quizCode: string) {
     fetchInitialData();
 
     return () => {
-      if (channelsRef.game) supabase.removeChannel(channelsRef.game);
-      if (channelsRef.players) supabase.removeChannel(channelsRef.players);
+      if (channelsRef.game) channelsRef.game.unsubscribe();
+      if (channelsRef.players) channelsRef.players.unsubscribe();
       if (pollInterval) clearInterval(pollInterval);
       if (fetchTimeout) clearTimeout(fetchTimeout);
     };

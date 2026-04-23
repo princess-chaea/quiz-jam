@@ -88,7 +88,8 @@ export default function HostPage() {
             payload: { nickname: targetNickname }
           });
           // Cleanup after broadcast
-          setTimeout(() => supabase.removeChannel(channel), 1000);
+          // Unsubscribe after broadcast instead of removing the entire channel
+          setTimeout(() => channel.unsubscribe(), 1000);
         }
       });
 
@@ -160,7 +161,7 @@ export default function HostPage() {
         refreshPlayers();
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { channel.unsubscribe(); };
   }, [game?.id, refreshPlayers]);
 
   // Redirect to results page when game is over

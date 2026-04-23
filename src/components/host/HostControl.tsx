@@ -51,6 +51,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   const swapQueueRef = useRef(swapQueue);
   const currentSwapperIdRef = useRef(currentSwapperId);
   const finishRoundRef = useRef<any>(null);
+  const channelRef = useRef<any>(null);
 
   // 2. Logic Functions
   const handleFinishRound = async () => {
@@ -779,10 +780,27 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       .on('broadcast', { event: 'PLAYER_UPDATE' }, () => {
         if (refreshPlayers) refreshPlayers();
       })
-      .subscribe();
+      .on('broadcast', { event: 'SUBMISSION_UPDATE' }, ({ payload }: { payload: any }) => {
+        // Instant UI feedback for submissions
+        const { player_id, q_index, is_retracted } = payload;
+        if (q_index === gameRef.current.current_q_index) {
+          setAnswers(prev => {
+            if (is_retracted) return prev.filter(a => a.player_id !== player_id);
+            const exists = prev.find(a => a.player_id === player_id);
+            if (exists) return prev; // Don't overwrite with incomplete broadcast data if we already have it
+            return [...prev, { player_id, q_index, answer: '...', is_placeholder: true }];
+          });
+        }
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channelRef.current = channel;
+        }
+      });
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
+      channelRef.current = null;
     };
   }, [game.id]);
 
@@ -841,29 +859,42 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       const remaining = syncTime();
       setTimeLeft(remaining);
       
-      // Periodically broadcast sync for all student clients to handle drift
-      // Broadcast more frequently (every 2s) to ensure fast initial sync
       if (remaining > 0 && (remaining % 2 === 0 || remaining <= 3)) {
-        const syncChannel = supabase.channel(`game_realtime:${game.id}`);
-        syncChannel.send({
-          type: 'broadcast',
-          event: 'TIMER_SYNC',
-          payload: { timeLeft: remaining }
-        });
+        if (channelRef.current) {
+          channelRef.current.send({
+            type: 'broadcast',
+            event: 'TIMER_SYNC',
+            payload: { timeLeft: remaining }
+          });
+        }
       }
 
       if (remaining <= 0) {
         clearInterval(timer);
-        // Delay slightly to allow late submissions to trickle in
-        setTimeout(() => { 
-          if (finishRoundRef.current && gameRef.current.status === 'PLAYING') {
-            finishRoundRef.current(); 
-          }
-        }, 1500);
+        if (finishRoundRef.current && gameRef.current.status === 'PLAYING') {
+          console.log("[Timer] Time up, auto-finishing round...");
+          finishRoundRef.current(); 
+        }
       }
     }, 1000);
 
-    return () => clearInterval(timer);
+    // Watchdog for minimized tabs: check visibility changes
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const remaining = syncTime();
+        setTimeLeft(remaining);
+        if (remaining <= 0 && gameRef.current.status === 'PLAYING') {
+          console.log("[Watchdog] Tab focused and time is already up. Finishing round.");
+          if (finishRoundRef.current) finishRoundRef.current();
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [game.id, game.current_q_index, game.status, game.options?.current_q_started_at]);
 
   useEffect(() => {
@@ -1332,11 +1363,24 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                         {Array.from({ length: word.length }).map((_, i) => (
                           <div key={i} className={cn(
                             "w-12 h-14 rounded-xl flex items-center justify-center font-black text-2xl transition-all",
-                            game.current_hint_stage >= 1
+                            game.current_hint_stage >= 2
                               ? "bg-indigo-600 text-white shadow-indigo-100 scale-110"
-                              : "bg-slate-50 border-2 border-indigo-100 text-indigo-200"
+                              : game.current_hint_stage === 1
+                                ? "bg-indigo-50 border-2 border-indigo-200 text-indigo-300"
+                                : "bg-slate-50 border-2 border-indigo-100 text-indigo-200"
                           )}>
-                            {game.current_hint_stage >= 1 ? getChoseong(word[i]) : ""}
+                            {(() => {
+                              if (game.current_hint_stage < 2) return "";
+                              const char = word[i];
+                              const isKorean = (c: string) => {
+                                const code = c.charCodeAt(0) - 0xAC00;
+                                return code > -1 && code < 11172;
+                              };
+                              const isAlpha = (c: string) => /^[a-zA-Z0-9]$/.test(c);
+                              if (isKorean(char)) return getChoseong(char);
+                              if (isAlpha(char)) return i === 0 ? char : "?";
+                              return char;
+                            })()}
                           </div>
                         ))}
                       </div>
@@ -1429,7 +1473,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                     )}
                   >
                     <Zap size={18} className={game.current_hint_stage >= s ? "fill-white" : ""} />
-                    {s === 1 ? (currentQuestion?.type === "BLANK" ? "1단계: 초성" : "1단계: 글자수") : "2단계: 초성"}
+                    {s === 1 ? "1단계: 글자수" : (currentQuestion?.type === "BLANK" ? "2단계: 초성/첫글자" : "2단계: 초성")}
                   </button>
                 ))}
               </div>
