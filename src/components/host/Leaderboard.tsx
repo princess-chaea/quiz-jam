@@ -12,8 +12,21 @@ interface LeaderboardProps {
 export function Leaderboard({ players }: LeaderboardProps) {
   const router = useRouter();
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
-  const top3 = sortedPlayers.slice(0, 3);
-  const others = sortedPlayers.slice(3);
+  
+  // Calculate ranks with tie handling
+  let currentRank = 1;
+  const rankedPlayers = sortedPlayers.map((p, idx) => {
+    if (idx > 0 && p.score < sortedPlayers[idx - 1].score) {
+      currentRank = idx + 1;
+    }
+    return { ...p, rank: currentRank };
+  });
+
+  const top3 = rankedPlayers.slice(0, 3);
+  const others = rankedPlayers.slice(3);
+
+  // Check if a rank is shared
+  const isRankShared = (rank: number) => rankedPlayers.filter(p => p.rank === rank).length > 1;
 
   // Team Score Calculation
   const teamTotals: Record<string, number> = {};
@@ -161,7 +174,10 @@ export function Leaderboard({ players }: LeaderboardProps) {
                 className="flex justify-between items-center p-4 border-b border-white/10 last:border-0 hover:bg-white/5 transition-colors rounded-xl"
               >
                 <div className="flex items-center gap-4">
-                  <span className="text-white/40 font-black text-xl w-8">{index + 4}</span>
+                  <div className="text-white/40 font-black text-xl w-16 flex flex-col">
+                    <span className="text-[10px] opacity-50 leading-none">{isRankShared(player.rank) ? '공동' : ''}</span>
+                    <span>{player.rank}</span>
+                  </div>
                   <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-bold text-white relative overflow-hidden">
                     {player.avatar_id ? (
                       <img 
@@ -203,7 +219,7 @@ export function Leaderboard({ players }: LeaderboardProps) {
                     )}
                   </div>
                 </div>
-                <span className="text-2xl font-black text-indigo-300">{player.score}점</span>
+                <span className="text-2xl font-black text-indigo-300">{player.score.toLocaleString()}점</span>
               </div>
             ))}
           </div>

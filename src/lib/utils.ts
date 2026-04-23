@@ -105,6 +105,6 @@ export const normalizeMath = (s: string) => {
   // 1. Convert to lowercase
   // 2. Remove all whitespace (\s)
   // 3. Remove curly braces (LaTeX leftovers)
-  // 4. Remove commas (to avoid mismatches in multi-part answers if student uses different spacing/punctuation)
-  return s.toLowerCase().replace(/[\s{},]+/g, "");
+  // 4. Remove common punctuation (.,?!) to be robust for English/text answers
+  return s.toLowerCase().replace(/[\s{}.,?!]+/g, "");
 };

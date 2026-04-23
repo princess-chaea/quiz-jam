@@ -37,6 +37,11 @@ export default function CommunityPage() {
   const [activePost, setActivePost] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState("");
+  
+  const [editingPost, setEditingPost] = useState<any>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentContent, setEditingCommentContent] = useState("");
+
   const { showAlert, showConfirm } = useDialog();
 
   // Search & Pagination State
@@ -96,22 +101,53 @@ export default function CommunityPage() {
     
     const finalTitle = isNotice ? `[공지] ${newTitle.trim()}` : newTitle.trim();
     
-    const { error } = await supabase.from("posts").insert([{
-      user_id: user.id,
-      author_email: user.email,
-      title: finalTitle,
-      content: newContent
-    }]);
-    
-    if (error) {
-      await showAlert({ message: "등록 실패: " + error.message });
+    if (editingPost) {
+      // Update Mode
+      const { error } = await supabase.from("posts").update({
+        title: finalTitle,
+        content: newContent,
+        updated_at: new Date().toISOString()
+      }).eq("id", editingPost.id);
+
+      if (error) {
+        await showAlert({ message: "수정 실패: " + error.message });
+      } else {
+        setIsWriteModalOpen(false);
+        setEditingPost(null);
+        setNewTitle("");
+        setNewContent("");
+        if (activePost?.id === editingPost.id) {
+           setActivePost({ ...activePost, title: finalTitle, content: newContent });
+        }
+        fetchPosts();
+      }
     } else {
-      setIsWriteModalOpen(false);
-      setIsNotice(false);
-      setNewTitle("");
-      setNewContent("");
-      fetchPosts();
+      // Create Mode
+      const { error } = await supabase.from("posts").insert([{
+        user_id: user.id,
+        author_email: user.email,
+        title: finalTitle,
+        content: newContent
+      }]);
+      
+      if (error) {
+        await showAlert({ message: "등록 실패: " + error.message });
+      } else {
+        setIsWriteModalOpen(false);
+        setIsNotice(false);
+        setNewTitle("");
+        setNewContent("");
+        fetchPosts();
+      }
     }
+  };
+
+  const openEditPost = (post: any) => {
+    setEditingPost(post);
+    setNewTitle(post.title.replace("[공지]", "").trim());
+    setIsNotice(post.title.startsWith("[공지]"));
+    setNewContent(post.content);
+    setIsWriteModalOpen(true);
   };
 
   const handleDeletePost = async (postId: string) => {
@@ -164,6 +200,21 @@ export default function CommunityPage() {
     if (!confirmed) return;
     const { error } = await supabase.from("comments").delete().eq("id", commentId);
     if (!error) fetchComments(activePost.id);
+  };
+
+  const handleUpdateComment = async (commentId: string) => {
+    if (!editingCommentContent.trim()) return;
+    const { error } = await supabase.from("comments").update({
+      content: editingCommentContent,
+      updated_at: new Date().toISOString()
+    }).eq("id", commentId);
+
+    if (error) {
+      await showAlert({ message: "댓글 수정 실패: " + error.message });
+    } else {
+      setEditingCommentId(null);
+      fetchComments(activePost.id);
+    }
   };
 
   const canModify = (authorId: string) => {
@@ -347,9 +398,14 @@ export default function CommunityPage() {
               </div>
               <div className="flex items-center gap-2">
                 {canModify(activePost.user_id) && (
-                  <button onClick={() => handleDeletePost(activePost.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors">
-                    <Trash2 size={20} />
-                  </button>
+                  <>
+                    <button onClick={() => openEditPost(activePost)} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors">
+                      <Edit3 size={20} />
+                    </button>
+                    <button onClick={() => handleDeletePost(activePost.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+                      <Trash2 size={20} />
+                    </button>
+                  </>
                 )}
                 <button onClick={() => setActivePost(null)} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors">
                   <X size={24} />
@@ -391,15 +447,41 @@ export default function CommunityPage() {
                           <span className="text-xs text-gray-400 font-medium">{new Date(comment.created_at).toLocaleString()}</span>
                         </div>
                         {canModify(comment.user_id) && (
-                          <button 
-                            onClick={() => handleDeleteComment(comment.id)} 
-                            className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button 
+                              onClick={() => {
+                                setEditingCommentId(comment.id);
+                                setEditingCommentContent(comment.content);
+                              }} 
+                              className="p-1 text-gray-300 hover:text-indigo-500"
+                            >
+                              <Edit3 size={16} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteComment(comment.id)} 
+                              className="p-1 text-gray-300 hover:text-red-500"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         )}
                       </div>
-                      <p className="text-gray-700 text-sm whitespace-pre-wrap">{comment.content}</p>
+                      {editingCommentId === comment.id ? (
+                        <div className="mt-2 space-y-2">
+                          <textarea 
+                            className="w-full bg-gray-50 border-2 border-indigo-200 rounded-xl p-3 text-sm outline-none focus:bg-white transition-all"
+                            value={editingCommentContent}
+                            onChange={(e) => setEditingCommentContent(e.target.value)}
+                            autoFocus
+                          />
+                          <div className="flex justify-end gap-2">
+                            <button onClick={() => setEditingCommentId(null)} className="text-xs font-bold text-gray-400 hover:text-gray-600">취소</button>
+                            <button onClick={() => handleUpdateComment(comment.id)} className="text-xs font-bold text-indigo-600 hover:text-indigo-700">수정완료</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-gray-700 text-sm whitespace-pre-wrap">{comment.content}</p>
+                      )}
                     </div>
                   ))
                 )}
@@ -440,10 +522,15 @@ export default function CommunityPage() {
           <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-pop flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h2 className="text-2xl font-bold flex items-center gap-2 relative z-10 text-gray-800">
-                <Edit3 className="text-indigo-500" /> 커뮤니티 글쓰기
+                <Edit3 className="text-indigo-500" /> {editingPost ? '커뮤니티 글 수정' : '커뮤니티 글쓰기'}
               </h2>
               <button 
-                onClick={() => setIsWriteModalOpen(false)}
+                onClick={() => {
+                  setIsWriteModalOpen(false);
+                  setEditingPost(null);
+                  setNewTitle("");
+                  setNewContent("");
+                }}
                 className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
               >
                 <X size={24} />
@@ -493,7 +580,7 @@ export default function CommunityPage() {
                 취소
               </Button>
               <Button variant="primary" className="rounded-xl px-8 shadow-lg shadow-indigo-100" onClick={handleCreatePost}>
-                등록하기
+                {editingPost ? '수정완료' : '등록하기'}
               </Button>
             </div>
           </div>

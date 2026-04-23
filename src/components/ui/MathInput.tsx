@@ -88,6 +88,18 @@ export function MathInput({
     }
   };
 
+  const handleShowKeypad = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!mfRef.current) return;
+    
+    // Ensure focused first
+    mfRef.current.focus();
+    
+    // Explicitly open custom keypad
+    openKeypad(mfRef.current, level);
+  };
+
   const handleManualRefresh = () => {
     if (!mfRef.current) return;
     
@@ -97,11 +109,6 @@ export function MathInput({
     setTimeout(() => {
       if (mfRef.current) {
         forceFocus(mfRef.current);
-        
-        // Auto-show keypad if needed
-        const shouldShow = isTeacher || forceMathKeypad || hasMathSymbols(mfRef.current.value) || hasMathSymbols(template);
-        if (shouldShow) openKeypad(mfRef.current, level);
-        
         if (onRefresh) onRefresh();
       }
     }, 50);
@@ -270,10 +277,8 @@ export function MathInput({
     const handleFocus = () => {
       // SMART KEYPAD LOGIC:
       // Always show for teachers.
-      // For students, only show if forceMathKeypad is true OR current value contains math symbols.
-      const shouldShow = isTeacher || forceMathKeypad || hasMathSymbols(el.value) || hasMathSymbols(template);
-      
-      if (shouldShow) {
+      // For students, NEVER auto-show on focus (user requested manual show only)
+      if (isTeacher) {
         if (typeof el.executeCommand === 'function') {
           openKeypad(el, level);
         } else {
@@ -298,11 +303,10 @@ export function MathInput({
       // MathLive sometimes updates its internal cursor on gap click, but fails to focus the actual IME textarea.
       forceFocus(el);
       
-      const shouldShow = isTeacher || forceMathKeypad || hasMathSymbols(el.value) || hasMathSymbols(template);
-      
       setTimeout(() => {
         forceFocus(el);
-        if (shouldShow && typeof el.executeCommand === 'function') {
+        // Do not auto-show keypad for students on pointer up
+        if (isTeacher && typeof el.executeCommand === 'function') {
           openKeypad(el, level);
         }
       }, 50);
@@ -491,6 +495,10 @@ export function MathInput({
           keypress-sound="none"
           plonk-sound="none"
           placeholder={placeholder}
+          inputMode="text"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck="false"
         >
           {toMathLiveValue(value)}
         </math-field>
@@ -514,11 +522,7 @@ export function MathInput({
           <div className="relative">
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleManualRefresh();
-              }}
+              onClick={handleShowKeypad}
               className="w-12 h-12 flex items-center justify-center rounded-xl bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition-all shadow-md border-2 border-indigo-100"
               title="수식 키보드 열기"
             >
