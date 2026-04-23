@@ -190,8 +190,13 @@ function StudentPlayContent() {
   useEffect(() => {
     if (!game?.id || !name) return;
 
-    const channel = supabase
-      .channel(`game_events:${game.id}`)
+    console.log("[Student] Setting up real-time channel for game:", game.id);
+    const channel = supabase.channel(`game_events:${game.id}`);
+    
+    // Assign immediately so it's available even before subscription is complete
+    channelRef.current = channel;
+
+    channel
       .on('broadcast', { event: 'KICK_PLAYER' }, (payload: any) => {
         if (payload.payload.nickname === name) {
           console.log("Kicked via broadcast!");
@@ -214,22 +219,31 @@ function StudentPlayContent() {
         }
       })
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          channelRef.current = channel;
-        }
+        console.log(`[Student] Channel status for ${game.id}: ${status}`);
       });
 
     return () => {
+      console.log("[Student] Cleaning up channel");
       channel.unsubscribe();
       channelRef.current = null;
     };
-  }, [game?.id, name]); // Stable connection: Only reconnect if game ID or name changes
+  }, [game?.id, name]); 
 
 
   const sendEmoji = (emoji: string) => {
-    if (channelRef.current) {
+    let activeChannel = channelRef.current;
+
+    // Lazy initialization if channel is missing
+    if (!activeChannel && game?.id) {
+      console.log("[Student] Channel missing, attempting lazy creation...");
+      activeChannel = supabase.channel(`game_events:${game.id}`);
+      activeChannel.subscribe();
+      channelRef.current = activeChannel;
+    }
+
+    if (activeChannel) {
       console.log("[Student] Broadcasting emoji:", emoji);
-      channelRef.current.send({
+      activeChannel.send({
         type: 'broadcast',
         event: 'EMOJI_REACTION',
         payload: { emoji, from: name }
