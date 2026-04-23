@@ -161,7 +161,7 @@ function StudentPlayContent() {
     if (!game?.id || !name) return;
 
     const channel = supabase
-      .channel(`game_events_${game.id}`)
+      .channel(`game_realtime:${game.id}`)
       .on('broadcast', { event: 'KICK_PLAYER' }, (payload: any) => {
         if (payload.payload.nickname === name) {
           console.log("Kicked via broadcast!");
@@ -264,10 +264,16 @@ function StudentPlayContent() {
       } else if (data) {
         console.log("Fetched result data:", data);
         setPlayerResult((prev: any) => {
-          // If we already received a rich broadcasted event, don't let a stale DB value (event='none') overwrite it
-          if (prev && prev.q_index === data.q_index && prev.event !== 'none' && (!data.event || data.event === 'none')) {
-            console.log("Preserving rich broadcasted result over stale DB result", prev);
-            return prev;
+          // If we already received a rich broadcasted event or a true correctness, don't let a stale DB value overwrite it
+          if (prev && prev.q_index === data.q_index) {
+            if (prev.is_correct === true && data.is_correct === false) {
+              console.log("Preserving true correctness from broadcast over stale DB result", prev);
+              return prev;
+            }
+            if (prev.event !== 'none' && (!data.event || data.event === 'none')) {
+              console.log("Preserving rich broadcasted result over stale DB result", prev);
+              return prev;
+            }
           }
           return data;
         });
@@ -281,7 +287,7 @@ function StudentPlayContent() {
     }
 
     const channel = supabase
-      .channel(`game_results_${game.id}`)
+      .channel(`game_realtime:${game.id}`)
       .on('broadcast', { event: 'ROUND_RESULTS_READY' }, (payload: any) => {
         console.log("Broadcast: ROUND_RESULTS_READY", payload);
         if (payload.payload.q_index === game.current_q_index) {

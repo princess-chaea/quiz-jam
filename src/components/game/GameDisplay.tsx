@@ -161,7 +161,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   useEffect(() => {
     if (!game?.id || !player.id) return;
 
-    const channel = supabase.channel(`game_events_${game.id}`)
+    const channel = supabase.channel(`game_realtime:${game.id}`)
       .on('broadcast', { event: 'START_SWAP' }, ({ payload }: { payload: { playerId: string; nickname: string } }) => {
         console.log("[Student] START_SWAP received for:", payload.nickname);
         setActiveSwapperName(payload.nickname);

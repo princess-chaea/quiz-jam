@@ -599,7 +599,16 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   useEffect(() => {
     if (!game.id) return;
 
-    const channel = supabase.channel(`game_events_${game.id}`)
+    const channel = supabase.channel(`game_realtime:${game.id}`)
+      .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
+        const newEmoji = { 
+          id: Date.now() + Math.random(), 
+          emoji: payload.emoji, 
+          left: Math.random() * 80 + 10 
+        };
+        setFloatingEmojis((prev: any[]) => [...prev, newEmoji]);
+        setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 3000);
+      })
       .on('broadcast', { event: 'EXECUTE_SWAP' }, async ({ payload }: { payload: any }) => {
         if (isSwappingRef.current) {
           console.log("[Host] Already processing a swap, ignoring duplicate broadcast.");
@@ -835,7 +844,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       // Periodically broadcast sync for all student clients to handle drift
       // Broadcast more frequently (every 2s) to ensure fast initial sync
       if (remaining > 0 && (remaining % 2 === 0 || remaining <= 3)) {
-        const syncChannel = supabase.channel(`game_events_${game.id}`);
+        const syncChannel = supabase.channel(`game_realtime:${game.id}`);
         syncChannel.send({
           type: 'broadcast',
           event: 'TIMER_SYNC',

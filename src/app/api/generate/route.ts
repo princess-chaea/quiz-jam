@@ -73,16 +73,14 @@ export async function POST(req: Request) {
 1. SHORT_ANSWER: 질문('q')은 자연스럽고 명확한 의문문 형식(~은 무엇입니까?, ~라고 합니까?)으로 작성하세요. 정답은 반드시 단어, 숫자, 또는 매우 짧은 핵심 구절이어야 합니다. 질문 문장에 조사 분리를 위한 인위적인 띄어쓰기(예: "빛 이")를 절대 하지 마세요.
 2. MATH: 모든 수식은 LaTeX 형식을 사용하세요.
 3. MULTIPLE_CHOICE: 보기(options)는 4지선다형을 기본으로 합니다. 정답('a')은 반드시 보기 중 하나와 정확히 일치해야 합니다.
-    4. BLANK: 질문('q')에는 정답을 포함한 **완성된 전체 문장**을 넣되, 빈칸으로 만들 단어를 반드시 **{{ }}**로 감싸서 표시하세요.
-      **[출제 기준 - 반드시 지킬 것]** 
-      - 반드시 문장의 핵심 의미를 결정하는 **핵심 전문 용어, 개념어, 고유 명사**만을 빈칸({{ }})으로 만드세요. 
-      - **띄어쓰기 및 조사 분리 규칙 (반드시 준수):** 한국어 문장에서 정답 단어에 조사가 붙어 있다면(예: '지구가', '지형은'), 반드시 **정답 단어와 조사를 공백으로 분리**하고 단어에만 마킹하세요(예: '{{지구}} 가', '{{지형}} 은'). 
-      - **정답('a')**은 반드시 조사를 제외한 **순수한 핵심 단어**만 기술하세요. 복수 빈칸인 경우 콤마(,)로 구분하세요.
-      - **성공 예시:** 정답 단어가 "지층"인 경우
-        - (잘못된 예): q: "오랜 시간 쌓인 {{지층은}} 여러 겹입니다.", a: "지층은" (조사가 포함됨)
-        - (올바른 예): q: "오랜 시간 쌓인 {{지층}} 은 여러 겹으로 보입니다.", a: "지층" (정답 앞뒤에 공백을 두어 조사를 분리함)
-      - **성공 예시:** q: "{{지구}} 가 {{자전}} 을 하여 낮과 밤이 생깁니다.", a: "지구, 자전"
-      - **주의:** 'BLANK'는 질문 문장 내의 공백을 기준으로 인덱스를 매기므로, 빈칸으로 표시하고 싶은 단어는 반드시 앞뒤가 공백으로 분리되어야 합니다. (예: "{{단어}}" 앞뒤에 공백 유지)
+4. OX: 질문('q')은 사실 여부를 판별할 수 있는 평서문으로 작성하세요. 정답('a')은 반드시 대문자 알파벳 "O" 또는 "X" 중 하나만 적으세요 (절대 1, 2, 맞다, 틀리다 등을 사용하지 마세요). type은 반드시 "OX"여야 하며 MULTIPLE_CHOICE로 착각하여 출력하지 마세요.
+5. BLANK: 
+  **[출제 기준 - 반드시 지킬 것]** 
+  - 질문('q')에는 정답을 포함한 **완성된 전체 문장**을 적으세요. 단, 빈칸으로 뚫고 싶은 핵심 단어는 반드시 **{{단어}}** 형식으로 중괄호 두 개로 감싸서 표시해야 합니다.
+  - **띄어쓰기 및 조사 분리 규칙 (반드시 준수):** 한국어 문장에서 정답 단어에 조사가 붙어 있다면(예: '지구가', '지형은'), 반드시 **정답 단어와 조사를 공백으로 분리**하고 단어에만 괄호를 씌우세요 (예: '{{지구}} 가', '{{지형}} 은'). 
+  - **정답('a')**은 반드시 조사를 제외한 **순수한 핵심 단어**만 기술하세요. 복수 빈칸인 경우 콤마(,)로 구분하세요.
+  - **성공 예시:** q: "오랜 시간 쌓인 {{지층}} 은 여러 겹으로 보입니다.", a: "지층"
+  - **성공 예시:** q: "{{지구}} 가 {{자전}} 을 하여 낮과 밤이 생깁니다.", a: "지구, 자전"
 
 [수식 및 JSON 규칙]
 - 분수는 \\frac{분자}{분모}, 곱하기는 \\times, 나누기는 \\div를 사용하세요.
@@ -177,7 +175,57 @@ ${text || "첨부 파일 참조"}`;
     }
 
     const questions = JSON.parse(jsonMatch[0]);
-    return NextResponse.json(questions);
+
+    // Post-process the generated questions to ensure robust formatting
+    const processedQuestions = questions.map((q: any) => {
+      // 1. BLANK: Parse {{ }} out of the question and map to blanks array
+      if (q.type === 'BLANK' && q.q) {
+        if (q.q.includes('{{') && q.q.includes('}}')) {
+          const words = q.q.split(/\\s+/);
+          const newBlanks: number[] = [];
+          const cleanWords = words.map((w: string, idx: number) => {
+            if (w.includes('{{') && w.includes('}}')) {
+              newBlanks.push(idx);
+              return w.replace(/[{}]/g, '');
+            }
+            return w;
+          });
+          q.q = cleanWords.join(' ');
+          // Always trust our parsed indices if we found brackets
+          if (newBlanks.length > 0) {
+            q.blanks = newBlanks;
+          }
+        }
+        // Fallback: if AI provides blanks but no brackets, we accept it as is
+      }
+      
+      // 2. OX: Enforce correct format
+      if (q.type === 'OX') {
+        q.options = ["O", "X"]; // OX type UI does not need options, but ensure consistency
+        if (typeof q.a === 'boolean') {
+          q.a = q.a ? "O" : "X";
+        } else if (typeof q.a === 'string') {
+          const upperA = q.a.toUpperCase().trim();
+          if (["1", "TRUE", "맞다", "O", "ㅇ"].includes(upperA)) q.a = "O";
+          else if (["2", "FALSE", "틀리다", "X", "ㄴ"].includes(upperA)) q.a = "X";
+          else q.a = upperA;
+        }
+      }
+
+      // Fix AI mistakenly outputting MULTIPLE_CHOICE for OX
+      if (q.type === 'MULTIPLE_CHOICE' && q.options && q.options.length === 2) {
+        const isOX = q.options.every((opt: string) => ["O", "X", "맞다", "틀리다", "True", "False"].includes(opt));
+        if (isOX) {
+          q.type = 'OX';
+          q.options = ["O", "X"];
+          q.a = q.a === q.options[0] || q.a === "O" || q.a === "맞다" || q.a === "True" ? "O" : "X";
+        }
+      }
+
+      return q;
+    });
+
+    return NextResponse.json(processedQuestions);
 
   } catch (error: any) {
     console.error("Gemini Error:", error);
