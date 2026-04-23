@@ -179,7 +179,7 @@ function StudentPlayContent() {
     if (!game?.id || !name) return;
 
     const channel = supabase
-      .channel(`game_realtime:${game.id}`)
+      .channel(`game_events:${game.id}`)
       .on('broadcast', { event: 'KICK_PLAYER' }, (payload: any) => {
         if (payload.payload.nickname === name) {
           console.log("Kicked via broadcast!");
@@ -220,11 +220,14 @@ function StudentPlayContent() {
 
   const sendEmoji = (emoji: string) => {
     if (channelRef.current) {
+      console.log("[Student] Sending EMOJI_REACTION:", emoji);
       channelRef.current.send({
         type: 'broadcast',
         event: 'EMOJI_REACTION',
         payload: { emoji, from: name }
       });
+    } else {
+      console.warn("[Student] Cannot send emoji: channel not ready");
     }
   };
 
@@ -353,7 +356,7 @@ function StudentPlayContent() {
   if (wasKicked) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-red-50 p-6 text-center">
-        <h2 className="text-3xl font-jua text-red-600 mb-4">방에서 강퇴되었습니다!</h2>
+        <h2 className="text-3xl font-jua text-red-600 mb-4 italic">선생님에 의해 강퇴당했습니다.</h2>
         <p className="text-gray-500 mb-8 font-bold text-lg">새로운 이름으로 다시 입장할 수 있습니다.</p>
         <Button size="xl" onClick={() => router.push("/join")}>다시 입장하기</Button>
       </div>

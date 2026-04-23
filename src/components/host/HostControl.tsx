@@ -571,7 +571,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     const { error } = await supabase.from("games").update({ current_hint_stage: stage }).eq("id", game.id);
     if (!error) {
       // Broadcast hint reveal for immediate student-side reaction
-      const channel = supabase.channel(`game_realtime:${game.id}`);
+      const channel = supabase.channel(`game_events:${game.id}`);
       channel.subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           await channel.send({
@@ -600,8 +600,9 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   useEffect(() => {
     if (!game.id) return;
 
-    const channel = supabase.channel(`game_realtime:${game.id}`)
+    const channel = supabase.channel(`game_events:${game.id}`)
       .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
+        console.log("[Host Game] EMOJI_REACTION received:", payload.emoji);
         const newEmoji = { 
           id: Date.now() + Math.random(), 
           emoji: payload.emoji, 
@@ -1145,9 +1146,9 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                     if (e === 'swap') return { icon: '🔄', text: '교체 대기', desc: '다른 친구 중 한 명과 내 점수를 바꿀 수 있는 기회입니다!' };
                     if (e === 'swap_done') return { icon: '✅', text: '교체 완료', desc: '점수 바꾸기를 완료한 상태입니다.' };
                     if (e === 'strike') return { icon: '⚡', text: '콤보+', desc: '다음 문제 정답 시 추가 보너스를 획득할 수 있습니다!' };
-                    if (e === 'shield') return { icon: '🛡️', text: '방어', desc: '상대방의 점수 삭감 공격을 1회 방어할 수 있는 방어막을 얻었습니다!' };
-                    if (e === 'cut') return { icon: '✂️', text: '삭감', desc: '가장 높은 점수의 학생의 점수를 일부 삭감시켰습니다!' };
-                    if (e === 'donate') return { icon: '📤', text: '기부', desc: '내 정답 점수의 일부를 다른 모든 친구들에게 나누어 주었습니다!' };
+                    if (e === 'shield') return { icon: '🛡️', text: '방어', desc: '상대방의 점수 바꾸기나 나의 점수 삭감/기부를 자동으로 1회 방어합니다!' };
+                    if (e === 'cut') return { icon: '✂️', text: '삭감', desc: '내 점수에서 문제 배점만큼 깎입니다.' };
+                    if (e === 'donate') return { icon: '📤', text: '기부', desc: '내 점수 중 최대 50점을 다른 정답자들에게 나눠줍니다.' };
                     if (e.startsWith('gift')) return { icon: '🎁', text: '선물', desc: '다른 친구로부터 깜짝 점수 선물을 받았습니다!' };
                     if (e.endsWith('_blocked')) return { icon: '🛡️', text: '방어 성공', desc: '방어막 아이템을 사용하여 상대방의 공격을 성공적으로 막아냈습니다!' };
                     return null;
@@ -1543,11 +1544,11 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       )}
 
       {/* Floating Emojis Container */}
-      <div className="fixed inset-0 pointer-events-none z-[200] overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
         {floatingEmojis.map((emoji: any) => (
           <div
             key={emoji.id}
-            className="absolute bottom-0 text-5xl animate-float-up opacity-0"
+            className="float-up-reaction"
             style={{ left: `${emoji.left}%` }}
           >
             {emoji.emoji}

@@ -396,7 +396,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
     if (opts.double !== false) luckyItems.push({ icon: "✨", label: "2배 찬스", desc: `이번 문제 점수를 2배로 받습니다. (확률: ${probs.double}%)` });
     if (opts.swap !== false) luckyItems.push({ icon: "🔄", label: "점수 바꾸기", desc: `나보다 점수 높은 사람과 내 점수를 바꿉니다. (확률: ${probs.swap}%)` });
     if (opts.strike !== false) luckyItems.push({ icon: "⚡", label: "스트라이크", desc: `다음 문제를 맞히면 점수가 2배가 됩니다. (확률: ${probs.strike}%)` });
-    if (opts.shield !== false) luckyItems.push({ icon: "🛡️", label: "방어막", desc: `상대방의 점수 삭감/기부 공격을 자동으로 1회 방어합니다. (확률: ${probs.shield}%)` });
+    if (opts.shield !== false) luckyItems.push({ icon: "🛡️", label: "방어막", desc: `상대방의 점수 바꾸기나 나의 점수 삭감/기부를 자동으로 1회 방어합니다. (확률: ${probs.shield}%)` });
 
     if (luckyItems.length > 0) {
       sections.push({ title: "🍀 행운의 아이템 (정답 시)", items: luckyItems });

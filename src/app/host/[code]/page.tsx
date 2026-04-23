@@ -79,7 +79,7 @@ export default function HostPage() {
       if (error) throw error;
 
       // 3. Broadcast kick event so the student knows immediately
-      const channel = supabase.channel(`game_realtime:${game.id}`);
+      const channel = supabase.channel(`game_events:${game.id}`);
       channel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           await channel.send({
@@ -146,8 +146,9 @@ export default function HostPage() {
   // Unified Event Listener
   useEffect(() => {
     if (!game?.id) return;
-    const channel = supabase.channel(`game_realtime:${game.id}`)
+    const channel = supabase.channel(`game_events:${game.id}`)
       .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
+        console.log("[Host Lobby] EMOJI_REACTION received:", payload.emoji);
         const newEmoji = { 
           id: Date.now() + Math.random(), 
           emoji: payload.emoji, 
