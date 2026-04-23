@@ -39,7 +39,7 @@ export default function Dashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ totalStudents: 0, avgParticipation: 0, totalQuestions: 0 });
+  const [stats, setStats] = useState({ totalStudents: 0, totalGames: 0, totalQuestions: 0, totalQuizzesGlobal: 0 });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedQuiz, setSelectedQuiz] = useState<any | null>(null);
   const { showAlert, showConfirm, showPrompt } = useDialog();
@@ -141,40 +141,44 @@ export default function Dashboard() {
   const fetchQuizzes = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // 1. Fetch user's quizzes for the list
+      const { data: myQuizzes, error: quizError } = await supabase
         .from("quizzes")
         .select("*")
         .eq("user_id", user?.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setQuizzes(data || []);
+      if (quizError) throw quizError;
+      setQuizzes(myQuizzes || []);
+
+      // 2. Fetch Global Statistics
+      // Using separate queries for cleaner global counting
+      const [
+        { count: globalQuizCount },
+        { data: allQuizzesQuestions },
+        { count: globalGameCount },
+        { count: globalStudentCount }
+      ] = await Promise.all([
+        supabase.from("quizzes").select("*", { count: "exact", head: true }),
+        supabase.from("quizzes").select("questions"),
+        supabase.from("games").select("*", { count: "exact", head: true }),
+        supabase.from("players").select("*", { count: "exact", head: true })
+      ]);
 
       let totalQuestions = 0;
-      data?.forEach((q: any) => { totalQuestions += (q.questions?.length || 0); });
+      allQuizzesQuestions?.forEach((q: any) => { 
+        totalQuestions += (q.questions?.length || 0); 
+      });
 
-      const quizIds = (data || []).map((q: any) => q.id);
-      if (quizIds.length > 0) {
-        const { data: games } = await supabase.from("games").select("id").in("quiz_id", quizIds);
-        const gameIds = games?.map((g: any) => g.id) || [];
-        
-        let totalStudents = 0;
-        let avgParticipation = 0;
-
-        if (gameIds.length > 0) {
-          const { count: students } = await supabase.from("players").select("*", { count: "exact", head: true }).in("game_id", gameIds);
-          const { count: answers } = await supabase.from("answers").select("*", { count: "exact", head: true }).in("game_id", gameIds);
-          totalStudents = students || 0;
-          const totalExpectedAnswers = totalStudents * (totalQuestions || 1);
-          avgParticipation = totalExpectedAnswers > 0 ? Math.min(100, Math.round(((answers || 0) / totalExpectedAnswers) * 100)) : 0;
-        }
-        setStats({ totalStudents, avgParticipation, totalQuestions });
-      } else {
-        setStats({ totalStudents: 0, avgParticipation: 0, totalQuestions });
-      }
+      setStats({ 
+        totalStudents: globalStudentCount || 0, 
+        totalGames: globalGameCount || 0, 
+        totalQuestions: totalQuestions || 0,
+        totalQuizzesGlobal: globalQuizCount || 0
+      });
 
     } catch (err: any) {
-      console.error("퀴즈 목록 가져오기 실패:", err);
+      console.error("데이터 가져오기 실패:", err);
     } finally {
       setLoading(false);
     }
@@ -269,10 +273,10 @@ export default function Dashboard() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-           <StatsCard label="전체 퀴즈" value={quizzes.length.toString()} icon={<BookOpen />} color="indigo" />
-           <StatsCard label="참여 학생" value={`${stats.totalStudents}명`} icon={<Users />} color="emerald" />
-           <StatsCard label="평균 참여율" value={`${stats.avgParticipation}%`} icon={<Zap />} color="amber" />
+           <StatsCard label="전체 퀴즈" value={`${stats.totalQuizzesGlobal}개`} icon={<BookOpen />} color="indigo" />
            <StatsCard label="전체 문항 수" value={`${stats.totalQuestions}개`} icon={<Sparkles />} color="violet" />
+           <StatsCard label="퀴즈 진행" value={`${stats.totalGames}회`} icon={<Play />} color="amber" />
+           <StatsCard label="참여 학생" value={`${stats.totalStudents}명`} icon={<Users />} color="emerald" />
         </div>
 
         {/* Dashboard Header */}
