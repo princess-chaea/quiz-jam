@@ -545,7 +545,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           </div>
 
           <div className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar px-2">
-            {hintStage > 0 && (
+            {hintStage > 0 && currentQuestion.type !== 'BLANK' && (
               <div className="mb-4 flex flex-col items-center gap-1">
                  <div className="flex flex-wrap justify-center gap-1.5 animate-in fade-in zoom-in duration-500">
                     {currentQuestion.a.split('').map((char: string, idx: number) => {
@@ -585,9 +585,23 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             <div className={cn("font-black text-slate-800 break-keep leading-tight text-center py-1 md:py-2", getQuestionFontSize(currentQuestion.q))}>
               {currentQuestion.type === "BLANK" ? (
                   <div className="flex flex-col items-center gap-2">
-                    <div className="text-indigo-600 font-black text-sm md:text-base bg-indigo-50/50 px-4 py-1.5 rounded-full border border-indigo-100 animate-pulse">
-                       💡 빈칸에 알맞은 단어를 입력해 주세요!
-                    </div>
+                    {hintStage >= 2 ? (
+                      <div className="flex flex-col items-center animate-in zoom-in duration-500">
+                        <div className="flex items-end gap-1 mb-1">
+                           <span className="text-[10px] font-black text-indigo-400 mb-0.5">
+                             {/[a-zA-Z]/.test(currentQuestion.a) ? "영어" : "한글"}
+                           </span>
+                           <span className="text-lg md:text-xl font-black text-indigo-600 leading-none">
+                             {/[a-zA-Z]/.test(currentQuestion.a) ? "첫글자 힌트 공개" : "초성 힌트 공개"}
+                           </span>
+                        </div>
+                        <div className="h-1 w-8 bg-indigo-200 rounded-full" />
+                      </div>
+                    ) : (
+                      <div className="text-indigo-600 font-black text-sm md:text-base bg-indigo-50/50 px-4 py-1.5 rounded-full border border-indigo-100 animate-pulse">
+                         💡 빈칸에 알맞은 단어를 입력해 주세요!
+                      </div>
+                    )}
                   </div>
               ) : (
                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(currentQuestion.q)}</ReactMarkdown>
@@ -632,7 +646,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                             const blanks = currentQuestion.blanks || [];
                             const bIdx = blanks.indexOf(wordIdx);
                             if (bIdx !== -1) {
-                              const choseongHint = (hintStage >= 1) ? getChoseong(word) : undefined;
+                              const choseongHint = (hintStage >= 2) ? getChoseong(word) : undefined;
                               return (
                                 <SegmentedInput key={wordIdx} value={blankAnswers[wordIdx] || ""} length={word.length} hint={choseongHint} onChange={(val) => handleBlankChange(wordIdx, val, blanks)} onEnter={() => handleSubmit()} autoFocus={bIdx === 0} firstRef={bIdx === 0 ? firstBlankRef : undefined} />
                               );

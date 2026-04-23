@@ -54,11 +54,11 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   const channelRef = useRef<any>(null);
 
   // 2. Logic Functions
-  const handleFinishRound = async () => {
+  const handleFinishRound = async (force = false) => {
     if (calculating) return;
 
-    // If prematurely ending, ask for confirmation
-    if (timeLeft > 0 && answersRef.current.length < playersRef.current.length) {
+    // Skip confirmation if forced (timer up) or all submitted
+    if (!force && timeLeft > 0 && answersRef.current.length < playersRef.current.length) {
       const remaining = playersRef.current.length - answersRef.current.length;
       const confirmed = await showConfirm({
         message: "아직 제출하지 않은 학생이 있습니다.",
@@ -874,7 +874,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         clearInterval(timer);
         if (finishRoundRef.current && gameRef.current.status === 'PLAYING') {
           console.log("[Timer] Time up, auto-finishing round...");
-          finishRoundRef.current(); 
+          finishRoundRef.current(true); 
         }
       }
     }, 1000);
