@@ -745,16 +745,26 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                 });
               } else {
                 console.log(`[Host] Executing score swap: ${swapper.score} <-> ${target.score}`);
-                // Perform updates sequentially
-                const { error: e1 } = await supabase.from('players').update({ score: target.score }).eq('id', swapperId);
-                const { error: e2 } = await supabase.from('players').update({ score: swapper.score }).eq('id', targetId);
+                // Perform updates in parallel for faster response
+                const [e1, e2] = await Promise.all([
+                  supabase.from('players').update({ score: target.score }).eq('id', swapperId),
+                  supabase.from('players').update({ score: swapper.score }).eq('id', targetId)
+                ]);
                 
-                if (e1 || e2) console.error("[Host] Score update error:", e1, e2);
+                if (e1.error || e2.error) console.error("[Host] Score update error:", e1.error, e2.error);
 
                 await channel.send({
                   type: 'broadcast',
                   event: 'SWAP_COMPLETED',
-                  payload: { swapperId, swapperName: swapper.nickname, targetId, targetName: target.nickname, swapperScore: target.score, targetScore: swapper.score, skipped: false }
+                  payload: { 
+                    swapperId, 
+                    swapperName: swapper.nickname, 
+                    targetId, 
+                    targetName: target.nickname, 
+                    swapperScore: target.score, 
+                    targetScore: swapper.score, 
+                    skipped: false 
+                  }
                 });
               }
             } else {

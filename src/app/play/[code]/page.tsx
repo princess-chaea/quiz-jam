@@ -200,7 +200,6 @@ function StudentPlayContent() {
       })
       .on('broadcast', { event: 'ROUND_RESULTS_READY' }, (payload: any) => {
         console.log("Broadcast: ROUND_RESULTS_READY", payload);
-        // Use ref to check current q_index without re-subscribing
         if (payload.payload.q_index === qIndexRef.current) {
           const resultsArray = payload.payload.results;
           if (resultsArray) {
@@ -215,13 +214,12 @@ function StudentPlayContent() {
         }
       })
       .subscribe((status) => {
-        console.log(`[Student] Channel status: ${status}`);
+        if (status === 'SUBSCRIBED') {
+          channelRef.current = channel;
+        }
       });
 
-    channelRef.current = channel;
-
     return () => {
-      console.log("[Student] Cleaning up channel...");
       channel.unsubscribe();
       channelRef.current = null;
     };
@@ -230,17 +228,13 @@ function StudentPlayContent() {
 
   const sendEmoji = (emoji: string) => {
     if (channelRef.current) {
-      console.log("[Student] Attempting to send emoji:", emoji);
       channelRef.current.send({
         type: 'broadcast',
         event: 'EMOJI_REACTION',
         payload: { emoji, from: name }
-      }).then((res: any) => {
-        if (res !== 'ok') console.warn("[Student] Emoji send result:", res);
       });
     } else {
-      console.warn("[Student] Cannot send emoji: channelRef is null. Attempting to reconnect...");
-      refresh();
+      console.warn("[Student] Cannot send emoji: channel not ready");
     }
   };
 

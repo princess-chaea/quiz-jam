@@ -477,7 +477,7 @@ export function MathInput({
           }}
           tabIndex={0}
           onPointerDown={(e: any) => {
-            // Force focus on pointer down to help mobile browsers trigger the keyboard
+            // Force focus to trigger OS keyboard
             e.currentTarget.focus();
           }}
           className={cn(
@@ -493,6 +493,12 @@ export function MathInput({
             display: 'block'
           }}
           multiline={multiline ? "true" : "false"}
+          math-virtual-keyboard-policy="manual"
+          virtual-keyboard-toggle="hidden"
+          menu-icon="none"
+          keypress-sound="none"
+          plonk-sound="none"
+          placeholder={placeholder}
           inputMode="text"
           autoCapitalize="off"
           autoCorrect="off"

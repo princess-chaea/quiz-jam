@@ -28,6 +28,16 @@ export function useGame(quizCode: string) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const gameRef = useRef<Game | null>(null);
+  const playersRef = useRef<Player[]>([]);
+
+  useEffect(() => {
+    gameRef.current = game;
+  }, [game]);
+
+  useEffect(() => {
+    playersRef.current = players;
+  }, [players]);
 
   useEffect(() => {
     if (!quizCode) return;
@@ -120,8 +130,22 @@ export function useGame(quizCode: string) {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'players', filter: `game_id=eq.${gameId}` },
-          () => {
-            console.log("[useGame] Players change detected, fetching...");
+          (payload) => {
+            console.log("[useGame] Players change detected:", payload.eventType);
+            
+            if (payload.eventType === 'UPDATE') {
+              setPlayers(prev => prev.map(p => p.id === payload.new.id ? { ...p, ...payload.new } : p));
+            } else if (payload.eventType === 'INSERT') {
+              setPlayers(prev => {
+                const exists = prev.some(p => p.id === payload.new.id);
+                if (exists) return prev;
+                return [...prev, payload.new as Player];
+              });
+            } else if (payload.eventType === 'DELETE') {
+              setPlayers(prev => prev.filter(p => p.id === payload.old.id));
+            }
+            
+            // Still throttle a full fetch occasionally to ensure order and consistency
             fetchPlayersThrottled(gameId);
           }
         )
@@ -133,7 +157,6 @@ export function useGame(quizCode: string) {
         if (g) {
           setGame(prev => {
             if (!prev) return g;
-            // Only update if something changed to avoid unnecessary re-renders
             if (prev.status !== g.status || 
                 prev.current_q_index !== g.current_q_index || 
                 prev.current_hint_stage !== g.current_hint_stage ||
@@ -144,7 +167,7 @@ export function useGame(quizCode: string) {
           });
         }
         fetchPlayersThrottled(gameId);
-      }, 3000); // Slightly more aggressive polling during active play
+      }, 5000); // Relaxed polling as we have better incremental updates
     };
 
     const fetchPlayersThrottled = (gameId: string) => {
@@ -154,14 +177,14 @@ export function useGame(quizCode: string) {
           .from('players')
           .select('*')
           .eq('game_id', gameId)
-          .order(game?.status === 'WAITING' ? 'nickname' : 'score', { ascending: game?.status === 'WAITING' })
+          .order(gameRef.current?.status === 'WAITING' ? 'nickname' : 'score', { ascending: gameRef.current?.status === 'WAITING' })
           .order('created_at', { ascending: true });
         
         if (!error && data) {
           setPlayers(data);
         }
         fetchTimeout = null;
-      }, 300); // 300ms debounce
+      }, 100); // Reduced from 300ms to 100ms for faster sync
     };
 
     fetchInitialData();
