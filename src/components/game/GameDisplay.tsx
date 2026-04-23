@@ -158,8 +158,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         if (String(payload.playerId) === String(player.id)) {
           setIsMyTurnToSwap(true);
           setSwapResultText(null);
-          // Only auto-open if not already open to avoid disruption
-          setShowScoreTab(true);
+          // Auto-open removed for better mobile UX as modal already contains info
+          // setShowScoreTab(true);
         } else {
           setIsMyTurnToSwap(false);
         }
@@ -247,7 +247,8 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       if (!isMyTurnToSwap && !isSwapExecuting) {
         console.log("[Game] State-based swap trigger activated for:", player.nickname);
         setIsMyTurnToSwap(true);
-        setShowScoreTab(true);
+        // Auto-open removed for better mobile UX
+        // setShowScoreTab(true);
       }
     }
   }, [game?.options?.swapState?.currentSwapperId, game?.status, player.id, isMyTurnToSwap, isSwapExecuting, player.nickname]);
@@ -480,43 +481,46 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           )}
 
           <div className={cn(
-            "w-full bg-white rounded-[4rem] border-[16px] shadow-2xl overflow-hidden flex flex-col items-center p-8 transition-all duration-500 scale-105",
+            "w-full bg-white rounded-[3rem] md:rounded-[4rem] border-[8px] md:border-[16px] shadow-2xl overflow-hidden flex flex-col items-center p-4 md:p-8 transition-all duration-500 scale-[0.98] md:scale-105",
             result.is_correct ? "border-emerald-500" : "border-red-500"
           )}>
-            <div className="text-xl md:text-2xl font-black text-slate-800 mb-4">{result.is_correct ? "정답입니다!" : "아쉬워요!"}</div>
-            <div className="mb-6 flex flex-col items-center gap-4">
-              {result.is_correct ? <div className="p-4 bg-emerald-50 rounded-full"><Check className="text-emerald-500" size={80} strokeWidth={8} /></div> : <div className="p-4 bg-red-50 rounded-full"><X className="text-red-500" size={100} strokeWidth={6} /></div>}
+            <div className="text-lg md:text-2xl font-black text-slate-800 mb-2 md:mb-4">{result.is_correct ? "정답입니다!" : "아쉬워요!"}</div>
+            <div className="mb-4 md:mb-6 flex flex-col items-center gap-2 md:gap-4">
+              {result.is_correct ? <div className="p-3 md:p-4 bg-emerald-50 rounded-full"><Check className="text-emerald-500" size={60} strokeWidth={8} className="md:w-20 md:h-20" /></div> : <div className="p-3 md:p-4 bg-red-50 rounded-full"><X className="text-red-500" size={80} strokeWidth={6} className="md:w-24 md:h-24" /></div>}
               {eventInfos.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-2">
+                <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
                   {eventInfos.map((info: any, idx: number) => (
-                    <div key={idx} className={cn("flex items-center gap-2 px-4 py-2 rounded-2xl text-white font-black animate-bounce shadow-lg", info?.color)}>
-                      <span className="text-xl">{info?.icon}</span>
-                      <span className="text-sm">{info?.text}</span>
+                    <div key={idx} className={cn("flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl text-white font-black animate-bounce shadow-md md:shadow-lg", info?.color)}>
+                      <span className="text-lg md:text-xl">{info?.icon}</span>
+                      <span className="text-[10px] md:text-sm">{info?.text}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-            <div className="bg-slate-50 rounded-[3rem] p-8 w-full flex flex-col items-center">
-              <div className={cn("text-6xl md:text-8xl font-black mb-2", result.is_correct ? "text-indigo-600" : "text-red-500")}>
-                {result.points_added || result.points_awarded || 0}점
+            <div className="bg-slate-50 rounded-[2.5rem] md:rounded-[3rem] p-4 md:p-8 w-full flex flex-col items-center">
+              <div className={cn("font-black mb-1 md:mb-2 leading-none", result.is_correct ? "text-indigo-600" : "text-red-500")}>
+                <span className="text-4xl md:text-8xl">{result.points_added || result.points_awarded || 0}</span>
+                <span className="text-xl md:text-4xl ml-1 md:ml-2">점</span>
               </div>
-                <div className="bg-white p-3 rounded-2xl border text-center relative group">
-                  <div className="text-[10px] text-slate-400 font-black uppercase">내가 쓴 답</div>
-                  <div className="font-bold truncate" title={answer}>
+              <div className="grid grid-cols-2 gap-2 w-full mt-2 md:mt-4">
+                <div className="bg-white p-2 md:p-3 rounded-xl md:rounded-2xl border text-center relative group">
+                  <div className="text-[8px] md:text-[10px] text-slate-400 font-black uppercase">내가 쓴 답</div>
+                  <div className="text-xs md:text-base font-bold truncate" title={answer}>
                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
                        {processMathText(answer || "(없음)")}
                     </ReactMarkdown>
                   </div>
                 </div>
-                <div className="bg-white p-3 rounded-2xl border border-indigo-100 text-center relative group">
-                  <div className="text-[10px] text-indigo-400 font-black uppercase">정답</div>
-                  <div className="font-bold text-indigo-600 truncate" title={currentQuestion?.a}>
+                <div className="bg-white p-2 md:p-3 rounded-xl md:rounded-2xl border border-indigo-100 text-center relative group">
+                  <div className="text-[8px] md:text-[10px] text-indigo-400 font-black uppercase">정답</div>
+                  <div className="text-xs md:text-base font-bold text-indigo-600 truncate" title={currentQuestion?.a}>
                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
                        {processMathText(currentQuestion?.a)}
                     </ReactMarkdown>
                   </div>
                 </div>
+              </div>
             </div>
           </div>
         </div>
@@ -665,22 +669,22 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
         ref={sidebarRef}
         className={cn(
           "fixed right-0 top-1/2 -translate-y-1/2 z-[200] transition-all duration-500 ease-out flex items-center group",
-          showScoreTab ? "translate-x-0" : "translate-x-[calc(100%-48px)]"
+          showScoreTab ? "translate-x-0" : "translate-x-[calc(100%-40px)] md:translate-x-[calc(100%-48px)]"
         )}
         onClick={(e) => e.stopPropagation()}
       >
         <button 
           onClick={() => { setShowScoreTab(!showScoreTab); setShowHelpTab(false); }} 
           className={cn(
-            "w-12 h-28 flex flex-col items-center justify-center gap-2 rounded-l-3xl shadow-[-10px_0_30px_rgba(0,0,0,0.1)] transition-all",
+            "w-10 md:w-12 h-24 md:h-28 flex flex-col items-center justify-center gap-1 md:gap-2 rounded-l-2xl md:rounded-l-3xl shadow-[-10px_0_30px_rgba(0,0,0,0.1)] transition-all",
             showScoreTab ? "bg-indigo-600 text-white" : "bg-white text-indigo-600 hover:bg-indigo-50 border-y-2 border-l-2 border-indigo-100"
           )}
         >
-          <Trophy size={20} className={cn(showScoreTab && "animate-bounce")} />
-          <span className="text-[10px] font-black [writing-mode:vertical-lr] tracking-tighter">RANKING</span>
-          {showScoreTab ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          <Trophy size={18} className={cn("md:w-5 md:h-5", showScoreTab && "animate-bounce")} />
+          <span className="text-[8px] md:text-[10px] font-black [writing-mode:vertical-lr] tracking-tighter">RANKING</span>
+          {showScoreTab ? <ChevronRight size={14} className="md:w-4 md:h-4" /> : <ChevronLeft size={14} className="md:w-4 md:h-4" />}
         </button>
-        <div className="w-72 md:w-80 h-[70vh] bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.15)] border-l-4 border-indigo-500/10 p-5 flex flex-col">
+        <div className="w-[85vw] max-w-xs md:w-80 h-[70vh] bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.15)] border-l-4 border-indigo-500/10 p-4 md:p-5 flex flex-col">
           <div className="flex items-center justify-between border-b-2 border-slate-50 pb-3 mb-4">
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-indigo-100 rounded-lg"><Trophy size={16} className="text-indigo-600" /></div>

@@ -63,7 +63,7 @@ export function PlayerBar({ players, currentNickname, submissions, className, hi
           <div 
             key={player.id}
             className={cn(
-              "flex items-center gap-2 px-3 py-1.5 rounded-2xl border transition-all shrink-0 min-w-[120px]",
+              "flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-xl md:rounded-2xl border transition-all shrink-0 min-w-[100px] md:min-w-[120px]",
               isMe 
                 ? (player.team === 'RED' ? "bg-red-600 border-red-700 ring-4 ring-red-400/50 shadow-lg shadow-red-100 text-white" :
                    player.team === 'BLUE' ? "bg-blue-600 border-blue-700 ring-4 ring-blue-400/50 shadow-lg shadow-blue-100 text-white" :
@@ -79,7 +79,7 @@ export function PlayerBar({ players, currentNickname, submissions, className, hi
           >
             <div className="relative">
               <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs relative overflow-hidden transition-colors border",
+                "w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center font-black text-[10px] md:text-xs relative overflow-hidden transition-colors border",
                 player.team === 'RED' ? (isMe ? 'bg-red-500 text-white border-indigo-500 border-2' : 'bg-red-500 text-white border-red-600') :
                 player.team === 'BLUE' ? (isMe ? 'bg-blue-500 text-white border-indigo-300 border-2' : 'bg-blue-500 text-white border-blue-600') :
                 player.team === 'GREEN' ? (isMe ? 'bg-green-500 text-white border-indigo-500 border-2' : 'bg-green-500 text-white border-green-600') :
@@ -107,24 +107,24 @@ export function PlayerBar({ players, currentNickname, submissions, className, hi
               )}
             </div>
 
-            <div className="flex flex-col min-w-0 pr-1 gap-1">
+            <div className="flex flex-col min-w-0 pr-1 gap-0.5">
               <div className={cn(
-                "px-2 py-0.5 rounded-lg text-[10px] font-black truncate max-w-[90px] leading-tight",
+                "px-2 py-0.5 rounded-lg text-[9px] md:text-[10px] font-black truncate max-w-[80px] md:max-w-[90px] leading-tight",
                 isMe ? "bg-white text-indigo-600 shadow-sm" : "bg-white/90 text-indigo-900 border border-white/50 shadow-sm"
               )} title={player.nickname}>
                 {player.nickname}
               </div>
-              <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="flex items-center gap-1 mt-0.5">
                 <span className={cn(
-                  "text-[10px] font-black px-1.5 py-0.5 rounded-lg",
+                  "text-[9px] md:text-[10px] font-black px-1 md:px-1.5 py-0.5 rounded-lg",
                   isMe ? "bg-white/20 text-white border border-white/30" : "bg-emerald-50 text-emerald-600 border border-emerald-100"
                 )}>
                   {player.score.toLocaleString()}
                 </span>
                 {!hideBuffs && (
-                  <div className="flex gap-0.5 ml-1">
-                    {isMe && hasStrike && <span className="text-xs animate-pulse">⚡</span>}
-                    {isMe && hasShield && <span className="text-xs">🛡️</span>}
+                  <div className="flex gap-0.5 ml-0.5">
+                    {isMe && hasStrike && <span className="text-[10px] animate-pulse">⚡</span>}
+                    {isMe && hasShield && <span className="text-[10px]">🛡️</span>}
                   </div>
                 )}
               </div>

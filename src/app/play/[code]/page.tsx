@@ -33,6 +33,18 @@ function StudentPlayContent() {
   const [changingAvatar, setChangingAvatar] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
 
+  // Refs to avoid stale closures in realtime listeners
+  const qIndexRef = useRef(game?.current_q_index);
+  const playersRef = useRef(players);
+
+  useEffect(() => {
+    qIndexRef.current = game?.current_q_index;
+  }, [game?.current_q_index]);
+
+  useEffect(() => {
+    playersRef.current = players;
+  }, [players]);
+
   const me = players.find((p: any) => p.nickname === name);
 
   const handleAvatarChange = async () => {
@@ -188,11 +200,11 @@ function StudentPlayContent() {
       })
       .on('broadcast', { event: 'ROUND_RESULTS_READY' }, (payload: any) => {
         console.log("Broadcast: ROUND_RESULTS_READY", payload);
-        if (payload.payload.q_index === game.current_q_index) {
-          // Check if we already have the result logic elsewhere
+        // Use ref to check current q_index without re-subscribing
+        if (payload.payload.q_index === qIndexRef.current) {
           const resultsArray = payload.payload.results;
           if (resultsArray) {
-            const currentMe = players.find(p => p.nickname === name);
+            const currentMe = playersRef.current.find(p => p.nickname === name);
             const myResult = resultsArray.find((r: any) => r.player_id === currentMe?.id);
             if (myResult) {
                console.log("Applying rich broadcasted result directly:", myResult);
@@ -200,9 +212,6 @@ function StudentPlayContent() {
                return; 
             }
           }
-          // We can't easily call fetchResult here if it's defined in another scope, 
-          // so we'll just set a flag or rely on the other effect to fetch if needed.
-          // Actually, we'll merge the result fetching logic here too.
         }
       })
       .subscribe((status) => {
@@ -215,7 +224,7 @@ function StudentPlayContent() {
       channel.unsubscribe();
       channelRef.current = null;
     };
-  }, [game?.id, game?.current_q_index, name]); // Removed status to avoid frequent reconnects, but q_index is needed for result ready check
+  }, [game?.id, name]); // Stable connection: Only reconnect if game ID or name changes
 
 
   const sendEmoji = (emoji: string) => {
