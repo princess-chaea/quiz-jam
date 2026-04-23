@@ -27,17 +27,6 @@ interface GameDisplayProps {
   onRetract?: () => void;
 }
 
-function getChoseong(str: string) {
-  const choseong = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
-  let result = "";
-  for (let i = 0; i < str.length; i++) {
-    const code = str.charCodeAt(i) - 44032;
-    if (code > -1 && code < 11172) result += choseong[Math.floor(code / 588)];
-    else result += str.charAt(i);
-  }
-  return result;
-}
-
 const processMathText = (text: string) => {
   if (!text) return "";
   let processed = text.replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$');
@@ -113,6 +102,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       } else {
         setSwapResultText(`점수 바꾸기를 하지 않고 넘어갔습니다.`);
       }
+      setIsSwapExecuting(false);
     } catch (err) {
       console.error("Swap execution failed:", err);
       setIsSwapExecuting(false);
@@ -161,7 +151,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   useEffect(() => {
     if (!game?.id || !player.id) return;
 
-    const channel = supabase.channel(`game_realtime:${game.id}`)
+    const channel = supabase.channel(`game_events:${game.id}`)
       .on('broadcast', { event: 'START_SWAP' }, ({ payload }: { payload: { playerId: string; nickname: string } }) => {
         console.log("[Student] START_SWAP received for:", payload.nickname);
         setActiveSwapperName(payload.nickname);
@@ -586,16 +576,15 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
               {currentQuestion.type === "BLANK" ? (
                   <div className="flex flex-col items-center gap-2">
                     {hintStage >= 2 ? (
-                      <div className="flex flex-col items-center animate-in zoom-in duration-500">
-                        <div className="flex items-end gap-1 mb-1">
-                           <span className="text-[10px] font-black text-indigo-400 mb-0.5">
-                             {/[a-zA-Z]/.test(currentQuestion.a) ? "영어" : "한글"}
+                      <div className="flex flex-col items-center animate-in zoom-in duration-500 mb-2">
+                        <div className="bg-indigo-600 text-white px-6 py-2.5 rounded-2xl shadow-xl border-2 border-indigo-400 flex flex-col items-center leading-none">
+                           <span className="text-[10px] font-black opacity-80 mb-1 uppercase tracking-widest">
+                             {(/[가-힣ㄱ-ㅎ]/.test(currentQuestion.a) && /[a-zA-Z0-9]/.test(currentQuestion.a)) ? "한글/영어" : /[a-zA-Z0-9]/.test(currentQuestion.a) ? "영어" : "한글"}
                            </span>
-                           <span className="text-lg md:text-xl font-black text-indigo-600 leading-none">
-                             {/[a-zA-Z]/.test(currentQuestion.a) ? "첫글자 힌트 공개" : "초성 힌트 공개"}
+                           <span className="text-xl md:text-2xl font-black">
+                             {(/[가-힣ㄱ-ㅎ]/.test(currentQuestion.a) && /[a-zA-Z0-9]/.test(currentQuestion.a)) ? "초성/첫글자 힌트" : /[a-zA-Z0-9]/.test(currentQuestion.a) ? "첫글자 힌트" : "초성 힌트"}
                            </span>
                         </div>
-                        <div className="h-1 w-8 bg-indigo-200 rounded-full" />
                       </div>
                     ) : (
                       <div className="text-indigo-600 font-black text-sm md:text-base bg-indigo-50/50 px-4 py-1.5 rounded-full border border-indigo-100 animate-pulse">

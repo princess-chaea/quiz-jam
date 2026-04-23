@@ -375,7 +375,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       // 4. Handle Broadcasts (Shield Block, etc.)
       const blockedResults = finalResults.filter((r: any) => r.event.includes('_blocked'));
       if (blockedResults.length > 0) {
-        const eventChannel = supabase.channel(`game_realtime:${game.id}`);
+        const eventChannel = supabase.channel(`game_events:${game.id}`);
         eventChannel.subscribe(async (status: string) => {
           if (status === 'SUBSCRIBED') {
             for (const res of blockedResults) {
@@ -435,7 +435,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       if (statusErr) console.error("[Host] Status update failed:", statusErr);
 
       // 7. Broadcast Results Ready (to trigger student re-fetch)
-      const eventChannel = supabase.channel(`game_realtime:${game.id}`);
+      const eventChannel = supabase.channel(`game_events:${game.id}`);
       eventChannel.subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           console.log("[Host] Broadcasting results and updates...");
@@ -536,7 +536,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     }
 
     // BROADCAST immediate refresh for all players to move to new question
-    const channel = supabase.channel(`game_realtime:${game.id}`);
+    const channel = supabase.channel(`game_events:${game.id}`);
     channel.subscribe(async (status: string) => {
       if (status === 'SUBSCRIBED') {
         await channel.send({
@@ -1462,21 +1462,38 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           <div className="flex flex-wrap justify-center gap-6 mt-6 items-center">
             {(currentQuestion?.type === "SHORT_ANSWER" || currentQuestion?.type === "BLANK") && (
               <div className="flex bg-slate-100 p-2 rounded-2xl gap-2">
-                {[1, 2].map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => handleHintStage(s)}
-                    className={cn(
-                      "px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2",
-                      game.current_hint_stage >= s
-                        ? "bg-indigo-600 text-white shadow-lg"
-                        : "text-slate-500 hover:bg-slate-200"
-                    )}
-                  >
-                    <Zap size={18} className={game.current_hint_stage >= s ? "fill-white" : ""} />
-                    {s === 1 ? "1단계: 글자수" : (currentQuestion?.type === "BLANK" ? "2단계: 초성/첫글자" : "2단계: 초성")}
-                  </button>
-                ))}
+                {[1, 2].map((s) => {
+                  // Hide Stage 1 button for BLANK type as per user request
+                  if (currentQuestion?.type === "BLANK" && s === 1) return null;
+                  
+                  const hasKorean = /[가-힣ㄱ-ㅎ]/.test(currentQuestion?.a || "");
+                  const hasEnglish = /[a-zA-Z0-9]/.test(currentQuestion?.a || "");
+                  const langLabel = hasKorean && hasEnglish ? "한글/영어" : hasEnglish ? "영어" : "한글";
+                  const hintTypeLabel = hasKorean && hasEnglish ? "초성/첫글자" : hasEnglish ? "첫글자" : "초성";
+                  
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => handleHintStage(s)}
+                      className={cn(
+                        "px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2",
+                        game.current_hint_stage >= s
+                          ? "bg-indigo-600 text-white shadow-lg"
+                          : "text-slate-500 hover:bg-slate-200"
+                      )}
+                    >
+                      <Zap size={18} className={game.current_hint_stage >= s ? "fill-white" : ""} />
+                      {currentQuestion?.type === "BLANK" && s === 2 ? (
+                        <div className="flex flex-col items-center leading-none">
+                          <span className="text-[10px] opacity-70 mb-0.5">{langLabel}</span>
+                          <span>{hintTypeLabel}</span>
+                        </div>
+                      ) : (
+                        s === 1 ? "1단계: 글자수" : "2단계: 초성"
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
 

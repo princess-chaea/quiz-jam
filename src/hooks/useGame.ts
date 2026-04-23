@@ -83,7 +83,7 @@ export function useGame(quizCode: string) {
 
       // 1. Game Status Subscription
       channelsRef.game = supabase
-        .channel(`game_realtime:${gameId}`)
+        .channel(`game_events:${gameId}`)
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'games', filter: `id=eq.${gameId}` },

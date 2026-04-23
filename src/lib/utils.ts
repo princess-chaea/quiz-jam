@@ -14,10 +14,20 @@ const CHOSEONG = [
 ];
 
 export function getChoseong(str: string) {
-  return str.split('').map(char => {
-    const code = char.charCodeAt(0) - 0xAC00;
-    if (code > -1 && code < 11172) {
+  const isKorean = (c: string) => {
+    const code = c.charCodeAt(0) - 0xAC00;
+    return code > -1 && code < 11172;
+  };
+  const isAlpha = (c: string) => /^[a-zA-Z0-9]$/.test(c);
+
+  return str.split('').map((char, i) => {
+    if (isKorean(char)) {
+      const code = char.charCodeAt(0) - 0xAC00;
       return CHOSEONG[Math.floor(code / 588)];
+    }
+    if (isAlpha(char)) {
+      // Reveal only the first character for English/Alphanumeric strings
+      return i === 0 ? char : "?";
     }
     return char;
   }).join('');
