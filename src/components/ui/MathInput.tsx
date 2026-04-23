@@ -101,17 +101,13 @@ export function MathInput({
   };
 
   const handleManualRefresh = () => {
-    if (!mfRef.current) return;
-    
-    // Safety blur-and-refocus
-    mfRef.current.blur();
-    
-    setTimeout(() => {
-      if (mfRef.current) {
-        forceFocus(mfRef.current);
+    if (mfRef.current) {
+      mfRef.current.blur();
+      setTimeout(() => {
+        mfRef.current?.focus();
         if (onRefresh) onRefresh();
-      }
-    }, 50);
+      }, 50);
+    }
   };
 
   useEffect(() => {
@@ -418,7 +414,6 @@ export function MathInput({
   return (
     <div 
       ref={containerRef}
-      onClick={handleManualRefresh}
       className={cn(
         "relative flex flex-col justify-center w-full h-fit rounded-xl group/math bg-slate-50/50 border border-slate-200 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text py-0 px-0.5 my-0.5", 
         (!multiline || showScrollbar) ? "overflow-x-auto custom-scrollbar" : "overflow-visible h-fit",
@@ -435,11 +430,11 @@ export function MathInput({
           background: transparent !important;
           overflow: visible !important;
           min-height: 0 !important;
+          pointer-events: none !important; /* Let clicks pass to the input below */
         }
         math-field::part(container) {
           padding: 2px 4.5rem 2px 0.5rem !important; 
           overflow: visible !important;
-          cursor: text !important;
           min-height: 0 !important;
           display: flex !important;
           align-items: center !important;
@@ -463,53 +458,49 @@ export function MathInput({
         math-field::part(menu-toggle) {
           display: none !important;
           visibility: hidden !important;
-          opacity: 0 !important;
-          width: 0 !important;
-          height: 0 !important;
-          pointer-events: none !important;
         }
       `}} />
-      <div className="relative group w-full">
+      
+      <div className="relative group w-full flex items-center min-h-[60px]">
+        {/* REAL INPUT FOR KEYBOARD - Covers the entire area but stays invisible */}
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && onEnter) onEnter();
+          }}
+          className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-text"
+          placeholder={placeholder}
+          autoFocus={focusOnMount}
+          inputMode="text"
+        />
+
+        {/* MathField for Visualization - Clicks pass through to input */}
         <math-field
           ref={(el: any) => {
             mfRef.current = el;
             if (el !== mfElement) setMfElement(el);
           }}
-          tabIndex={0}
-          onPointerDown={(e: any) => {
-            // Force focus to trigger OS keyboard
-            e.currentTarget.focus();
-          }}
           className={cn(
-            "w-full bg-transparent outline-none transition-all math-field-compact",
+            "w-full bg-transparent outline-none transition-all math-field-compact pointer-events-none relative z-10",
             className
           )}
           style={{ 
             fontSize: isTeacher ? '1.1rem' : '1.75rem',
             padding: '0px',
             minHeight: 'auto',
-            background: 'transparent',
-            border: 'none',
             display: 'block'
           }}
-          multiline={multiline ? "true" : "false"}
           math-virtual-keyboard-policy="manual"
-          virtual-keyboard-toggle="hidden"
-          menu-icon="none"
-          keypress-sound="none"
-          plonk-sound="none"
-          placeholder={placeholder}
-          inputMode="text"
-          autoCapitalize="off"
-          autoCorrect="off"
-          spellCheck="false"
+          readOnly={true}
         >
           {toMathLiveValue(value)}
         </math-field>
       </div>
       
       {!isTeacher && (
-        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10 p-0.5">
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-30 p-0.5">
           <button
             type="button"
             onClick={(e) => {

@@ -403,8 +403,8 @@ function StudentPlayContent() {
 
   // --- MAIN CONTENT ---
   return (
-    <div className="min-h-screen flex flex-col">
-       <main className="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-50">
+    <div className="min-h-screen flex flex-col overflow-y-auto custom-scrollbar">
+       <main className="flex-1 flex flex-col items-center justify-start p-3 md:p-6 bg-indigo-50 min-h-full">
           {game?.status === 'WAITING' ? (
              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-white to-indigo-50 w-full rounded-3xl">
                 <div className="animate-float mb-8 cursor-pointer group relative" onClick={handleAvatarChange}>

@@ -525,7 +525,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           </div>
         </div>
       ) : (
-        <div className="w-full max-w-4xl bg-white rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl p-3 md:p-6 flex flex-col relative overflow-hidden h-full max-h-[94vh] focus-within:ring-0">
+        <div className="w-full max-w-4xl bg-white rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl p-3 md:p-6 flex flex-col relative overflow-visible h-auto focus-within:ring-0">
           <div className="flex items-center justify-between mb-1 px-2 pt-0.5">
             <div className="bg-indigo-50 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-indigo-100">
               <Trophy size={16} className="text-indigo-500" />
@@ -538,7 +538,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar px-2">
+          <div className="flex flex-col px-2">
             {hintStage > 0 && currentQuestion.type !== 'BLANK' && (
               <div className="mb-4 flex flex-col items-center gap-1">
                  <div className="flex flex-wrap justify-center gap-1.5 animate-in fade-in zoom-in duration-500">
