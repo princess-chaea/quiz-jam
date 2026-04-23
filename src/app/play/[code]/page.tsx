@@ -215,12 +215,13 @@ function StudentPlayContent() {
         }
       })
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          channelRef.current = channel;
-        }
+        console.log(`[Student] Channel status: ${status}`);
       });
 
+    channelRef.current = channel;
+
     return () => {
+      console.log("[Student] Cleaning up channel...");
       channel.unsubscribe();
       channelRef.current = null;
     };
@@ -229,14 +230,17 @@ function StudentPlayContent() {
 
   const sendEmoji = (emoji: string) => {
     if (channelRef.current) {
-      console.log("[Student] Sending EMOJI_REACTION:", emoji);
+      console.log("[Student] Attempting to send emoji:", emoji);
       channelRef.current.send({
         type: 'broadcast',
         event: 'EMOJI_REACTION',
         payload: { emoji, from: name }
+      }).then((res: any) => {
+        if (res !== 'ok') console.warn("[Student] Emoji send result:", res);
       });
     } else {
-      console.warn("[Student] Cannot send emoji: channel not ready");
+      console.warn("[Student] Cannot send emoji: channelRef is null. Attempting to reconnect...");
+      refresh();
     }
   };
 
@@ -459,7 +463,7 @@ function StudentPlayContent() {
                   </div>
                 )}
 
-                {/* Emoji Reactions Section */}
+                {/* Emoji Reactions Section (WAITING ONLY) */}
                 <div className="mt-10 mb-2">
                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">눌러서 리액션을 보내보세요!</p>
                    <div className="flex gap-3 justify-center">
