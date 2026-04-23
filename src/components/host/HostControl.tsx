@@ -1513,7 +1513,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           size="xl"
           disabled={calculating || game.status !== 'PLAYING'}
           className="px-8 md:px-16 py-6 md:py-8 bg-indigo-600 hover:bg-indigo-700 font-black shadow-xl rounded-2xl text-xl md:text-2xl transition-transform active:scale-95"
-          onClick={handleFinishRound}
+          onClick={() => handleFinishRound(false)}
         >
           {calculating || game.status !== 'PLAYING' ? "채점 중..." : "문제 마감하기"}
         </Button>
