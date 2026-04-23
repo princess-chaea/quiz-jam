@@ -228,13 +228,14 @@ function StudentPlayContent() {
 
   const sendEmoji = (emoji: string) => {
     if (channelRef.current) {
+      console.log("[Student] Broadcasting emoji:", emoji);
       channelRef.current.send({
         type: 'broadcast',
         event: 'EMOJI_REACTION',
         payload: { emoji, from: name }
       });
     } else {
-      console.warn("[Student] Cannot send emoji: channel not ready");
+      console.warn("[Student] Channel not ready for emoji");
     }
   };
 

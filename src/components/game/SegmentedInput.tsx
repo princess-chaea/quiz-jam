@@ -97,7 +97,7 @@ export function SegmentedInput({
         className="absolute inset-0 opacity-0 z-10 cursor-text"
         autoFocus={autoFocus}
         autoComplete="off"
-        // Avoid maxLength here as it blocks IME completion on the last box
+        inputMode="text"
       />
       
       {/* Visual segments */}

@@ -178,16 +178,20 @@ export function MathInput({
 
   // Handling focus on mount
   useEffect(() => {
-    if (focusOnMount && isReady && mfRef.current) {
-      setTimeout(() => {
-        mfRef.current?.focus();
-        // Also ensure it's at the end
-        const val = mfRef.current.value;
-        mfRef.current.value = "";
-        mfRef.current.value = val;
-      }, 100);
+    if (focusOnMount && mounted) {
+      const timer = setTimeout(() => {
+        const inputEl = containerRef.current?.querySelector('input');
+        if (inputEl) {
+          inputEl.focus();
+          // For mobile Safari/Chrome, sometimes multiple attempts are needed to ensure keyboard stays up
+          setTimeout(() => {
+            if (document.activeElement !== inputEl) inputEl.focus();
+          }, 50);
+        }
+      }, 150);
+      return () => clearTimeout(timer);
     }
-  }, [focusOnMount, isReady]);
+  }, [focusOnMount, mounted]);
 
   // Sync value changes after initialization
   useEffect(() => {
