@@ -94,10 +94,12 @@ export function SegmentedInput({
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
         onKeyDown={handleKeyDown}
-        className="absolute inset-0 opacity-0 z-10 cursor-text"
+        className="absolute inset-0 opacity-[0.01] z-10 cursor-text w-full h-full pointer-events-auto"
+        style={{ fontSize: '16px' }}
         autoFocus={autoFocus}
         autoComplete="off"
         inputMode="text"
+        enterKeyHint="done"
       />
       
       {/* Visual segments */}

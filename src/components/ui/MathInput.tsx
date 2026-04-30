@@ -158,7 +158,6 @@ export function MathInput({
         mfRef.current.setAttribute("tabindex", "0");
         mfRef.current.readOnly = false; // MUST BE FALSE FOR INTERACTION
         
-        // Force the internal textarea to show native keyboard if possible
         const updateInternalTextarea = () => {
           try {
             const textarea = mfRef.current.shadowRoot?.querySelector('textarea');
@@ -166,9 +165,18 @@ export function MathInput({
               textarea.setAttribute('inputmode', 'text');
               textarea.setAttribute('enterkeyhint', 'done');
               textarea.style.pointerEvents = 'auto'; // Ensure it can be focused
+              // Add direct focus listener to help native keyboard trigger
+              textarea.onfocus = () => {
+                 console.log("[MathInput] Shadow textarea focused");
+              };
             }
           } catch (err) {}
         };
+
+        // Multiple attempts to ensure the shadow DOM is ready
+        setTimeout(updateInternalTextarea, 300);
+        setTimeout(updateInternalTextarea, 1000);
+        setTimeout(updateInternalTextarea, 3000);
         
         // IMPORTANT: Set policies on the math-field element
         mfRef.current.mathVirtualKeyboardPolicy = 'manual';

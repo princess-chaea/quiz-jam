@@ -18,20 +18,9 @@ function StudentPlayContent() {
   const name = searchParams.get("name") || "";
   const router = useRouter();
   
-  const { game, players, loading, error, refresh } = useGame(code as string);
-  const gameRef = useRef(game);
-  
-  useEffect(() => {
-    gameRef.current = game;
-  }, [game]);
-
-  const { showAlert, showConfirm } = useDialog();
-  const [playerResult, setPlayerResult] = useState<any>(null);
-  const [wasKicked, setWasKicked] = useState(false);
-  const [hasFoundMe, setHasFoundMe] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [changingAvatar, setChangingAvatar] = useState(false);
-  const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
+  const { game, players, loading, error, refresh, floatingEmojis } = useGame(code as string);
 
   // Refs to avoid stale closures in realtime listeners
   const qIndexRef = useRef(game?.current_q_index);
@@ -75,7 +64,9 @@ function StudentPlayContent() {
     } catch (err) {
       console.error("Avatar update failed:", err);
     } finally {
-      setTimeout(() => setChangingAvatar(false), 500);
+        setTimeout(updateInternalTextarea, 500);
+        setTimeout(updateInternalTextarea, 2000); // Second attempt for slow loads
+        setChangingAvatar(false);
     }
   };
 

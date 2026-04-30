@@ -16,12 +16,11 @@ import { useDialog } from "@/components/ui/DialogProvider";
 export default function HostPage() {
   const { code } = useParams();
   const router = useRouter();
-  const { game, players, setPlayers, loading, refresh, refreshPlayers } = useGame(code as string);
+  const { game, players, setPlayers, loading, error, refresh, refreshPlayers, floatingEmojis } = useGame(code as string);
   const { showAlert, showConfirm } = useDialog();
   const [starting, setStarting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -143,21 +142,9 @@ export default function HostPage() {
     setTimeout(() => setCopied(false), 2000);
   };
   
-  // Unified Event Listener
   useEffect(() => {
     if (!game?.id) return;
     const channel = supabase.channel(`game_events:${game.id}`)
-      .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
-        console.log("[Host Lobby] EMOJI_REACTION received:", payload.emoji, "from:", payload.from);
-        const newEmoji = { 
-          id: Date.now() + Math.random(), 
-          emoji: payload.emoji, 
-          from: payload.from,
-          left: Math.random() * 80 + 10 
-        };
-        setFloatingEmojis((prev: any[]) => [...prev, newEmoji]);
-        setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 4000);
-      })
       .on('broadcast', { event: 'PLAYER_UPDATE' }, () => {
         // Instant refresh players on avatar/team change
         refreshPlayers();

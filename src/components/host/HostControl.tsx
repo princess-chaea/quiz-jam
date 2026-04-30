@@ -34,7 +34,6 @@ const processAnswers = (data: any[]) => {
 
 export function HostControl({ game, players, refreshPlayers }: HostControlProps) {
   const [answers, setAnswers] = useState<any[]>([]);
-  const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
   const [calculating, setCalculating] = useState(false);
   const [swapQueue, setSwapQueue] = useState<any[]>([]);
   const [currentSwapperId, setCurrentSwapperId] = useState<string | null>(null);
@@ -580,17 +579,6 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     if (!game.id) return;
 
     const channel = supabase.channel(`game_events:${game.id}`)
-      .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
-        console.log("[Host Game] EMOJI_REACTION received:", payload.emoji, "from:", payload.from);
-        const newEmoji = { 
-          id: Date.now() + Math.random(), 
-          emoji: payload.emoji, 
-          from: payload.from,
-          left: Math.random() * 80 + 10 
-        };
-        setFloatingEmojis((prev: any[]) => [...prev, newEmoji]);
-        setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 4000);
-      })
       .on('broadcast', { event: 'EXECUTE_SWAP' }, async ({ payload }: { payload: any }) => {
         if (isSwappingRef.current) {
           console.log("[Host] Already processing a swap, ignoring duplicate broadcast.");
@@ -985,17 +973,6 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   if (game.status === 'RESULT') {
     return (
       <div className="h-screen w-full flex flex-col bg-indigo-900 text-white overflow-hidden relative">
-        {/* Floating Emojis */}
-        {floatingEmojis.map((e: any) => (
-          <div key={e.id} className="float-up-reaction z-[2000] flex flex-col items-center gap-1" style={{ left: `${e.left}%`, bottom: '-50px' }}>
-            <div className="text-4xl md:text-6xl drop-shadow-2xl">{e.emoji}</div>
-            {e.from && (
-              <div className="bg-black/60 backdrop-blur-md text-white text-[10px] md:text-xs px-2 py-0.5 rounded-full font-black whitespace-nowrap shadow-lg border border-white/20">
-                {e.from}
-              </div>
-            )}
-          </div>
-        ))}
         {/* Large Answer Popup Overlay */}
         {showLargeAnswer && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-indigo-900 animate-in fade-in duration-300">
@@ -1555,22 +1532,6 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         </div>
       )}
 
-      {/* Floating Emojis Container */}
-      <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
-        {floatingEmojis.map((emoji: any) => (
-          <div
-            key={emoji.id}
-            className="float-up-reaction flex flex-col items-center gap-1"
-            style={{ left: `${emoji.left}%` }}
-          >
-            <div className="text-4xl md:text-6xl drop-shadow-2xl">{emoji.emoji}</div>
-            {emoji.from && (
-              <div className="bg-black/60 backdrop-blur-md text-white text-[10px] md:text-xs px-2 py-0.5 rounded-full font-black whitespace-nowrap shadow-lg border border-white/20">
-                {emoji.from}
-              </div>
-            )}
-          </div>
-        ))}
       </div>
     </div>
   );

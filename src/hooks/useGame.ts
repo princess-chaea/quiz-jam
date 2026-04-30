@@ -28,6 +28,7 @@ export function useGame(quizCode: string) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
   const gameRef = useRef<Game | null>(null);
   const playersRef = useRef<Player[]>([]);
 
@@ -111,6 +112,17 @@ export function useGame(quizCode: string) {
         .on('broadcast', { event: 'HINT_REVEAL' }, ({ payload }) => {
           console.log("[useGame] Broadcast HINT_REVEAL received:", payload);
           setGame(prev => prev ? { ...prev, current_hint_stage: payload.stage } : null);
+        })
+        .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
+          console.log("[useGame] EMOJI_REACTION received:", payload.emoji, "from:", payload.from);
+          const newEmoji = { 
+            id: Date.now() + Math.random(), 
+            emoji: payload.emoji, 
+            from: payload.from,
+            left: Math.random() * 80 + 10 
+          };
+          setFloatingEmojis((prev) => [...prev, newEmoji]);
+          setTimeout(() => setFloatingEmojis((prev) => prev.filter((e) => e.id !== newEmoji.id)), 4000);
         })
         .on('broadcast', { event: 'GAME_UPDATE' }, async () => {
           console.log("[useGame] Broadcast GAME_UPDATE received. Refreshing...");
@@ -235,6 +247,8 @@ export function useGame(quizCode: string) {
     setPlayers,
     loading, 
     error, 
+    floatingEmojis,
+    setFloatingEmojis,
     refresh, 
     refreshPlayers
   };

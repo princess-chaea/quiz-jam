@@ -29,7 +29,18 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
   const processFiles = async (newFiles: File[]) => {
     if (newFiles.length === 0) return;
     const validFiles: File[] = [];
+    const supportedExtensions = [
+      'txt', 'csv', 'md', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 
+      'js', 'py', 'html', 'css', 'doc', 'docx', 'xls', 'xlsx', 
+      'mp4', 'wav', 'mp3'
+    ];
+
     for (const file of newFiles) {
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (!ext || !supportedExtensions.includes(ext)) {
+        await showAlert({ message: "이 파일은 지원하지 않습니다" });
+        continue;
+      }
       if (file.size > 20 * 1024 * 1024) {
         await showAlert({ message: `'${file.name}' 파일 용량이 너무 큽니다. 20MB 이하의 파일만 업로드할 수 있습니다.` });
         continue;
@@ -158,7 +169,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                     <input
                       type="file"
                       multiple
-                      accept=".txt,.csv,.md,.pdf,.png,.jpg,.jpeg,.gif,.webp,.js,.py,.html,.css,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.mp4,.wav,.mp3"
+                      accept=".txt,.csv,.md,.pdf,.png,.jpg,.jpeg,.gif,.webp,.js,.py,.html,.css,.doc,.docx,.xls,.xlsx,.mp4,.wav,.mp3"
                       className="hidden"
                       onChange={handleFileUpload}
                     />
@@ -166,7 +177,7 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
                   <span className="text-[10px] font-bold text-slate-400">지원 파일:</span>
-                  <span className="text-[10px] text-slate-300">PDF, 이미지, PPT, DOC, XLS, TXT, 비디오(MP4), 오디오(MP3/WAV) 등</span>
+                  <span className="text-[10px] text-slate-300">PDF, 이미지, DOC, XLS, TXT, 비디오(MP4), 오디오(MP3/WAV) 등</span>
                 </div>
                 {files.length > 0 && (
                   <div className="space-y-2 mb-4">
