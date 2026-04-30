@@ -404,7 +404,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
   return (
     <>
-      <div className="relative w-full h-full flex flex-col items-center justify-center p-3 md:p-6 overflow-hidden">
+      <div className="relative w-full h-full flex flex-col items-center justify-center p-3 md:p-6">
       {/* Main Content Area */}
       {game.status === 'RESULT' && result && result.q_index === game.current_q_index ? (
         <div className="flex flex-col items-center justify-center min-h-[600px] w-full max-w-2xl mx-auto p-4 md:p-8 animate-in fade-in duration-500 relative">

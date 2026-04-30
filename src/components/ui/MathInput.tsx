@@ -446,24 +446,6 @@ export function MathInput({
   return (
     <div 
       ref={containerRef}
-      onPointerDown={(e) => {
-        // Essential for mobile browsers to trigger keyboard on custom elements
-        if (mfRef.current) {
-          mfRef.current.focus();
-        }
-      }}
-      onTouchStart={(e) => {
-        // Double safety for mobile touch devices
-        if (mfRef.current) {
-          mfRef.current.focus();
-        }
-      }}
-      onClick={(e) => {
-        // Ensure focus even on regular clicks
-        if (mfRef.current && document.activeElement !== mfRef.current) {
-          mfRef.current.focus();
-        }
-      }}
       className={cn(
         "relative flex flex-col justify-center w-full h-fit rounded-xl group/math bg-slate-50/50 border border-slate-200 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text py-0 px-0.5 my-0.5", 
         (!multiline || showScrollbar) ? "overflow-x-auto custom-scrollbar" : "overflow-visible h-fit",

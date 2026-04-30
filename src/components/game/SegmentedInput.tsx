@@ -100,15 +100,13 @@ export function SegmentedInput({
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
         onKeyDown={handleKeyDown}
-        className="absolute inset-0 z-50 cursor-text w-full h-full pointer-events-auto"
+        className="absolute inset-0 z-50 cursor-text w-full h-full pointer-events-auto opacity-[0.05] bg-white"
         style={{ 
           fontSize: '16px', 
           color: 'transparent', 
-          background: 'transparent', 
-          caretColor: '#6366f1', // indigo-500
+          caretColor: '#6366f1',
           border: 'none',
           outline: 'none',
-          opacity: 1,
           WebkitAppearance: 'none',
           appearance: 'none'
         }}
