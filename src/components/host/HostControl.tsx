@@ -374,26 +374,20 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
       // 4. Handle Broadcasts (Shield Block, etc.)
       const blockedResults = finalResults.filter((r: any) => r.event.includes('_blocked'));
-      if (blockedResults.length > 0) {
-        const eventChannel = supabase.channel(`game_events:${game.id}`);
-        eventChannel.subscribe(async (status: string) => {
-          if (status === 'SUBSCRIBED') {
-            for (const res of blockedResults) {
-              const blockedTypes = res.event.split(',').filter((e: string) => e.endsWith('_blocked'));
-              for (const bType of blockedTypes) {
-                await eventChannel.send({
-                  type: 'broadcast',
-                  event: 'SHIELD_BLOCK',
-                  payload: {
-                    nickname: res.player.nickname,
-                    type: bType.replace('_blocked', '')
-                  }
-                });
+      if (blockedResults.length > 0 && channelRef.current) {
+        for (const res of blockedResults) {
+          const blockedTypes = res.event.split(',').filter((e: string) => e.endsWith('_blocked'));
+          for (const bType of blockedTypes) {
+            await channelRef.current.send({
+              type: 'broadcast',
+              event: 'SHIELD_BLOCK',
+              payload: {
+                nickname: res.player.nickname,
+                type: bType.replace('_blocked', '')
               }
-            }
-            setTimeout(() => supabase.removeChannel(eventChannel), 2000);
+            });
           }
-        });
+        }
       }
 
       // 5. Initialize local swap state
@@ -435,39 +429,34 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       if (statusErr) console.error("[Host] Status update failed:", statusErr);
 
       // 7. Broadcast Results Ready (to trigger student re-fetch)
-      const eventChannel = supabase.channel(`game_events:${game.id}`);
-      eventChannel.subscribe(async (status: string) => {
-        if (status === 'SUBSCRIBED') {
-          console.log("[Host] Broadcasting results and updates...");
-          
-          await eventChannel.send({
+      if (channelRef.current) {
+        console.log("[Host] Broadcasting results and updates...");
+        
+        await channelRef.current.send({
+          type: 'broadcast',
+          event: 'ROUND_RESULTS_READY',
+          payload: { q_index: qIndex, results: updatedAnswers }
+        });
+
+        await channelRef.current.send({
+          type: 'broadcast',
+          event: 'GAME_UPDATE',
+          payload: { status: "RESULT", q_index: qIndex }
+        });
+
+        if (swappers.length > 0) {
+          console.log("[Host] Broadcasting FIRST swap start:", swappers[0].nickname);
+          await channelRef.current.send({
             type: 'broadcast',
-            event: 'ROUND_RESULTS_READY',
-            payload: { q_index: qIndex, results: updatedAnswers }
+            event: 'START_SWAP',
+            payload: { playerId: String(swappers[0].id), nickname: swappers[0].nickname }
           });
-
-          await eventChannel.send({
-            type: 'broadcast',
-            event: 'GAME_UPDATE',
-            payload: { status: "RESULT", q_index: qIndex }
-          });
-
-          if (swappers.length > 0) {
-            console.log("[Host] Broadcasting FIRST swap start:", swappers[0].nickname);
-            await eventChannel.send({
-              type: 'broadcast',
-              event: 'START_SWAP',
-              payload: { playerId: String(swappers[0].id), nickname: swappers[0].nickname }
-            });
-          }
-
-          // Update local state and ref so host UI shows the icons/results immediately
-          setAnswers(updatedAnswers);
-          answersRef.current = updatedAnswers;
-
-          setTimeout(() => supabase.removeChannel(eventChannel), 5000);
         }
-      });
+      }
+
+      // Update local state and ref so host UI shows the icons/results immediately
+      setAnswers(updatedAnswers);
+      answersRef.current = updatedAnswers;
 
       confetti({
         particleCount: 150,
@@ -536,17 +525,13 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     }
 
     // BROADCAST immediate refresh for all players to move to new question
-    const channel = supabase.channel(`game_events:${game.id}`);
-    channel.subscribe(async (status: string) => {
-      if (status === 'SUBSCRIBED') {
-        await channel.send({
-          type: 'broadcast',
-          event: 'GAME_UPDATE',
-          payload: { status: nextStatus, q_index: nextIndex }
-        });
-        setTimeout(() => supabase.removeChannel(channel), 2000);
-      }
-    });
+    if (channelRef.current) {
+      await channelRef.current.send({
+        type: 'broadcast',
+        event: 'GAME_UPDATE',
+        payload: { status: nextStatus, q_index: nextIndex }
+      });
+    }
   };
 
   const handleExitGame = async () => {
@@ -569,18 +554,12 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     if (!confirmed) return;
 
     const { error } = await supabase.from("games").update({ current_hint_stage: stage }).eq("id", game.id);
-    if (!error) {
+    if (!error && channelRef.current) {
       // Broadcast hint reveal for immediate student-side reaction
-      const channel = supabase.channel(`game_events:${game.id}`);
-      channel.subscribe(async (status: string) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.send({
-            type: 'broadcast',
-            event: 'HINT_REVEAL',
-            payload: { stage }
-          });
-          // Do not close channel immediately if needed for other things, but here it's fine
-        }
+      await channelRef.current.send({
+        type: 'broadcast',
+        event: 'HINT_REVEAL',
+        payload: { stage }
       });
     }
   };
@@ -1007,7 +986,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       <div className="h-screen w-full flex flex-col bg-indigo-900 text-white overflow-hidden relative">
         {/* Floating Emojis */}
         {floatingEmojis.map((e: any) => (
-          <div key={e.id} className="absolute text-4xl animate-float-up z-[2000]" style={{ left: `${e.left}%`, bottom: '-50px' }}>
+          <div key={e.id} className="float-up-reaction z-[2000]" style={{ left: `${e.left}%`, bottom: '-50px' }}>
             {e.emoji}
           </div>
         ))}

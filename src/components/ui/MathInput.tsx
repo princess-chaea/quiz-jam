@@ -142,6 +142,7 @@ export function MathInput({
           keypressSound: 'none',
           plonkSound: 'none',
           soundsDirectory: null,
+          inputMode: 'text', // Allow native keyboard
           onKeystroke: (mf: any, keystroke: string, ev: KeyboardEvent) => {
             // Keep Enter and Tab for navigation
             if (keystroke === 'Enter') return true;
@@ -153,7 +154,24 @@ export function MathInput({
         // Also set as attributes for double safety
         mfRef.current.setAttribute("keypress-sound", "none");
         mfRef.current.setAttribute("plonk-sound", "none");
+        mfRef.current.setAttribute("inputmode", "text"); // Force native keyboard
+        mfRef.current.setAttribute("tabindex", "0");
         mfRef.current.readOnly = false; // MUST BE FALSE FOR INTERACTION
+        
+        // Force the internal textarea to show native keyboard if possible
+        const updateInternalTextarea = () => {
+          try {
+            const textarea = mfRef.current.shadowRoot?.querySelector('textarea');
+            if (textarea) {
+              textarea.setAttribute('inputmode', 'text');
+              textarea.setAttribute('enterkeyhint', 'done');
+              textarea.style.pointerEvents = 'auto'; // Ensure it can be focused
+            }
+          } catch (err) {}
+        };
+        updateInternalTextarea();
+        // Sometimes the shadow DOM isn't fully ready immediately
+        setTimeout(updateInternalTextarea, 500);
         
         // Add shortcuts for arithmetic symbols and SPACES
         mfRef.current.inlineShortcuts = {
@@ -276,6 +294,9 @@ export function MathInput({
     };
 
     const handleFocus = () => {
+      // Ensure inputmode is set to trigger native keyboard on mobile
+      if (el) el.inputMode = 'text';
+
       // SMART KEYPAD LOGIC:
       // Always show for teachers.
       // For students, NEVER auto-show on focus (user requested manual show only)
@@ -413,6 +434,11 @@ export function MathInput({
   return (
     <div 
       ref={containerRef}
+      onClick={() => {
+        if (mfRef.current && document.activeElement !== mfRef.current) {
+          mfRef.current.focus();
+        }
+      }}
       className={cn(
         "relative flex flex-col justify-center w-full h-fit rounded-xl group/math bg-slate-50/50 border border-slate-200 focus-within:border-indigo-400 focus-within:bg-white transition-all cursor-text py-0 px-0.5 my-0.5", 
         (!multiline || showScrollbar) ? "overflow-x-auto custom-scrollbar" : "overflow-visible h-fit",
@@ -482,6 +508,7 @@ export function MathInput({
             display: 'block'
           }}
           math-virtual-keyboard-policy="manual"
+          inputmode="text"
           placeholder={placeholder}
           onFocus={() => {
             // Ensure custom keypad opens for teachers on focus
