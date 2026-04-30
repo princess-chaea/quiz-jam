@@ -81,14 +81,12 @@ export function SegmentedInput({
   };
 
   return (
-    <div 
-      className={cn("relative flex gap-1.5 items-center cursor-text", className)} 
-      onPointerDown={(e) => {
-        hiddenInputRef.current?.focus();
-      }}
-      onClick={handleContainerClick}
-    >
-      {/* Hidden input to handle all input and IME composition natively */}
+    <div className={cn("relative flex items-center justify-center", className)}>
+      {/* 
+        Standard visible-to-OS input that mirrors the Join page structure.
+        We place it in the normal flow (relative) so the browser's viewport 
+        scrolling and keyboard logic work perfectly.
+      */}
       <input
         ref={(el) => {
           if (hiddenInputRef) (hiddenInputRef as any).current = el;
@@ -100,44 +98,35 @@ export function SegmentedInput({
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
         onKeyDown={handleKeyDown}
-        className="absolute inset-0 z-50 cursor-text w-full h-full pointer-events-auto opacity-[0.05] bg-white"
-        style={{ 
-          fontSize: '16px', 
-          color: 'transparent', 
-          caretColor: '#6366f1',
-          border: 'none',
-          outline: 'none',
-          WebkitAppearance: 'none',
-          appearance: 'none'
-        }}
+        className="w-full h-14 p-5 text-xl border-4 border-transparent rounded-2xl focus:outline-none text-center font-black bg-white opacity-0 z-50 cursor-text"
         autoFocus={autoFocus}
         autoComplete="off"
         inputMode="text"
         enterKeyHint="done"
       />
       
-      {/* Visual segments */}
-      {Array.from({ length }).map((_, i) => (
-        <div
-          key={i}
-          className={cn(
-            "w-10 h-12 md:w-12 md:h-14 bg-white border-2 rounded-xl flex items-center justify-center text-xl md:text-2xl font-black text-indigo-600 outline-none transition-all relative overflow-hidden pointer-events-none",
-            // Highlight current input position
-            (localValue.length === i || (i === length - 1 && localValue.length >= length)) 
-              ? "border-indigo-500 ring-4 ring-indigo-50/50 scale-105" 
-              : "border-slate-200",
-            localValue[i] ? "border-indigo-400 bg-indigo-50/20" : "border-slate-100 bg-white"
-          )}
-        >
-          {localValue[i] ? localValue[i] : (hint ? (
-             <span className="text-slate-200 pointer-events-none">{hint[i] || ""}</span>
-          ) : "")}
-          {/* Caret effect */}
-          {localValue.length === i && (
-            <div className="absolute w-0.5 h-6 bg-indigo-500 animate-pulse rounded-full" />
-          )}
-        </div>
-      ))}
+      {/* Visual segments layer placed behind the interactive input */}
+      <div className="absolute inset-0 flex gap-1.5 items-center justify-center pointer-events-none z-10">
+        {Array.from({ length }).map((_, i) => (
+          <div
+            key={i}
+            className={cn(
+              "w-10 h-12 md:w-12 md:h-14 bg-white border-2 rounded-xl flex items-center justify-center text-xl md:text-2xl font-black text-indigo-600 outline-none transition-all relative overflow-hidden",
+              (localValue.length === i || (i === length - 1 && localValue.length >= length)) 
+                ? "border-indigo-500 ring-4 ring-indigo-50/50 scale-105" 
+                : "border-slate-200",
+              localValue[i] ? "border-indigo-400 bg-indigo-50/20" : "border-slate-100 bg-white"
+            )}
+          >
+            {localValue[i] ? localValue[i] : (hint ? (
+               <span className="text-slate-200">{hint[i] || ""}</span>
+            ) : "")}
+            {localValue.length === i && (
+              <div className="absolute w-0.5 h-6 bg-indigo-500 animate-pulse rounded-full" />
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
