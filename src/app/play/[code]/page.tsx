@@ -518,7 +518,7 @@ function StudentPlayContent() {
        </main>
        
        {/* Floating Emoji Reaction Buttons (Always Visible) */}
-       {!loading && !wasKicked && game?.status !== 'ENDED' && (
+       {!loading && !wasKicked && (
          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] flex gap-2 md:gap-3 bg-white/40 backdrop-blur-md p-2 rounded-[2rem] border border-white/50 shadow-lg animate-in slide-in-from-bottom-4 duration-500">
             {['👏', '🔥', '❤️', '🥳', '😎'].map(emoji => (
               <button
