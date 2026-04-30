@@ -303,21 +303,25 @@ export function MathInput({
     };
 
     const handleFocus = () => {
-      // Ensure inputmode is set to trigger native keyboard on mobile
-      if (el) el.inputMode = 'text';
+      if (el) {
+        el.inputMode = 'text';
+        // Aggressive: Try to focus internal textarea directly to force OS keyboard
+        try {
+          const textarea = el.shadowRoot?.querySelector('textarea');
+          if (textarea) textarea.focus();
+        } catch (e) {}
 
-      // SMART KEYPAD LOGIC:
-      // Always show for teachers.
-      // For students, NEVER auto-show on focus (user requested manual show only)
-      if (isTeacher) {
-        if (typeof el.executeCommand === 'function') {
-          openKeypad(el, level);
-        } else {
-          setTimeout(() => {
-            if (typeof el.executeCommand === 'function') {
-              openKeypad(el, level);
-            }
-          }, 100);
+        // SMART KEYPAD LOGIC: Always show for teachers.
+        if (isTeacher) {
+          if (typeof el.executeCommand === 'function') {
+            openKeypad(el, level);
+          } else {
+            setTimeout(() => {
+              if (typeof el.executeCommand === 'function') {
+                openKeypad(el, level);
+              }
+            }, 100);
+          }
         }
       }
     };
@@ -529,17 +533,18 @@ export function MathInput({
             minHeight: 'auto',
             display: 'block'
           }}
-          inputmode="text"
+          inputMode="text"
           virtual-keyboard-mode="manual"
           math-virtual-keyboard-policy="manual"
           placeholder={placeholder}
           onPointerDown={(e: any) => {
-            // Direct touch trigger on the element itself
+            // Direct touch/pointer trigger on the element itself
             e.currentTarget.focus();
-          }}
-          onTouchStart={(e: any) => {
-            // Mobile specific touch trigger
-            e.currentTarget.focus();
+            // Try to find internal textarea and focus it
+            try {
+              const textarea = e.currentTarget.shadowRoot?.querySelector('textarea');
+              if (textarea) textarea.focus();
+            } catch (err) {}
           }}
           onFocus={() => {
             // Ensure custom keypad opens for teachers on focus

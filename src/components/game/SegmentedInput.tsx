@@ -84,9 +84,7 @@ export function SegmentedInput({
     <div 
       className={cn("relative flex gap-1.5 items-center cursor-text", className)} 
       onPointerDown={(e) => {
-        hiddenInputRef.current?.focus();
-      }}
-      onTouchStart={(e) => {
+        // Essential: focus in same stack as touch/pointer event
         hiddenInputRef.current?.focus();
       }}
       onClick={handleContainerClick}
@@ -123,7 +121,7 @@ export function SegmentedInput({
         <div
           key={i}
           className={cn(
-            "w-10 h-12 md:w-12 md:h-14 bg-white border-2 rounded-xl flex items-center justify-center text-xl md:text-2xl font-black text-indigo-600 outline-none transition-all relative overflow-hidden",
+            "w-10 h-12 md:w-12 md:h-14 bg-white border-2 rounded-xl flex items-center justify-center text-xl md:text-2xl font-black text-indigo-600 outline-none transition-all relative overflow-hidden pointer-events-none",
             // Highlight current input position
             (localValue.length === i || (i === length - 1 && localValue.length >= length)) 
               ? "border-indigo-500 ring-4 ring-indigo-50/50 scale-105" 
