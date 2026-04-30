@@ -164,11 +164,8 @@ export function MathInput({
             if (textarea) {
               textarea.setAttribute('inputmode', 'text');
               textarea.setAttribute('enterkeyhint', 'done');
-              textarea.style.pointerEvents = 'auto'; // Ensure it can be focused
-              // Add direct focus listener to help native keyboard trigger
-              textarea.onfocus = () => {
-                 console.log("[MathInput] Shadow textarea focused");
-              };
+              // REMOVED: textarea.style.pointerEvents = 'auto'; 
+              // Allowing MathLive to handle internal navigation (numerator/denominator)
             }
           } catch (err) {}
         };
@@ -447,6 +444,12 @@ export function MathInput({
   return (
     <div 
       ref={containerRef}
+      onPointerDown={(e) => {
+        // Essential for mobile browsers to trigger keyboard on custom elements
+        if (mfRef.current) {
+          mfRef.current.focus();
+        }
+      }}
       onClick={() => {
         if (mfRef.current && document.activeElement !== mfRef.current) {
           mfRef.current.focus();

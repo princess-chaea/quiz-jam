@@ -23,7 +23,7 @@ export interface Player {
   avatar_id?: number;
 }
 
-export function useGame(quizCode: string) {
+export function useGame(quizCode: string, onPlayerUpdate?: () => void) {
   const [game, setGame] = useState<Game | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,16 +109,18 @@ export function useGame(quizCode: string) {
             });
           }
         )
-        .on('broadcast', { event: 'HINT_REVEAL' }, ({ payload }) => {
-          console.log("[useGame] Broadcast HINT_REVEAL received:", payload);
-          setGame(prev => prev ? { ...prev, current_hint_stage: payload.stage } : null);
+        .on('broadcast', { event: 'HINT_REVEAL' }, (payload: any) => {
+          const data = payload.payload || payload;
+          console.log("[useGame] Broadcast HINT_REVEAL received:", data);
+          setGame(prev => prev ? { ...prev, current_hint_stage: data.stage } : null);
         })
-        .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
-          console.log("[useGame] EMOJI_REACTION received:", payload.emoji, "from:", payload.from);
+        .on('broadcast', { event: 'EMOJI_REACTION' }, (payload: any) => {
+          const data = payload.payload || payload;
+          console.log("[useGame] EMOJI_REACTION received:", data.emoji, "from:", data.from);
           const newEmoji = { 
             id: Date.now() + Math.random(), 
-            emoji: payload.emoji, 
-            from: payload.from,
+            emoji: data.emoji, 
+            from: data.from,
             left: Math.random() * 80 + 10 
           };
           setFloatingEmojis((prev) => [...prev, newEmoji]);
@@ -131,6 +133,10 @@ export function useGame(quizCode: string) {
           if (g) setGame(prev => ({ ...(prev || {}), ...g }));
           // Also refresh players
           fetchPlayersThrottled(gameId);
+        })
+        .on('broadcast', { event: 'PLAYER_UPDATE' }, () => {
+          console.log("[useGame] PLAYER_UPDATE received, notifying callback...");
+          if (onPlayerUpdate) onPlayerUpdate();
         })
         .subscribe((status) => {
           console.log(`[useGame] Game channel status: ${status}`);

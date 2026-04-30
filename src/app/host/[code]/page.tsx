@@ -16,7 +16,6 @@ import { useDialog } from "@/components/ui/DialogProvider";
 export default function HostPage() {
   const { code } = useParams();
   const router = useRouter();
-  const { game, players, setPlayers, loading, error, refresh, refreshPlayers, floatingEmojis } = useGame(code as string);
   const { showAlert, showConfirm } = useDialog();
   const [starting, setStarting] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -142,16 +141,10 @@ export default function HostPage() {
     setTimeout(() => setCopied(false), 2000);
   };
   
-  useEffect(() => {
-    if (!game?.id) return;
-    const channel = supabase.channel(`game_events:${game.id}`)
-      .on('broadcast', { event: 'PLAYER_UPDATE' }, () => {
-        // Instant refresh players on avatar/team change
-        refreshPlayers();
-      })
-      .subscribe();
-    return () => { channel.unsubscribe(); };
-  }, [game?.id, refreshPlayers]);
+  const { game, players, setPlayers, loading, error, refresh, refreshPlayers, floatingEmojis } = useGame(code as string, () => {
+    // Instant refresh players on avatar/team change via callback
+    refreshPlayers();
+  });
 
   // Redirect to results page when game is over
   useEffect(() => {
