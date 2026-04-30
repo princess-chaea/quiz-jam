@@ -230,7 +230,15 @@ function StudentPlayContent() {
   }, [game?.id, name]); 
 
 
-  const sendEmoji = (emoji: string) => {
+  const [lastEmojiTime, setLastEmojiTime] = useState(0);
+
+  const sendEmoji = useCallback((emoji: string) => {
+    const now = Date.now();
+    if (now - lastEmojiTime < 3000) {
+       console.log("[Student] Emoji throttled");
+       return;
+    }
+
     let activeChannel = channelRef.current;
 
     // Lazy initialization if channel is missing
@@ -248,10 +256,11 @@ function StudentPlayContent() {
         event: 'EMOJI_REACTION',
         payload: { emoji, from: name }
       });
+      setLastEmojiTime(now);
     } else {
       console.warn("[Student] Channel not ready for emoji");
     }
-  };
+  }, [game?.id, name, lastEmojiTime]);
 
   // 3. User Exiting manually (optional, but we keep the state flag)
   const handleManualExit = () => {
@@ -472,7 +481,25 @@ function StudentPlayContent() {
                   </div>
                 )}
 
-                {/* Emoji Reactions removed from here and moved to a fixed global position */}
+                {/* Emoji Reactions (WAITING ONLY) - Restored */}
+                <div className="mt-10 mb-2">
+                   <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">눌러서 리액션을 보내보세요!</p>
+                   <div className="flex gap-3 justify-center">
+                      {['👏', '🔥', '❤️', '🥳', '😎'].map(emoji => (
+                        <button
+                          key={emoji}
+                          onClick={() => sendEmoji(emoji)}
+                          disabled={Date.now() - lastEmojiTime < 3000}
+                          className={cn(
+                            "w-12 h-12 text-2xl bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:scale-125 hover:shadow-md active:scale-95 transition-all flex items-center justify-center",
+                            (Date.now() - lastEmojiTime < 3000) && "opacity-50 grayscale cursor-not-allowed"
+                          )}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                   </div>
+                </div>
                 <div className="mt-12">
                   <Button 
                     variant="ghost" 
@@ -511,26 +538,15 @@ function StudentPlayContent() {
                 onRetract={handleRetractAnswer}
                 refresh={refresh}
                 result={playerResult}
+                onSendEmoji={sendEmoji}
+                lastEmojiTime={lastEmojiTime}
               />
               <div className="h-20" /> {/* Spacer */}
             </div>
           )}
        </main>
        
-       {/* Floating Emoji Reaction Buttons (Always Visible) */}
-       {!loading && !wasKicked && (
-         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] flex gap-2 md:gap-3 bg-white/40 backdrop-blur-md p-2 rounded-[2rem] border border-white/50 shadow-lg animate-in slide-in-from-bottom-4 duration-500">
-            {['👏', '🔥', '❤️', '🥳', '😎'].map(emoji => (
-              <button
-                key={emoji}
-                onClick={() => sendEmoji(emoji)}
-                className="w-10 h-10 md:w-12 md:h-12 text-xl md:text-2xl bg-white border border-slate-100 rounded-2xl shadow-sm hover:scale-125 hover:shadow-md active:scale-95 transition-all flex items-center justify-center"
-              >
-                {emoji}
-              </button>
-            ))}
-         </div>
-       )}
+       {/* Global Floating Buttons removed - moved to GameDisplay floating bar */}
 
        {/* Lifted PlayerBar to ensure it's always at the bottom and stable */}
        <PlayerBar 

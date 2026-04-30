@@ -25,11 +25,13 @@ interface GameDisplayProps {
   refresh: () => void;
   result?: any;
   onRetract?: () => void;
+  onSendEmoji?: (emoji: string) => void;
+  lastEmojiTime?: number;
 }
 
 // Local processMathText removed in favor of utils/processMathText
 
-export function GameDisplay({ game, player, players, onSubmit, refresh, result, onRetract }: GameDisplayProps) {
+export function GameDisplay({ game, player, players, onSubmit, refresh, result, onRetract, onSendEmoji, lastEmojiTime }: GameDisplayProps) {
   const { showConfirm } = useDialog();
   const [answer, setAnswer] = useState("");
   const [blankAnswers, setBlankAnswers] = useState<Record<number, string>>({});
@@ -40,6 +42,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const [rankingTab, setRankingTab] = useState<'individual' | 'team'>('individual');
   const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
   const [hintStage, setHintStage] = useState<number>(game.current_hint_stage || 0);
+  const [showEmojiBar, setShowEmojiBar] = useState(false);
 
   const totalQuestions = game.options?.questions?.length || 0;
   const currentQuestion = game.options?.questions[game.current_q_index];
@@ -813,6 +816,43 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
           <span className="text-[8px] font-black [writing-mode:vertical-lr] tracking-tighter">GUIDE</span>
           {showHelpTab ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
         </button>
+      </div>
+
+      {/* 3. Floating Emoji Bar (Below Ranking - Right Side) */}
+      <div className="fixed right-0 top-[62%] -translate-y-1/2 z-[200] flex items-center group">
+        <button 
+          onClick={() => { setShowEmojiBar(!showEmojiBar); setShowScoreTab(false); setShowHelpTab(false); }} 
+          disabled={Date.now() - (lastEmojiTime || 0) < 3000}
+          className={cn(
+            "w-10 md:w-12 h-14 md:h-16 flex flex-col items-center justify-center rounded-l-2xl md:rounded-l-3xl shadow-[-10px_0_30px_rgba(0,0,0,0.1)] transition-all",
+            showEmojiBar ? "bg-pink-500 text-white" : "bg-white text-pink-500 hover:bg-pink-50 border-y-2 border-l-2 border-pink-100",
+            (Date.now() - (lastEmojiTime || 0) < 3000) && "opacity-50 grayscale cursor-not-allowed"
+          )}
+        >
+          <HelpCircle size={18} className={cn("md:w-5 md:h-5", showEmojiBar && "animate-pulse")} />
+          <span className="text-[7px] md:text-[8px] font-black tracking-tighter mt-1 uppercase">React</span>
+        </button>
+
+        {showEmojiBar && (
+          <div className="bg-white/90 backdrop-blur-xl border-l-4 border-indigo-500/10 p-2 md:p-3 flex flex-col gap-2 rounded-l-2xl animate-in slide-in-from-right-4 duration-300 shadow-2xl">
+            {['👏', '🔥', '❤️', '🥳', '😎'].map(emoji => (
+              <button
+                key={emoji}
+                onClick={() => {
+                  if (onSendEmoji) onSendEmoji(emoji);
+                  setShowEmojiBar(false);
+                }}
+                disabled={Date.now() - (lastEmojiTime || 0) < 3000}
+                className={cn(
+                  "w-10 h-10 md:w-12 md:h-12 text-xl md:text-2xl bg-white border border-slate-100 rounded-xl shadow-sm hover:scale-110 active:scale-95 transition-all flex items-center justify-center",
+                  (Date.now() - (lastEmojiTime || 0) < 3000) && "opacity-30 grayscale cursor-not-allowed"
+                )}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </>
   );

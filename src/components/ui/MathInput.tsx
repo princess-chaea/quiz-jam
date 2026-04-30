@@ -166,6 +166,9 @@ export function MathInput({
               textarea.setAttribute('inputmode', 'text');
               textarea.setAttribute('enterkeyhint', 'done');
               textarea.style.pointerEvents = 'auto'; // Ensure it can be focused
+              // IMPORTANT: Disable MathLive's own virtual keyboard from popping up
+              // while keeping the native one.
+              textarea.setAttribute('virtualkeyboardpolicy', 'manual');
             }
           } catch (err) {}
         };
@@ -507,7 +510,6 @@ export function MathInput({
             minHeight: 'auto',
             display: 'block'
           }}
-          math-virtual-keyboard-policy="manual"
           inputmode="text"
           placeholder={placeholder}
           onFocus={() => {

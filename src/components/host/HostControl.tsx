@@ -581,14 +581,15 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
     const channel = supabase.channel(`game_events:${game.id}`)
       .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
-        console.log("[Host Game] EMOJI_REACTION received:", payload.emoji);
+        console.log("[Host Game] EMOJI_REACTION received:", payload.emoji, "from:", payload.from);
         const newEmoji = { 
           id: Date.now() + Math.random(), 
           emoji: payload.emoji, 
+          from: payload.from,
           left: Math.random() * 80 + 10 
         };
         setFloatingEmojis((prev: any[]) => [...prev, newEmoji]);
-        setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 3000);
+        setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 4000);
       })
       .on('broadcast', { event: 'EXECUTE_SWAP' }, async ({ payload }: { payload: any }) => {
         if (isSwappingRef.current) {
@@ -986,8 +987,13 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       <div className="h-screen w-full flex flex-col bg-indigo-900 text-white overflow-hidden relative">
         {/* Floating Emojis */}
         {floatingEmojis.map((e: any) => (
-          <div key={e.id} className="float-up-reaction z-[2000]" style={{ left: `${e.left}%`, bottom: '-50px' }}>
-            {e.emoji}
+          <div key={e.id} className="float-up-reaction z-[2000] flex flex-col items-center gap-1" style={{ left: `${e.left}%`, bottom: '-50px' }}>
+            <div className="text-4xl md:text-6xl drop-shadow-2xl">{e.emoji}</div>
+            {e.from && (
+              <div className="bg-black/60 backdrop-blur-md text-white text-[10px] md:text-xs px-2 py-0.5 rounded-full font-black whitespace-nowrap shadow-lg border border-white/20">
+                {e.from}
+              </div>
+            )}
           </div>
         ))}
         {/* Large Answer Popup Overlay */}
@@ -1554,10 +1560,15 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         {floatingEmojis.map((emoji: any) => (
           <div
             key={emoji.id}
-            className="float-up-reaction"
+            className="float-up-reaction flex flex-col items-center gap-1"
             style={{ left: `${emoji.left}%` }}
           >
-            {emoji.emoji}
+            <div className="text-4xl md:text-6xl drop-shadow-2xl">{emoji.emoji}</div>
+            {emoji.from && (
+              <div className="bg-black/60 backdrop-blur-md text-white text-[10px] md:text-xs px-2 py-0.5 rounded-full font-black whitespace-nowrap shadow-lg border border-white/20">
+                {emoji.from}
+              </div>
+            )}
           </div>
         ))}
       </div>
