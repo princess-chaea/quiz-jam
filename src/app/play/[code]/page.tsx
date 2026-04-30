@@ -19,6 +19,11 @@ function StudentPlayContent() {
   const router = useRouter();
   
   const { game, players, loading, error, refresh, floatingEmojis } = useGame(code as string);
+  const gameRef = useRef(game);
+
+  useEffect(() => {
+    gameRef.current = game;
+  }, [game]);
   const { showAlert, showConfirm } = useDialog();
   const [playerResult, setPlayerResult] = useState<any>(null);
   const [wasKicked, setWasKicked] = useState(false);
