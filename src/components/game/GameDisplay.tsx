@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 import { useDialog } from '@/components/ui/DialogProvider';
-import { cn, getChoseong } from '@/lib/utils';
+import { cn, getChoseong, processMathText } from '@/lib/utils';
 import { 
   Trophy, Clock, Check, X, RefreshCw, Zap, Gift, 
   Shield, TrendingUp, ChevronLeft, ChevronRight, Scissors, Keyboard, Layers,
@@ -27,12 +27,7 @@ interface GameDisplayProps {
   onRetract?: () => void;
 }
 
-const processMathText = (text: string) => {
-  if (!text) return "";
-  let processed = text.replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$');
-  processed = processed.replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
-  return processed;
-};
+// Local processMathText removed in favor of utils/processMathText
 
 export function GameDisplay({ game, player, players, onSubmit, refresh, result, onRetract }: GameDisplayProps) {
   const { showConfirm } = useDialog();

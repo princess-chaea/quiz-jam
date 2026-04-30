@@ -132,20 +132,20 @@ export function MathInput({
 
         // Disable smart fraction conversion and other auto-conversions if desired
         mfRef.current.setOptions({
-          smartFraction: false,
+          smartFraction: true, // Allow automatic fraction creation
           smartMode: true,
           smartSubsup: true,
-          defaultMode: 'math', // Set to math by default to ensure symbols work immediately
+          defaultMode: 'math',
           virtualKeyboardToggle: 'hidden',
           virtualKeyboardMode: 'manual',
           menuIcon: 'none',
           keypressSound: 'none',
           plonkSound: 'none',
-          soundsDirectory: null, // Set to null to prevent default path lookup
+          soundsDirectory: null,
           onKeystroke: (mf: any, keystroke: string, ev: KeyboardEvent) => {
-            if (keystroke === '*' || keystroke === '/') {
-              return false; // Prevent default MathLive keystroke handling
-            }
+            // Keep Enter and Tab for navigation
+            if (keystroke === 'Enter') return true;
+            if (keystroke === 'Tab') return true;
             return true;
           }
         });
@@ -153,6 +153,7 @@ export function MathInput({
         // Also set as attributes for double safety
         mfRef.current.setAttribute("keypress-sound", "none");
         mfRef.current.setAttribute("plonk-sound", "none");
+        mfRef.current.readOnly = false; // MUST BE FALSE FOR INTERACTION
         
         // Add shortcuts for arithmetic symbols and SPACES
         mfRef.current.inlineShortcuts = {
@@ -300,16 +301,10 @@ export function MathInput({
     };
 
     const handlePointerUp = (e: Event) => {
-      // MathLive sometimes updates its internal cursor on gap click, but fails to focus the actual IME textarea.
-      forceFocus(el);
-      
-      setTimeout(() => {
-        forceFocus(el);
-        // Do not auto-show keypad for students on pointer up
-        if (isTeacher && typeof el.executeCommand === 'function') {
-          openKeypad(el, level);
-        }
-      }, 50);
+      // Direct pointer up handling to ensure keypad sync
+      if (isTeacher && typeof el.executeCommand === 'function') {
+        openKeypad(el, level);
+      }
     };
 
     const handleKeyDown = (e: any) => {
@@ -434,15 +429,20 @@ export function MathInput({
           background: transparent !important;
           overflow: visible !important;
           min-height: 0 !important;
-          pointer-events: none !important; /* Let clicks pass to the input below */
+          pointer-events: auto !important; /* Enable interaction */
+          border: none !important;
+          box-shadow: none !important;
+          outline: none !important;
         }
         math-field::part(container) {
-          padding: 2px 4.5rem 2px 0.5rem !important; 
+          padding: 8px 4.5rem 8px 1rem !important; 
           overflow: visible !important;
-          min-height: 0 !important;
+          min-height: 52px !important;
           display: flex !important;
           align-items: center !important;
-          line-height: 1 !important;
+        }
+        math-field::part(content) {
+          outline: none !important;
         }
         math-field .ML__base {
           display: flex !important;
@@ -450,12 +450,6 @@ export function MathInput({
           width: 100% !important;
           line-height: inherit !important;
           padding: 0 !important;
-          margin-top: -2px !important;
-          margin-bottom: -2px !important;
-        }
-        math-field .ML__content {
-          display: ${multiline ? 'block' : 'inline-block'} !important;
-          width: 100% !important;
         }
         /* Hide MathLive internal virtual keyboard toggle and menu toggles */
         math-field::part(virtual-keyboard-toggle),
@@ -463,41 +457,36 @@ export function MathInput({
           display: none !important;
           visibility: hidden !important;
         }
+        /* Style placeholders to be more visible */
+        math-field::part(placeholder) {
+          color: #cbd5e1 !important;
+          opacity: 1 !important;
+        }
       `}} />
       
       <div className="relative group w-full flex items-center min-h-[60px]">
-        {/* REAL INPUT FOR KEYBOARD - Covers the entire area but stays invisible */}
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && onEnter) onEnter();
-          }}
-          className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-text"
-          placeholder={placeholder}
-          autoFocus={focusOnMount}
-          inputMode="text"
-        />
-
-        {/* MathField for Visualization - Clicks pass through to input */}
+        {/* MathField for Direct Interaction */}
         <math-field
           ref={(el: any) => {
             mfRef.current = el;
             if (el !== mfElement) setMfElement(el);
           }}
           className={cn(
-            "w-full bg-transparent outline-none transition-all math-field-compact pointer-events-none relative z-10",
+            "w-full bg-transparent outline-none transition-all math-field-compact relative z-10",
             className
           )}
           style={{ 
-            fontSize: isTeacher ? '1.1rem' : '1.75rem',
+            fontSize: isTeacher ? '1.1rem' : '1.75rem', // Slightly larger for students
             padding: '0px',
             minHeight: 'auto',
             display: 'block'
           }}
           math-virtual-keyboard-policy="manual"
-          readOnly={true}
+          placeholder={placeholder}
+          onFocus={() => {
+            // Ensure custom keypad opens for teachers on focus
+            if (isTeacher) openKeypad(mfRef.current, level);
+          }}
         >
           {toMathLiveValue(value)}
         </math-field>
