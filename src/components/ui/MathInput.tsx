@@ -137,12 +137,10 @@ export function MathInput({
           smartSubsup: true,
           defaultMode: 'math',
           virtualKeyboardToggle: 'hidden',
-          virtualKeyboardMode: 'manual',
           menuIcon: 'none',
           keypressSound: 'none',
           plonkSound: 'none',
           soundsDirectory: null,
-          inputMode: 'text', // Allow native keyboard
           onKeystroke: (mf: any, keystroke: string, ev: KeyboardEvent) => {
             // Keep Enter and Tab for navigation
             if (keystroke === 'Enter') return true;
@@ -174,10 +172,6 @@ export function MathInput({
         setTimeout(updateInternalTextarea, 300);
         setTimeout(updateInternalTextarea, 1000);
         setTimeout(updateInternalTextarea, 3000);
-        
-        // IMPORTANT: Set policies on the math-field element
-        mfRef.current.mathVirtualKeyboardPolicy = 'manual';
-        mfRef.current.setAttribute('virtual-keyboard-mode', 'manual');
         
         updateInternalTextarea();
         // Sometimes the shadow DOM isn't fully ready immediately
@@ -533,18 +527,13 @@ export function MathInput({
             minHeight: 'auto',
             display: 'block'
           }}
-          inputMode="text"
-          virtual-keyboard-mode="manual"
-          math-virtual-keyboard-policy="manual"
           placeholder={placeholder}
+          tabIndex={0}
+          role="textbox"
+          inputMode="text"
           onPointerDown={(e: any) => {
             // Direct touch/pointer trigger on the element itself
             e.currentTarget.focus();
-            // Try to find internal textarea and focus it
-            try {
-              const textarea = e.currentTarget.shadowRoot?.querySelector('textarea');
-              if (textarea) textarea.focus();
-            } catch (err) {}
           }}
           onFocus={() => {
             // Ensure custom keypad opens for teachers on focus

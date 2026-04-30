@@ -101,14 +101,17 @@ export function SegmentedInput({
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
         onKeyDown={handleKeyDown}
-        className="absolute inset-0 opacity-[0.01] z-50 cursor-text w-full h-full pointer-events-auto"
+        className="absolute inset-0 z-50 cursor-text w-full h-full pointer-events-auto"
         style={{ 
           fontSize: '16px', 
-          appearance: 'none', 
-          outline: 'none', 
+          color: 'transparent', 
           background: 'transparent', 
+          caretColor: '#6366f1', // indigo-500
           border: 'none',
-          color: 'transparent'
+          outline: 'none',
+          opacity: 1,
+          WebkitAppearance: 'none',
+          appearance: 'none'
         }}
         autoFocus={autoFocus}
         autoComplete="off"
