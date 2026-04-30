@@ -84,7 +84,6 @@ export function SegmentedInput({
     <div 
       className={cn("relative flex gap-1.5 items-center cursor-text", className)} 
       onPointerDown={(e) => {
-        // Essential: focus in same stack as touch/pointer event
         hiddenInputRef.current?.focus();
       }}
       onClick={handleContainerClick}

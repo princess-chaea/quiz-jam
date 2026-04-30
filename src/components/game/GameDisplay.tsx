@@ -639,7 +639,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                             if (bIdx !== -1) {
                               const choseongHint = (hintStage >= 2) ? getChoseong(word) : undefined;
                               return (
-                                <SegmentedInput key={wordIdx} value={blankAnswers[wordIdx] || ""} length={word.length} hint={choseongHint} onChange={(val) => handleBlankChange(wordIdx, val, blanks)} onEnter={() => handleSubmit()} autoFocus={bIdx === 0} firstRef={bIdx === 0 ? firstBlankRef : undefined} />
+                                <SegmentedInput key={`${game.current_q_index}-${wordIdx}`} value={blankAnswers[wordIdx] || ""} length={word.length} hint={choseongHint} onChange={(val) => handleBlankChange(wordIdx, val, blanks)} onEnter={() => handleSubmit()} autoFocus={bIdx === 0} firstRef={bIdx === 0 ? firstBlankRef : undefined} />
                               );
                             }
                             return <span key={wordIdx} className="text-xl md:text-2xl font-black text-slate-400">{word}</span>;
@@ -647,7 +647,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                         </div>
                       ) : (
                         <div className="w-full">
-                           <MathInput value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-lg md:text-xl font-bold p-1" template={currentQuestion.template} focusOnMount={true} isFirstQuestion={game.current_q_index === 0} gameId={game.id} />
+                           <MathInput key={game.current_q_index} value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-lg md:text-xl font-bold p-1" template={currentQuestion.template} focusOnMount={true} isFirstQuestion={game.current_q_index === 0} gameId={game.id} />
                         </div>
                       )}
                       <Button size="xl" className="w-full py-5 md:py-6 text-xl md:text-2xl shadow-lg mt-auto" onClick={() => handleSubmit()}>정답 제출하기</Button>

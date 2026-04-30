@@ -128,6 +128,7 @@ export function MathInput({
           mfElementClass.keypressSound = 'none';
           mfElementClass.plonkSound = 'none';
           mfElementClass.soundsDirectory = null;
+          mfElementClass.mathVirtualKeyboardPolicy = 'manual'; // GLOBAL POLICY
         }
 
         // Disable smart fraction conversion and other auto-conversions if desired
@@ -175,9 +176,14 @@ export function MathInput({
         setTimeout(updateInternalTextarea, 3000);
         
         // IMPORTANT: Set policies on the math-field element to favor native keyboard
-        mfRef.current.mathVirtualKeyboardPolicy = 'manual';
-        mfRef.current.setAttribute('virtual-keyboard-mode', 'manual');
-        mfRef.current.setAttribute('math-virtual-keyboard-policy', 'manual');
+        if (mfRef.current) {
+          mfRef.current.mathVirtualKeyboardPolicy = 'manual';
+          // Force global virtual keyboard to manual mode
+          try {
+             // @ts-ignore
+             if (window.mathVirtualKeyboard) window.mathVirtualKeyboard.policy = 'manual';
+          } catch(e) {}
+        }
         
         updateInternalTextarea();
         // Sometimes the shadow DOM isn't fully ready immediately
@@ -208,16 +214,9 @@ export function MathInput({
   // Handling focus on mount and question change
   useEffect(() => {
     if ((focusOnMount || gameId) && mounted && isReady) {
-      const timer = setTimeout(() => {
-        if (mfRef.current) {
-          mfRef.current.focus();
-          // For mobile Safari/Chrome, sometimes multiple attempts are needed to ensure keyboard stays up
-          setTimeout(() => {
-            if (document.activeElement !== mfRef.current) mfRef.current.focus();
-          }, 100);
-        }
-      }, 300);
-      return () => clearTimeout(timer);
+      if (mfRef.current) {
+        mfRef.current.focus();
+      }
     }
   }, [focusOnMount, mounted, isReady, gameId]);
 
@@ -540,13 +539,7 @@ export function MathInput({
           virtual-keyboard-mode="manual"
           math-virtual-keyboard-policy="manual"
           onPointerDown={(e: any) => {
-            // Direct touch/pointer trigger on the element itself
             e.currentTarget.focus();
-            // Try to find internal textarea and focus it
-            try {
-              const textarea = e.currentTarget.shadowRoot?.querySelector('textarea');
-              if (textarea) textarea.focus();
-            } catch (err) {}
           }}
           onFocus={() => {
             // Ensure custom keypad opens for teachers on focus
