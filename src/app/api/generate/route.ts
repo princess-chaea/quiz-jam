@@ -122,6 +122,7 @@ ${text || "첨부 파일 참조"}`;
         'application/msword',
         'application/haansoft' // Support for Hancom Office formats
       ];
+      const isBinary = binaryTypes.some(t => file.mimeType.startsWith(t));
 
       if (isBinary) {
         try {
