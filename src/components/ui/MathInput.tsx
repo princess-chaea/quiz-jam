@@ -205,22 +205,21 @@ export function MathInput({
     }
   }, [template, value]);
 
-  // Handling focus on mount
+  // Handling focus on mount and question change
   useEffect(() => {
-    if (focusOnMount && mounted) {
+    if ((focusOnMount || gameId) && mounted && isReady) {
       const timer = setTimeout(() => {
-        const inputEl = containerRef.current?.querySelector('input');
-        if (inputEl) {
-          inputEl.focus();
+        if (mfRef.current) {
+          mfRef.current.focus();
           // For mobile Safari/Chrome, sometimes multiple attempts are needed to ensure keyboard stays up
           setTimeout(() => {
-            if (document.activeElement !== inputEl) inputEl.focus();
-          }, 50);
+            if (document.activeElement !== mfRef.current) mfRef.current.focus();
+          }, 100);
         }
-      }, 150);
+      }, 300);
       return () => clearTimeout(timer);
     }
-  }, [focusOnMount, mounted]);
+  }, [focusOnMount, mounted, isReady, gameId]);
 
   // Sync value changes after initialization
   useEffect(() => {
@@ -450,7 +449,14 @@ export function MathInput({
           mfRef.current.focus();
         }
       }}
-      onClick={() => {
+      onTouchStart={(e) => {
+        // Double safety for mobile touch devices
+        if (mfRef.current) {
+          mfRef.current.focus();
+        }
+      }}
+      onClick={(e) => {
+        // Ensure focus even on regular clicks
         if (mfRef.current && document.activeElement !== mfRef.current) {
           mfRef.current.focus();
         }
@@ -527,6 +533,14 @@ export function MathInput({
           virtual-keyboard-mode="manual"
           math-virtual-keyboard-policy="manual"
           placeholder={placeholder}
+          onPointerDown={(e: any) => {
+            // Direct touch trigger on the element itself
+            e.currentTarget.focus();
+          }}
+          onTouchStart={(e: any) => {
+            // Mobile specific touch trigger
+            e.currentTarget.focus();
+          }}
           onFocus={() => {
             // Ensure custom keypad opens for teachers on focus
             if (isTeacher) openKeypad(mfRef.current, level);

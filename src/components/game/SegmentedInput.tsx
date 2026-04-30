@@ -84,7 +84,9 @@ export function SegmentedInput({
     <div 
       className={cn("relative flex gap-1.5 items-center cursor-text", className)} 
       onPointerDown={(e) => {
-        // Explicitly focus on pointer down to ensure mobile keyboard triggers
+        hiddenInputRef.current?.focus();
+      }}
+      onTouchStart={(e) => {
         hiddenInputRef.current?.focus();
       }}
       onClick={handleContainerClick}
@@ -101,8 +103,15 @@ export function SegmentedInput({
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
         onKeyDown={handleKeyDown}
-        className="absolute inset-0 opacity-[0.05] z-10 cursor-text w-full h-full pointer-events-auto"
-        style={{ fontSize: '16px', appearance: 'none', outline: 'none', background: 'transparent', border: 'none' }}
+        className="absolute inset-0 opacity-[0.01] z-50 cursor-text w-full h-full pointer-events-auto"
+        style={{ 
+          fontSize: '16px', 
+          appearance: 'none', 
+          outline: 'none', 
+          background: 'transparent', 
+          border: 'none',
+          color: 'transparent'
+        }}
         autoFocus={autoFocus}
         autoComplete="off"
         inputMode="text"
