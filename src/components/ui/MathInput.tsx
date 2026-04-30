@@ -166,12 +166,14 @@ export function MathInput({
               textarea.setAttribute('inputmode', 'text');
               textarea.setAttribute('enterkeyhint', 'done');
               textarea.style.pointerEvents = 'auto'; // Ensure it can be focused
-              // IMPORTANT: Disable MathLive's own virtual keyboard from popping up
-              // while keeping the native one.
-              textarea.setAttribute('virtualkeyboardpolicy', 'manual');
             }
           } catch (err) {}
         };
+        
+        // IMPORTANT: Set policies on the math-field element
+        mfRef.current.mathVirtualKeyboardPolicy = 'manual';
+        mfRef.current.setAttribute('virtual-keyboard-mode', 'manual');
+        
         updateInternalTextarea();
         // Sometimes the shadow DOM isn't fully ready immediately
         setTimeout(updateInternalTextarea, 500);
@@ -511,6 +513,8 @@ export function MathInput({
             display: 'block'
           }}
           inputmode="text"
+          virtual-keyboard-mode="manual"
+          math-virtual-keyboard-policy="manual"
           placeholder={placeholder}
           onFocus={() => {
             // Ensure custom keypad opens for teachers on focus

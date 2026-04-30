@@ -234,7 +234,9 @@ function StudentPlayContent() {
 
   const sendEmoji = useCallback((emoji: string) => {
     const now = Date.now();
-    if (now - lastEmojiTime < 3000) {
+    const isLobby = game?.status === 'WAITING';
+    
+    if (!isLobby && now - lastEmojiTime < 3000) {
        console.log("[Student] Emoji throttled");
        return;
     }
@@ -489,10 +491,10 @@ function StudentPlayContent() {
                         <button
                           key={emoji}
                           onClick={() => sendEmoji(emoji)}
-                          disabled={Date.now() - lastEmojiTime < 3000}
+                          disabled={game?.status !== 'WAITING' && Date.now() - lastEmojiTime < 3000}
                           className={cn(
                             "w-12 h-12 text-2xl bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:scale-125 hover:shadow-md active:scale-95 transition-all flex items-center justify-center",
-                            (Date.now() - lastEmojiTime < 3000) && "opacity-50 grayscale cursor-not-allowed"
+                            (game?.status !== 'WAITING' && Date.now() - lastEmojiTime < 3000) && "opacity-50 grayscale cursor-not-allowed"
                           )}
                         >
                           {emoji}

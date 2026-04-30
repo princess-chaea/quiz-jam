@@ -123,26 +123,13 @@ ${text || "첨부 파일 참조"}`;
         'application/haansoft' // Support for Hancom Office formats
       ];
 
-      const isBinary = binaryTypes.some(t => file.mimeType.startsWith(t));
-
       if (isBinary) {
         try {
           const arrayBuffer = await fileData.arrayBuffer();
           const base64 = Buffer.from(arrayBuffer).toString('base64');
 
-          // Map Haansoft/custom MIME types to standard ones if necessary
-          let mimeType = file.mimeType;
-          if (mimeType.includes('haansoftpptx') || mimeType.includes('pptx')) {
-            mimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-          } else if (mimeType.includes('haansoftdocx') || mimeType.includes('docx')) {
-            mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-          } else if (mimeType.includes('haansofthwp')) {
-            // HWP is tricky for Gemini, but let's send it as application/octet-stream 
-            // Better to try converting or just keep as haansoft for now
-          }
-
           parts.push({
-            inlineData: { mimeType: mimeType, data: base64 }
+            inlineData: { mimeType: file.mimeType, data: base64 }
           });
         } catch (err) {
           console.error(`Buffer error for ${file.path}:`, err);
@@ -181,7 +168,7 @@ ${text || "첨부 파일 참조"}`;
       // 1. BLANK: Parse {{ }} out of the question and map to blanks array
       if (q.type === 'BLANK' && q.q) {
         if (q.q.includes('{{') && q.q.includes('}}')) {
-          const words = q.q.split(/\\s+/);
+          const words = q.q.split(/\s+/);
           const newBlanks: number[] = [];
           const cleanWords = words.map((w: string, idx: number) => {
             if (w.includes('{{') && w.includes('}}')) {

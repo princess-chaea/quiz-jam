@@ -148,14 +148,15 @@ export default function HostPage() {
     if (!game?.id) return;
     const channel = supabase.channel(`game_events:${game.id}`)
       .on('broadcast', { event: 'EMOJI_REACTION' }, ({ payload }: { payload: any }) => {
-        console.log("[Host Lobby] EMOJI_REACTION received:", payload.emoji);
+        console.log("[Host Lobby] EMOJI_REACTION received:", payload.emoji, "from:", payload.from);
         const newEmoji = { 
           id: Date.now() + Math.random(), 
           emoji: payload.emoji, 
+          from: payload.from,
           left: Math.random() * 80 + 10 
         };
         setFloatingEmojis((prev: any[]) => [...prev, newEmoji]);
-        setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 3000);
+        setTimeout(() => setFloatingEmojis((prev: any[]) => prev.filter((e: any) => e.id !== newEmoji.id)), 4000);
       })
       .on('broadcast', { event: 'PLAYER_UPDATE' }, () => {
         // Instant refresh players on avatar/team change
@@ -368,10 +369,15 @@ export default function HostPage() {
         {floatingEmojis.map((e: any) => (
           <div
             key={e.id}
-            className="float-up-reaction"
+            className="float-up-reaction flex flex-col items-center gap-1"
             style={{ left: `${e.left}%` }}
           >
-            {e.emoji}
+            <div className="text-4xl md:text-6xl drop-shadow-2xl">{e.emoji}</div>
+            {e.from && (
+              <div className="bg-black/60 backdrop-blur-md text-white text-[10px] md:text-xs px-2 py-0.5 rounded-full font-black whitespace-nowrap shadow-lg border border-white/20">
+                {e.from}
+              </div>
+            )}
           </div>
         ))}
       </div>

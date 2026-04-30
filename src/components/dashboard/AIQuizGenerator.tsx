@@ -158,11 +158,15 @@ export function AIQuizGenerator({ onQuestionsGenerated, onClose }: AIQuizGenerat
                     <input
                       type="file"
                       multiple
-                      accept=".txt,.csv,.md,.pdf,.png,.jpg,.jpeg,.gif,.webp,.js,.py,.html,.css,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                      accept=".txt,.csv,.md,.pdf,.png,.jpg,.jpeg,.gif,.webp,.js,.py,.html,.css,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.mp4,.wav,.mp3"
                       className="hidden"
                       onChange={handleFileUpload}
                     />
                   </label>
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                  <span className="text-[10px] font-bold text-slate-400">지원 파일:</span>
+                  <span className="text-[10px] text-slate-300">PDF, 이미지, PPT, DOC, XLS, TXT, 비디오(MP4), 오디오(MP3/WAV) 등</span>
                 </div>
                 {files.length > 0 && (
                   <div className="space-y-2 mb-4">
