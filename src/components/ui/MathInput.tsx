@@ -638,13 +638,14 @@ export function MathInput({
               <math-field
                 key={value}
                 ref={(el: any) => {
-                  if (el) try { el.setOptions?.({ implicitMultiply: '' }); } catch {}
+                  if (!el) return;
+                  // Apply options BEFORE setting value so no implicit × appears
+                  try { el.setOptions?.({ implicitMultiply: '' }); } catch {}
+                  el.setValue(value);
                 }}
                 readonly
                 style={{ fontSize: '1.75rem', background: 'transparent', border: 'none', outline: 'none', pointerEvents: 'none' }}
-              >
-                {value}
-              </math-field>
+              />
               <button
                 type="button"
                 onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); handleClear(); }}
@@ -720,9 +721,6 @@ export function MathInput({
                 onInsert={kpInsert}
                 onCmd={kpCmd}
               />
-
-              {/* Korean text input row */}
-              <KoreanTextRow onInsert={(text) => kpInsert(`\\text{${text}}`)} />
 
               {/* Footer: nav + OK/Cancel */}
               <div className="flex gap-2 px-4 pb-4 pt-2 flex-shrink-0">
