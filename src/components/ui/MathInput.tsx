@@ -432,6 +432,22 @@ export function MathInput({
     el.addEventListener("focus", handleFocus);
     el.addEventListener("pointerup", handlePointerUp);
     el.addEventListener("blur", handleUpdate);
+
+    // MOBILE KEYBOARD: Native DOM listener fires BEFORE React synthetic events and is
+    // guaranteed to be within Android's user gesture context.
+    // We focus the shadow DOM textarea directly here because React's onPointerDown
+    // on custom web components may fire too late or in the wrong gesture context.
+    const handleNativePointerDown = () => {
+      try {
+        const textarea = el.shadowRoot?.querySelector('textarea') as HTMLElement | null;
+        if (textarea) {
+          textarea.setAttribute('inputmode', 'text');
+          textarea.setAttribute('enterkeyhint', 'done');
+          textarea.focus(); // Within native event dispatch → keyboard triggers on Android
+        }
+      } catch {}
+    };
+    el.addEventListener('pointerdown', handleNativePointerDown);
     
     // Initial sync
     handleUpdate(new Event('init'));
@@ -444,6 +460,7 @@ export function MathInput({
       el.removeEventListener("focus", handleFocus);
       el.removeEventListener("pointerup", handlePointerUp);
       el.removeEventListener("blur", handleUpdate);
+      el.removeEventListener('pointerdown', handleNativePointerDown);
     };
   }, [mfElement, isReady, openKeypad, level]);
 
@@ -482,22 +499,13 @@ export function MathInput({
       )}
       style={{ minHeight: 'auto' }}
       onPointerDown={() => {
-        // Focus the math-field element (not just textarea) so MathLive's
-        // keyboard event routing works on desktop AND
-        // the textarea (with inputmode='text') receives focus for mobile keyboard.
-        // Both calls are synchronous within the user gesture → Android keyboard triggers.
+        // DEAD ZONE FIX: When user taps the container's padding area (above/below math
+        // content), focus the math-field element itself. MathLive will internally focus
+        // its textarea (with inputmode='text' from our monkey-patch).
+        // This is better than directly calling textarea.focus() which bypasses MathLive's
+        // keyboard routing on desktop.
         try {
-          const mf = mfRef.current;
-          if (mf) {
-            // First ensure textarea is patched and has inputmode='text'
-            const textarea = mf.shadowRoot?.querySelector('textarea') as HTMLElement | null;
-            if (textarea) {
-              textarea.setAttribute('inputmode', 'text');
-              textarea.focus(); // Mobile: triggers native keyboard
-            } else {
-              mf.focus(); // Fallback
-            }
-          }
+          mfRef.current?.focus();
         } catch {}
       }}
     >

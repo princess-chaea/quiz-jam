@@ -102,9 +102,20 @@ export function hasMathSymbols(text: string | null | undefined): boolean {
 
 export const normalizeMath = (s: string) => {
   if (!s) return "";
-  // 1. Convert to lowercase
-  // 2. Remove all whitespace (\s), LaTeX non-breaking spaces (~), curly braces {}, common punctuation
-  // NOTE: MathLive encodes spaces as ~ in LaTeX (e.g. "1 1/8" → "1~\frac{1}{8}").
-  //       We must strip ~ so that "1~\frac{1}{8}" and "1\frac{1}{8}" compare as equal.
-  return s.toLowerCase().replace(/[\s~{}.,?!]+/g, "");
+  let str = s.trim();
+
+  // Step 1: Convert mixed-number text "1 1/8" → "1\frac{1}{8}"
+  //   AI-generated answers are often stored as plain "1 1/8".
+  //   Student answers from MathLive arrive as "1 \frac{1}{8}".
+  //   Without this step the two forms never compare equal even though they look identical.
+  str = str.replace(/(\d+)\s+(\d+)\/(\d+)/g, '$1\\frac{$2}{$3}');
+
+  // Step 2: Convert simple fraction text "3/4" → "\frac{3}{4}"
+  //   e.g. AI answer "3/4" vs MathLive output "\frac{3}{4}"
+  str = str.replace(/(\d+)\/(\d+)/g, '\\frac{$1}{$2}');
+
+  // Step 3: Lowercase + strip spaces, LaTeX ~, {}, common punctuation
+  //   ~ is MathLive's non-breaking space: "1~\frac{1}{8}" should equal "1\frac{1}{8}"
+  return str.toLowerCase().replace(/[\s~{}.,?!]+/g, "");
 };
+
