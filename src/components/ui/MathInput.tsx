@@ -735,10 +735,10 @@ export function MathInput({
         {/* ── Bottom-sheet math modal ── */}
         {showMathModal && isReady && (
           <div
-            className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex flex-col justify-end sm:justify-center sm:items-center sm:p-4"
+            className="fixed inset-0 z-[9999] bg-black/20 flex flex-col justify-end sm:justify-center sm:items-center sm:p-4"
             onPointerDown={(e) => { if (e.target === e.currentTarget) closeMathModal(); }}
           >
-            <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+            <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col" style={{ maxHeight: '80vh' }}>
 
               {/* Header */}
               <div className="bg-indigo-600 text-white px-5 py-3 flex items-center justify-between flex-shrink-0">
@@ -746,30 +746,29 @@ export function MathInput({
                 <button onPointerDown={(e) => e.preventDefault()} onClick={closeMathModal} className="text-white/70 hover:text-white text-2xl leading-none">✕</button>
               </div>
 
-              {/* MathLive editor – VISIBLE so focus() works */}
-              <div className="px-4 pt-4 pb-2 flex-shrink-0">
-                <style dangerouslySetInnerHTML={{ __html: `
-                  /* hide menu toggle only inside modal editor */
-                  .student-modal-mf::part(menu-toggle) { display: none !important; }
-                ` }} />
+              {/* MathLive editor */}
+              <div className="px-4 pt-3 pb-2 flex-shrink-0">
+                <style dangerouslySetInnerHTML={{ __html: `.student-modal-mf::part(menu-toggle) { display: none !important; }` }} />
                 <math-field
                   ref={(el: any) => { modalMfRef.current = el; }}
                   virtual-keyboard-mode="auto"
                   math-virtual-keyboard-policy="manual"
                   className="student-modal-mf w-full text-2xl bg-slate-50 rounded-xl border-2 border-slate-200 p-3 outline-none block focus:border-indigo-400"
-                  style={{ minHeight: '3.5rem', fontSize: '1.6rem' }}
+                  style={{ minHeight: '3rem', fontSize: '1.5rem' }}
                 />
               </div>
 
-              {/* Inline keypad */}
-              <StudentInlineKeypad
-                tabs={TABS}
-                defaultTab={level === 'high' ? 'high' : level === 'middle' ? 'mid' : 'elem'}
-                onInsert={kpInsert}
-                onCmd={kpCmd}
-              />
+              {/* Inline keypad – scrollable if needed */}
+              <div className="overflow-y-auto flex-shrink-0">
+                <StudentInlineKeypad
+                  tabs={TABS}
+                  defaultTab={level === 'high' ? 'high' : level === 'middle' ? 'mid' : 'elem'}
+                  onInsert={kpInsert}
+                  onCmd={kpCmd}
+                />
+              </div>
 
-              {/* Footer: nav + OK/Cancel */}
+              {/* Footer */}
               <div className="flex gap-2 px-4 pb-4 pt-2 flex-shrink-0">
                 <button onPointerDown={(e) => e.preventDefault()} onClick={() => kpCmd('moveToPreviousChar')} className="flex-1 h-10 bg-slate-100 rounded-xl text-slate-600 font-bold text-lg">◀</button>
                 <button onPointerDown={(e) => e.preventDefault()} onClick={() => kpCmd('moveToNextChar')} className="flex-1 h-10 bg-slate-100 rounded-xl text-slate-600 font-bold text-lg">▶</button>
