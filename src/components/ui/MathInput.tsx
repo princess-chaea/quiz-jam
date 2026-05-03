@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useMathKeypad } from "./MathKeypadContext";
 import { cn, hasMathSymbols } from "@/lib/utils";
 import { Keyboard } from "lucide-react";
-import { StudentInlineKeypad, type KeypadTab } from "./StudentInlineKeypad";
+import { StudentInlineKeypad, KoreanTextRow, type KeypadTab } from "./StudentInlineKeypad";
 
 /**
  * Converts plain text or mixed LaTeX into a format that MathLive renders correctly,
@@ -583,9 +583,16 @@ export function MathInput({
       if (modalMfRef.current) {
         const raw: string = modalMfRef.current.getValue?.() ?? '';
         const normalized = raw
-          // strip implicit × that MathLive inserts between adjacent terms
-          .replace(/\\times(?=\\frac|\\sqrt|\\pi|\\text)/g, ' ')
-          .replace(/\\cdot(?=\\frac|\\sqrt|\\pi|\\text)/g, ' ')
+          // Remove ALL implicit \times / \cdot that MathLive inserts:
+          // 1. Before any LaTeX command (\frac, \sqrt, \pi, etc.)
+          .replace(/\\(?:times|cdot)(?=\\)/g, ' ')
+          // 2. After any closing } before another command
+          .replace(/\}\s*\\(?:times|cdot)\s*(?=\\)/g, '} ')
+          // 3. Trailing × / · at end of string
+          .replace(/\\(?:times|cdot)\s*$/g, '')
+          // 4. Between } and next atom (digit / letter)
+          .replace(/\}\s*\\(?:times|cdot)\s*/g, '} ')
+          // General cleanup
           .replace(/~/g, ' ')
           .replace(/\\displaylines/g, '')
           .replace(/\\ /g, ' ')
@@ -630,10 +637,13 @@ export function MathInput({
             >
               <math-field
                 key={value}
+                ref={(el: any) => {
+                  if (el) try { el.setOptions?.({ implicitMultiply: '' }); } catch {}
+                }}
                 readonly
                 style={{ fontSize: '1.75rem', background: 'transparent', border: 'none', outline: 'none', pointerEvents: 'none' }}
               >
-                {toMathLiveValue(value)}
+                {value}
               </math-field>
               <button
                 type="button"
@@ -710,6 +720,9 @@ export function MathInput({
                 onInsert={kpInsert}
                 onCmd={kpCmd}
               />
+
+              {/* Korean text input row */}
+              <KoreanTextRow onInsert={(text) => kpInsert(`\\text{${text}}`)} />
 
               {/* Footer: nav + OK/Cancel */}
               <div className="flex gap-2 px-4 pb-4 pt-2 flex-shrink-0">

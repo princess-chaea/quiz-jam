@@ -75,3 +75,37 @@ export function StudentInlineKeypad({
     </div>
   );
 }
+
+/** Separate text input row for Korean (and other non-math text) input.
+ *  Calls onInsert with \text{...} wrapping so MathLive renders it correctly. */
+export function KoreanTextRow({ onInsert }: { onInsert: (text: string) => void }) {
+  const [text, setText] = useState("");
+
+  const handleInsert = () => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    onInsert(trimmed);
+    setText("");
+  };
+
+  return (
+    <div className="flex items-center gap-2 px-3 pb-2 flex-shrink-0">
+      <span className="text-xs font-bold text-slate-400 whitespace-nowrap">한글</span>
+      <input
+        type="text"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleInsert(); } }}
+        placeholder="텍스트 입력 후 삽입"
+        className="flex-1 h-10 px-3 rounded-xl border-2 border-slate-200 text-sm focus:outline-none focus:border-indigo-400 bg-slate-50"
+      />
+      <button
+        onPointerDown={(e) => e.preventDefault()}
+        onClick={handleInsert}
+        className="h-10 px-4 bg-indigo-100 text-indigo-700 rounded-xl text-sm font-bold hover:bg-indigo-600 hover:text-white transition-all flex-shrink-0"
+      >
+        삽입
+      </button>
+    </div>
+  );
+}
