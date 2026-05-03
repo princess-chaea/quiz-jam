@@ -637,6 +637,7 @@ export function MathInput({
         )}
       </div>
     );
+  }
 
   // ── TEACHER VIEW ─────────────────────────────────────────────────────────────
   if (!isReady || !mounted) {
