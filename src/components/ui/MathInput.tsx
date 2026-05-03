@@ -435,12 +435,34 @@ export function MathInput({
 
     // MOBILE KEYBOARD: Native DOM listener fires BEFORE React synthetic events and is
     // guaranteed to be within Android's user gesture context.
-    // We focus the shadow DOM textarea directly here because React's onPointerDown
-    // on custom web components may fire too late or in the wrong gesture context.
     const handleNativePointerDown = () => {
       try {
-        const textarea = el.shadowRoot?.querySelector('textarea') as HTMLElement | null;
+        const textarea = el.shadowRoot?.querySelector('textarea') as any;
         if (textarea) {
+          // Install monkey-patch INLINE so it's always active before textarea.focus().
+          // The setTimeout-based patch (300ms) might not be installed yet on the first tap.
+          if (!textarea.dataset.keyboardPatched) {
+            textarea.dataset.keyboardPatched = 'true';
+            const origSetAttr = HTMLElement.prototype.setAttribute.bind(textarea);
+            textarea.setAttribute = function(name: string, value: string) {
+              if (name === 'inputmode' && (value === 'none' || value === '')) {
+                origSetAttr('inputmode', 'text');
+              } else {
+                origSetAttr(name, value);
+              }
+            };
+            try {
+              Object.defineProperty(textarea, 'inputMode', {
+                configurable: true,
+                get() { return this.getAttribute('inputmode') || 'text'; },
+                set(val: string) {
+                  if (val === 'none' || val === '') {
+                    origSetAttr('inputmode', 'text');
+                  } else { origSetAttr('inputmode', val); }
+                }
+              });
+            } catch {}
+          }
           textarea.setAttribute('inputmode', 'text');
           textarea.setAttribute('enterkeyhint', 'done');
           textarea.focus(); // Within native event dispatch → keyboard triggers on Android
@@ -448,6 +470,7 @@ export function MathInput({
       } catch {}
     };
     el.addEventListener('pointerdown', handleNativePointerDown);
+
     
     // Initial sync
     handleUpdate(new Event('init'));
