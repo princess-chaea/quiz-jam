@@ -300,14 +300,15 @@ export function MathInput({
 
     const handleFocus = () => {
       if (el) {
+        // Ensure inputMode is set on both the math-field and internal textarea.
+        // Keyboard triggering is done in onPointerDown (user gesture context).
+        // Here we just ensure attributes are correct after focus is established.
         el.inputMode = 'text';
-        // Aggressive: Try to focus internal textarea directly to force OS keyboard
         try {
           const textarea = el.shadowRoot?.querySelector('textarea');
           if (textarea) {
             textarea.setAttribute('inputmode', 'text');
             textarea.setAttribute('enterkeyhint', 'done');
-            textarea.focus();
           }
         } catch (e) {}
 
@@ -524,21 +525,41 @@ export function MathInput({
           math-virtual-keyboard-policy="manual"
           virtual-keyboard-policy="manual"
           onPointerDown={(e: any) => {
-            // Direct touch/pointer trigger on the element itself is most reliable for OS detection
-            e.currentTarget.focus();
-            
-            // For teachers, also open our custom keypad
+            // CRITICAL: Must focus the internal shadow DOM textarea directly,
+            // NOT the math-field element itself. Android Chrome only shows the
+            // keyboard when a NATIVE form control (textarea/input) receives focus
+            // within a user gesture. Custom elements (math-field) do not trigger it.
+            // This pointerdown handler IS within the user gesture context.
+            try {
+              const textarea = e.currentTarget.shadowRoot?.querySelector('textarea');
+              if (textarea) {
+                textarea.setAttribute('inputmode', 'text');
+                textarea.setAttribute('enterkeyhint', 'done');
+                textarea.focus();
+              } else {
+                e.currentTarget.focus();
+              }
+            } catch {
+              e.currentTarget.focus();
+            }
             if (isTeacher) openKeypad(mfRef.current, level);
           }}
           onTouchStart={(e: any) => {
-            // Double safety for mobile touch events
-            e.currentTarget.focus();
+            // Fallback for browsers that fire touchstart but not pointerdown
+            try {
+              const textarea = e.currentTarget.shadowRoot?.querySelector('textarea');
+              if (textarea) {
+                textarea.setAttribute('inputmode', 'text');
+                textarea.focus();
+              }
+            } catch {
+              e.currentTarget.focus();
+            }
           }}
           onClick={(e: any) => {
             e.currentTarget.focus();
           }}
           onFocus={() => {
-            // Ensure custom keypad opens for teachers on focus
             if (isTeacher) openKeypad(mfRef.current, level);
           }}
         >
