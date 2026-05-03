@@ -511,20 +511,24 @@ export function MathInput({
     }
   };
 
-  // ── STUDENT VIEW ────────────────────────────────────────────────────────────
-  // ONE screen: regular text input (native keyboard) + math keyboard button
-  // (opens custom floating keypad connected to a hidden off-screen MathLive field).
-  // Tap text input → native keyboard, close keypad.
-  // Tap math button → custom keypad popup, insert formulas.
+  // Display: rendered math (readonly math-field) when value is LaTeX,
+  //          plain text input (native keyboard) otherwise.
   if (!isTeacher) {
+    const isLatexValue = value.includes('\\') || value.includes('{');
+
     const handleTextChange = (v: string) => {
       lastValueRef.current = v;
       onChangeRef.current(v);
     };
 
+    const handleClear = () => {
+      lastValueRef.current = '';
+      onChangeRef.current('');
+      if (modalMfRef.current) modalMfRef.current.setValue('');
+    };
+
     const handleMathButtonClick = () => {
       if (!isReady || !modalMfRef.current) return;
-      // Load current value into hidden MathLive then open custom keypad
       modalMfRef.current.setValue(toMathLiveValue(value));
       modalMfRef.current.focus();
       openKeypad(modalMfRef.current, level);
@@ -532,29 +536,62 @@ export function MathInput({
 
     return (
       <div className={cn("relative w-full", containerClassName)}>
-        {/* Main text input – native keyboard always works */}
         <div className="flex items-center gap-2">
-          <input
-            type="text"
-            inputMode="text"
-            enterKeyHint="done"
-            value={value}
-            onChange={(e) => handleTextChange(e.target.value)}
-            onFocus={() => closeKeypad()} // native keyboard → close math keypad
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') { e.preventDefault(); onEnterRef.current?.(); }
-            }}
-            placeholder={placeholder || "답을 입력하세요"}
-            className={cn(
-              "flex-1 text-2xl md:text-3xl font-bold text-center bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 py-3",
-              "focus:outline-none focus:border-indigo-400 focus:bg-white transition-all",
-              className
-            )}
-          />
+
+          {/* ── Display area ── */}
+          {isLatexValue ? (
+            // LaTeX value → render as math formula (readonly)
+            <div
+              className={cn(
+                "flex-1 min-h-[3.5rem] flex items-center justify-center gap-2",
+                "bg-slate-50 border-2 border-indigo-300 rounded-2xl px-4 cursor-pointer",
+                "hover:border-indigo-400 hover:bg-white transition-all",
+                className
+              )}
+              onClick={handleMathButtonClick}
+              title="수식을 눌러 편집"
+            >
+              <math-field
+                readonly
+                className="bg-transparent border-none outline-none pointer-events-none"
+                style={{ fontSize: '1.75rem' }}
+              >
+                {toMathLiveValue(value)}
+              </math-field>
+              {/* Clear button */}
+              <button
+                type="button"
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={(e) => { e.stopPropagation(); handleClear(); }}
+                className="text-slate-400 hover:text-red-500 transition-colors flex-shrink-0 text-xl leading-none"
+                title="지우기"
+              >✕</button>
+            </div>
+          ) : (
+            // Plain text → regular input (native keyboard always works)
+            <input
+              type="text"
+              inputMode="text"
+              enterKeyHint="done"
+              value={value}
+              onChange={(e) => handleTextChange(e.target.value)}
+              onFocus={() => closeKeypad()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.preventDefault(); onEnterRef.current?.(); }
+              }}
+              placeholder={placeholder || "답을 입력하세요"}
+              className={cn(
+                "flex-1 text-2xl md:text-3xl font-bold text-center bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 py-3",
+                "focus:outline-none focus:border-indigo-400 focus:bg-white transition-all",
+                className
+              )}
+            />
+          )}
+
           {/* Math keyboard button */}
           <button
             type="button"
-            onPointerDown={(e) => e.preventDefault()} // prevent text-input blur → keypad re-close
+            onPointerDown={(e) => e.preventDefault()}
             onClick={handleMathButtonClick}
             className="w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all border-2 border-indigo-200"
             title="수식 키보드 열기"
@@ -571,7 +608,6 @@ export function MathInput({
               modalMfRef.current = el;
               if (isNew && el) {
                 el.mathVirtualKeyboardPolicy = 'manual';
-                // Sync hidden field → text input whenever keypad inserts
                 el.addEventListener('input', () => {
                   const raw: string = el.getValue?.() ?? '';
                   const normalized = raw
@@ -601,7 +637,6 @@ export function MathInput({
         )}
       </div>
     );
-  }
 
   // ── TEACHER VIEW ─────────────────────────────────────────────────────────────
   if (!isReady || !mounted) {
