@@ -161,31 +161,23 @@ export function MathInput({
         const updateInternalTextarea = () => {
           try {
             const textarea = mfRef.current.shadowRoot?.querySelector('textarea');
-            if (textarea) {
+            if (textarea && !textarea.dataset.keyboardPatched) {
+              textarea.dataset.keyboardPatched = 'true';
               textarea.setAttribute('inputmode', 'text');
               textarea.setAttribute('enterkeyhint', 'done');
 
-              // CRITICAL: MathLive resets inputmode to 'none' to suppress the native
-              // keyboard (it prefers its own virtual keyboard). We use a MutationObserver
-              // to intercept these resets and immediately override them back to 'text'.
-              // This is the only reliable way to keep the native keyboard enabled.
-              if (!textarea.dataset.keyboardObserved) {
-                textarea.dataset.keyboardObserved = 'true';
-                const inputModeObserver = new MutationObserver((mutations) => {
-                  mutations.forEach((mutation) => {
-                    if (mutation.attributeName === 'inputmode') {
-                      const current = textarea.getAttribute('inputmode');
-                      if (current !== 'text') {
-                        textarea.setAttribute('inputmode', 'text');
-                      }
-                    }
-                  });
-                });
-                inputModeObserver.observe(textarea, {
-                  attributes: true,
-                  attributeFilter: ['inputmode']
-                });
-              }
+              // SYNCHRONOUS INTERCEPTION: Monkey-patch setAttribute so MathLive
+              // can never set inputmode='none' on this textarea.
+              // A MutationObserver fires async (too late for keyboard decisions).
+              // This patch runs synchronously, blocking the change at the source.
+              const origSetAttribute = textarea.setAttribute.bind(textarea);
+              (textarea as any).setAttribute = function(name: string, value: string) {
+                if (name === 'inputmode' && (value === 'none' || value === '')) {
+                  origSetAttribute('inputmode', 'text');
+                } else {
+                  origSetAttribute(name, value);
+                }
+              };
             }
           } catch (err) {}
         };
@@ -476,24 +468,23 @@ export function MathInput({
       )}
       style={{ minHeight: 'auto' }}
       onPointerDown={() => {
-        // When user taps ANYWHERE in the container (including padding above/below
-        // the math content), focus the shadow DOM textarea with inputmode='text'.
-        // setTimeout(0) runs AFTER MathLive's internal pointerdown handlers, which
-        // is when MathLive sets inputmode='none'. We override it immediately after.
-        // This is still within Android Chrome's ~1s user gesture activation window.
-        const mf = mfRef.current;
-        setTimeout(() => {
-          try {
-            const textarea = mf?.shadowRoot?.querySelector('textarea');
+        // Focus the math-field element (not just textarea) so MathLive's
+        // keyboard event routing works on desktop AND
+        // the textarea (with inputmode='text') receives focus for mobile keyboard.
+        // Both calls are synchronous within the user gesture → Android keyboard triggers.
+        try {
+          const mf = mfRef.current;
+          if (mf) {
+            // First ensure textarea is patched and has inputmode='text'
+            const textarea = mf.shadowRoot?.querySelector('textarea') as HTMLElement | null;
             if (textarea) {
               textarea.setAttribute('inputmode', 'text');
-              textarea.setAttribute('enterkeyhint', 'done');
-              if (document.activeElement !== textarea) {
-                textarea.focus();
-              }
+              textarea.focus(); // Mobile: triggers native keyboard
+            } else {
+              mf.focus(); // Fallback
             }
-          } catch {}
-        }, 0);
+          }
+        } catch {}
       }}
     >
       <style dangerouslySetInnerHTML={{ __html: `
@@ -511,9 +502,9 @@ export function MathInput({
           outline: none !important;
         }
         math-field::part(container) {
-          padding: 8px 4.5rem 8px 1rem !important; 
+          padding: 6px 4.5rem 6px 1rem !important; 
           overflow: visible !important;
-          min-height: 52px !important;
+          min-height: 0 !important;
           display: flex !important;
           align-items: center !important;
         }
@@ -540,7 +531,7 @@ export function MathInput({
         }
       `}} />
       
-      <div className="relative group w-full flex items-center min-h-[60px]">
+      <div className="relative group w-full flex items-center">
         {/* MathField for Direct Interaction */}
         <math-field
           ref={(el: any) => {

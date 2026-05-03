@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 interface SegmentedInputProps {
@@ -25,19 +25,22 @@ export function SegmentedInput({
   className
 }: SegmentedInputProps) {
   const hiddenInputRef = useRef<HTMLInputElement>(null);
+  const boxRefs = useRef<(HTMLDivElement | null)[]>([]);
+
   const [localValue, setLocalValue] = useState(value);
   const [isComposing, setIsComposing] = useState(false);
+  const [cursorPos, setCursorPos] = useState(0);
+  const [isFocused, setIsFocused] = useState(false);
 
-  // Sync local value with prop if prop changes externally (e.g., reset)
   useEffect(() => {
     if (value !== localValue && !isComposing) {
       setLocalValue(value);
+      setCursorPos(value.length);
     }
   }, [value, isComposing]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    // During composition (Korean IME), allow value to exceed length temporarily
     if (isComposing) {
       setLocalValue(val);
       return;
@@ -45,44 +48,64 @@ export function SegmentedInput({
     const finalVal = val.slice(0, length);
     setLocalValue(finalVal);
     onChange(finalVal);
+    setCursorPos(finalVal.length);
   };
 
   const handleCompositionStart = () => setIsComposing(true);
   const handleCompositionEnd = (e: React.CompositionEvent<HTMLInputElement>) => {
     setIsComposing(false);
-    // After composition ends, truncate to final length
     const val = (e.currentTarget as HTMLInputElement).value.slice(0, length);
     setLocalValue(val);
     onChange(val);
+    setCursorPos(val.length);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       onChange(localValue.slice(0, length));
-      // Small delay to ensure IME composition is finished before submission
       setTimeout(() => { onEnter?.(); }, 30);
     }
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "Backspace") {
+      // Let browser update selectionStart, then sync
+      setTimeout(() => {
+        const pos = hiddenInputRef.current?.selectionStart ?? localValue.length;
+        setCursorPos(pos);
+      }, 0);
+    }
   };
+
+  const handleSelect = (e: React.SyntheticEvent<HTMLInputElement>) => {
+    if (!isComposing) {
+      const pos = (e.currentTarget as HTMLInputElement).selectionStart ?? localValue.length;
+      setCursorPos(pos);
+    }
+  };
+
+  const handleFocus = () => setIsFocused(true);
+  const handleBlur = () => setIsFocused(false);
 
   const handleContainerClick = () => {
     hiddenInputRef.current?.focus();
   };
 
-  /**
-   * 커서 박스 인덱스 계산 (한글 IME 조합 고려):
-   * 
-   * 한글은 초성+중성(+종성)이 합쳐져 한 글자를 이룸.
-   * 조합 중일 때는 localValue.length가 이미 1 증가한 상태이므로,
-   * 커서를 현재 조합 중인 칸(length - 1)에 표시해야 함.
-   * 
-   * 예시:
-   *   'ㄱ' 입력 중 → isComposing=true, localValue="ㄱ"(length=1) → cursor at box 0
-   *   '가' 완성 후 → isComposing=false, localValue="가"(length=1) → cursor at box 1
-   *   '가' 입력 후 'ㄴ' 조합 시작 → isComposing=true, localValue="가ㄴ"(length=2) → cursor at box 1
-   */
+  // When user clicks the input, determine which box was clicked by x-coordinate
+  const handleInputClick = (e: React.MouseEvent<HTMLInputElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    // Estimate box index from click position
+    const approxBoxIndex = Math.min(
+      Math.floor((x / rect.width) * length),
+      length - 1
+    );
+    const newPos = Math.min(approxBoxIndex, localValue.length);
+    hiddenInputRef.current?.setSelectionRange(newPos, newPos);
+    setCursorPos(newPos);
+  };
+
+  // Cursor box: during composition stay on composing char, otherwise use cursorPos
   const cursorBoxIndex = isComposing
     ? Math.max(0, localValue.length - 1)
-    : localValue.length;
+    : cursorPos;
 
   return (
     <div
@@ -90,17 +113,12 @@ export function SegmentedInput({
       onClick={handleContainerClick}
     >
       {/*
-        CRITICAL FOR MOBILE KEYBOARD:
-        'relative z-50' makes the input the topmost hit target so the user
-        taps it directly → browser's native keyboard trigger fires.
-        
-        'caret-transparent' hides the real text cursor from the full-width input
-        (whose cursor position doesn't align with the visual boxes). Instead,
-        we draw our own cursor indicator at the correct box position below.
+        'relative z-50': input is topmost element so user taps trigger native keyboard.
+        'caret-transparent': hide real input caret; we draw our own per-box cursor.
       */}
       <input
         ref={(el) => {
-          if (hiddenInputRef) (hiddenInputRef as any).current = el;
+          (hiddenInputRef as any).current = el;
           if (firstRef) (firstRef as any).current = el;
         }}
         type="text"
@@ -109,43 +127,54 @@ export function SegmentedInput({
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
         onKeyDown={handleKeyDown}
-        className="w-full h-14 p-5 border-4 border-transparent rounded-2xl focus:outline-none text-center font-black relative z-50 bg-transparent text-transparent caret-transparent cursor-text"
-        style={{ fontSize: '16px' }}
+        onSelect={handleSelect}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onClick={handleInputClick}
+        className="w-full h-full p-5 border-4 border-transparent rounded-2xl focus:outline-none text-center font-black relative z-50 bg-transparent text-transparent caret-transparent cursor-text"
+        style={{ fontSize: '16px', minHeight: '48px' }}
         autoComplete="off"
         inputMode="text"
         enterKeyHint="done"
       />
 
-      {/* Visual segments layer placed behind the interactive input */}
+      {/* Visual segments - pointer-events-none so input above receives all touches */}
       <div className="absolute inset-0 flex gap-1.5 items-center justify-center pointer-events-none z-10">
         {Array.from({ length }).map((_, i) => {
-          // The "active" (highlighted) box is where the next character will go,
-          // or the last box when all slots are filled.
-          const isActive = localValue.length < length
-            ? i === cursorBoxIndex
-            : i === length - 1;
+          const char = localValue[i];
+          // Active = focused AND cursor is at or near this box
+          const isActive = isFocused && (
+            i === Math.min(cursorBoxIndex, length - 1)
+          );
+          // Show cursor bar only in EMPTY boxes (or composing box)
+          const showCursor = isFocused && !isComposing && !char && i === cursorBoxIndex && i < length;
+          const showComposingCursor = isFocused && isComposing && i === cursorBoxIndex;
 
           return (
             <div
               key={i}
+              ref={el => { boxRefs.current[i] = el; }}
               className={cn(
-                "w-10 h-12 md:w-12 md:h-14 bg-white border-2 rounded-xl flex items-center justify-center text-xl md:text-2xl font-black text-indigo-600 outline-none transition-all relative overflow-hidden",
+                "w-10 h-12 md:w-12 md:h-14 bg-white border-2 rounded-xl flex items-center justify-center text-xl md:text-2xl font-black text-indigo-600 outline-none transition-all relative overflow-hidden select-none",
                 isActive
                   ? "border-indigo-500 ring-4 ring-indigo-50/50 scale-105"
-                  : "border-slate-200",
-                localValue[i] ? "border-indigo-400 bg-indigo-50/20" : "border-slate-100 bg-white"
+                  : char
+                    ? "border-indigo-300 bg-indigo-50/20"
+                    : "border-slate-200 bg-white"
               )}
             >
-              {localValue[i] ? localValue[i] : (hint ? (
+              {char ? char : (hint ? (
                 <span className="text-slate-200">{hint[i] || ""}</span>
-              ) : "")}
-              {/*
-                Cursor blinks inside the active box only when:
-                - The box is empty (no character yet), OR
-                - Korean IME is currently composing in this box
-              */}
-              {isActive && (!localValue[i] || isComposing) && (
-                <div className="absolute w-0.5 h-6 bg-indigo-500 animate-pulse rounded-full" />
+              ) : null)}
+
+              {/* Cursor: left-aligned blinking bar in EMPTY box */}
+              {showCursor && (
+                <div className="absolute left-[6px] top-1/2 -translate-y-1/2 w-0.5 h-6 bg-indigo-500 animate-pulse rounded-full" />
+              )}
+
+              {/* During Korean composition: cursor to RIGHT of the composing char */}
+              {showComposingCursor && (
+                <div className="absolute right-[6px] top-1/2 -translate-y-1/2 w-0.5 h-6 bg-indigo-400 animate-pulse rounded-full" />
               )}
             </div>
           );
