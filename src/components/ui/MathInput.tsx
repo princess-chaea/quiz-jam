@@ -519,12 +519,18 @@ export function MathInput({
   //   • inline keypad buttons (no floating popup / MathKeypadContext)
   //   • OK / Cancel
   if (!isTeacher) {
-    // ── Keypad presets (Korean curriculum aligned) ──────────────────────────
+    // ── Keypad presets ──────────────────────────────────────────────────────
+    // 123 탭: 숫자 + 필수 사칙연산 + 분수 + 단위
     const NUMS = [
       { label: '1', latex: '1' },  { label: '2', latex: '2' },  { label: '3', latex: '3' },  { label: '+', latex: '+' },
       { label: '4', latex: '4' },  { label: '5', latex: '5' },  { label: '6', latex: '6' },  { label: '-', latex: '-' },
       { label: '7', latex: '7' },  { label: '8', latex: '8' },  { label: '9', latex: '9' },  { label: '×', latex: '\\times' },
       { label: '.', latex: '.' },  { label: '0', latex: '0' },  { label: '=', latex: '=' },  { label: '÷', latex: '\\div' },
+      { label: '□/□', latex: '\\frac{#?}{#?}' }, { label: '□□/□', latex: '#?\\frac{#?}{#?}' },
+      { label: '%',  latex: '\\%' }, { label: '≠', latex: '\\neq' },
+      { label: '>',  latex: '>' },  { label: '<', latex: '<' }, { label: '≤', latex: '\\le' }, { label: '≥', latex: '\\ge' },
+      { label: 'cm', latex: '\\text{cm}' }, { label: 'm', latex: '\\text{m}' }, { label: 'km', latex: '\\text{km}' }, { label: 'kg', latex: '\\text{kg}' },
+      { label: 'g',  latex: '\\text{g}' }, { label: 'mL', latex: '\\text{mL}' }, { label: 'L', latex: '\\text{L}' }, { label: '원', latex: '\\text{원}' },
     ];
     // 초등: 사칙연산·분수·소수·비교·단위·도형
     const ELEM = [
