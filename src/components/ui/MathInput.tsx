@@ -565,12 +565,14 @@ export function MathInput({
 
     const openMathModal = () => {
       setShowMathModal(true);
-      // setValue after modal mounts (useEffect-like via setTimeout)
       setTimeout(() => {
         if (modalMfRef.current) {
-          modalMfRef.current.mathVirtualKeyboardPolicy = 'manual';
-          modalMfRef.current.setValue(toMathLiveValue(value));
-          modalMfRef.current.focus();
+          const el = modalMfRef.current;
+          el.mathVirtualKeyboardPolicy = 'manual'; // prevent auto-show on focus
+          el.setValue(toMathLiveValue(value));
+          // Suppress implicit multiply symbol display
+          try { el.setOptions?.({ implicitMultiply: '' }); } catch {}
+          el.focus();
         }
       }, 120);
     };
@@ -580,7 +582,14 @@ export function MathInput({
     const handleModalConfirm = () => {
       if (modalMfRef.current) {
         const raw: string = modalMfRef.current.getValue?.() ?? '';
-        const normalized = raw.replace(/~/g, ' ').replace(/\\displaylines/g, '').replace(/\\ /g, ' ');
+        const normalized = raw
+          // strip implicit × that MathLive inserts between adjacent terms
+          .replace(/\\times(?=\\frac|\\sqrt|\\pi|\\text)/g, ' ')
+          .replace(/\\cdot(?=\\frac|\\sqrt|\\pi|\\text)/g, ' ')
+          .replace(/~/g, ' ')
+          .replace(/\\displaylines/g, '')
+          .replace(/\\ /g, ' ')
+          .trim();
         lastValueRef.current = normalized;
         onChangeRef.current(normalized);
       }
@@ -681,12 +690,15 @@ export function MathInput({
 
               {/* MathLive editor – VISIBLE so focus() works */}
               <div className="px-4 pt-4 pb-2 flex-shrink-0">
+                <style dangerouslySetInnerHTML={{ __html: `
+                  /* hide menu toggle only inside modal editor */
+                  .student-modal-mf::part(menu-toggle) { display: none !important; }
+                ` }} />
                 <math-field
                   ref={(el: any) => { modalMfRef.current = el; }}
-                  virtual-keyboard-mode="manual"
+                  virtual-keyboard-mode="auto"
                   math-virtual-keyboard-policy="manual"
-                  virtual-keyboard-policy="manual"
-                  className="w-full text-2xl bg-slate-50 rounded-xl border-2 border-slate-200 p-3 outline-none block focus:border-indigo-400"
+                  className="student-modal-mf w-full text-2xl bg-slate-50 rounded-xl border-2 border-slate-200 p-3 outline-none block focus:border-indigo-400"
                   style={{ minHeight: '3.5rem', fontSize: '1.6rem' }}
                 />
               </div>

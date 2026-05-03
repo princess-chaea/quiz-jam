@@ -82,3 +82,11 @@ body {
   font-size: 4rem;
   filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
 }
+
+/* MathLive virtual keyboard must appear above all modals (z-9999) */
+#mathlive-keyboard-container,
+.ML__keyboard,
+.ML__keyboard-layer,
+[id^="mathlive"] {
+  z-index: 99999 !important;
+}
