@@ -103,8 +103,8 @@ export function hasMathSymbols(text: string | null | undefined): boolean {
 export const normalizeMath = (s: string) => {
   if (!s) return "";
   // 1. Convert to lowercase
-  // 2. Remove all whitespace (\s)
-  // 3. Remove curly braces (LaTeX leftovers)
-  // 4. Remove common punctuation (.,?!) to be robust for English/text answers
-  return s.toLowerCase().replace(/[\s{}.,?!]+/g, "");
+  // 2. Remove all whitespace (\s), LaTeX non-breaking spaces (~), curly braces {}, common punctuation
+  // NOTE: MathLive encodes spaces as ~ in LaTeX (e.g. "1 1/8" → "1~\frac{1}{8}").
+  //       We must strip ~ so that "1~\frac{1}{8}" and "1\frac{1}{8}" compare as equal.
+  return s.toLowerCase().replace(/[\s~{}.,?!]+/g, "");
 };

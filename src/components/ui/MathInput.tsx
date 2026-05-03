@@ -160,24 +160,38 @@ export function MathInput({
         
         const updateInternalTextarea = () => {
           try {
-            const textarea = mfRef.current.shadowRoot?.querySelector('textarea');
+            const textarea = mfRef.current.shadowRoot?.querySelector('textarea') as any;
             if (textarea && !textarea.dataset.keyboardPatched) {
               textarea.dataset.keyboardPatched = 'true';
               textarea.setAttribute('inputmode', 'text');
               textarea.setAttribute('enterkeyhint', 'done');
 
-              // SYNCHRONOUS INTERCEPTION: Monkey-patch setAttribute so MathLive
-              // can never set inputmode='none' on this textarea.
-              // A MutationObserver fires async (too late for keyboard decisions).
-              // This patch runs synchronously, blocking the change at the source.
+              // SYNCHRONOUS INTERCEPTION (route 1): Monkey-patch setAttribute
+              // Blocks MathLive's textarea.setAttribute('inputmode', 'none') calls.
               const origSetAttribute = textarea.setAttribute.bind(textarea);
-              (textarea as any).setAttribute = function(name: string, value: string) {
+              textarea.setAttribute = function(name: string, value: string) {
                 if (name === 'inputmode' && (value === 'none' || value === '')) {
                   origSetAttribute('inputmode', 'text');
                 } else {
                   origSetAttribute(name, value);
                 }
               };
+
+              // SYNCHRONOUS INTERCEPTION (route 2): Override inputMode property
+              // Blocks MathLive's textarea.inputMode = 'none' property assignments.
+              try {
+                Object.defineProperty(textarea, 'inputMode', {
+                  configurable: true,
+                  get() { return this.getAttribute('inputmode') || 'text'; },
+                  set(val: string) {
+                    if (val === 'none' || val === '') {
+                      origSetAttribute('inputmode', 'text');
+                    } else {
+                      origSetAttribute('inputmode', val);
+                    }
+                  }
+                });
+              } catch (propErr) {}
             }
           } catch (err) {}
         };
@@ -557,9 +571,21 @@ export function MathInput({
           math-virtual-keyboard-policy="manual"
           virtual-keyboard-policy="manual"
           onPointerDown={(e: any) => {
-            // Also handle directly on math-field for when user taps on math content.
-            // Use setTimeout(0) to run after MathLive's own internal handler
-            // (which sets inputmode='none'). We then override it back to 'text'.
+            // ORIGINAL WORKING APPROACH: directly focus the shadow DOM textarea
+            // synchronously within the user gesture → Android native keyboard triggers.
+            // This is the most reliable path; the container's handler is a backup
+            // for taps in padding areas above/below the math content.
+            try {
+              const textarea = e.currentTarget.shadowRoot?.querySelector('textarea') as HTMLElement | null;
+              if (textarea) {
+                textarea.setAttribute('inputmode', 'text');
+                textarea.focus(); // ← within user gesture: keyboard triggers on Android
+              } else {
+                e.currentTarget.focus();
+              }
+            } catch {
+              try { e.currentTarget.focus(); } catch {}
+            }
             if (isTeacher) openKeypad(mfRef.current, level);
           }}
           onClick={(e: any) => {
