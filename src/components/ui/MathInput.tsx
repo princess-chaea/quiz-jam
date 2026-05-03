@@ -211,14 +211,11 @@ export function MathInput({
     }
   }, [template, value]);
 
-  // Handling focus on mount and question change
-  useEffect(() => {
-    if ((focusOnMount || gameId) && mounted && isReady) {
-      if (mfRef.current) {
-        mfRef.current.focus();
-      }
-    }
-  }, [focusOnMount, mounted, isReady, gameId]);
+  // NOTE: We intentionally do NOT auto-focus here on mobile.
+  // Calling .focus() programmatically (without user gesture) causes Android Chrome
+  // to enter a "focused but no keyboard" state, after which user taps are ignored.
+  // The user must tap directly on the math field to trigger the keyboard.
+
 
   // Sync value changes after initialization
   useEffect(() => {

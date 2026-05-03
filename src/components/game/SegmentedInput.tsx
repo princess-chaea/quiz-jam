@@ -36,12 +36,6 @@ export function SegmentedInput({
     }
   }, [value, isComposing]);
 
-  useEffect(() => {
-    if (autoFocus && hiddenInputRef.current) {
-      hiddenInputRef.current.focus();
-    }
-  }, [autoFocus]);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     // During composition, we allow the value to exceed length to prevent syllable breaking
@@ -108,7 +102,6 @@ export function SegmentedInput({
         onKeyDown={handleKeyDown}
         className="w-full h-14 p-5 border-4 border-transparent rounded-2xl focus:outline-none text-center font-black relative z-50 bg-transparent text-transparent caret-indigo-500 cursor-text"
         style={{ fontSize: '16px' }}
-        autoFocus={autoFocus}
         autoComplete="off"
         inputMode="text"
         enterKeyHint="done"
