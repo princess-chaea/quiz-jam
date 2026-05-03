@@ -577,13 +577,23 @@ export function MathInput({
                   ref={(el: any) => {
                     modalMfRef.current = el;
                     if (el) {
-                      el.mathVirtualKeyboardPolicy = 'auto';
+                      // Use manual mode: suppress MathLive's built-in keyboard
+                      // (it appeared below the modal, inaccessible on mobile)
+                      el.mathVirtualKeyboardPolicy = 'manual';
                       el.setValue(toMathLiveValue(value));
-                      setTimeout(() => el.focus(), 80);
+                      setTimeout(() => {
+                        el.focus();
+                        // Open our custom grade keypad (zIndex:10000 > modal's z-[9999])
+                        openKeypad(el, level);
+                      }, 80);
                     }
                   }}
-                  virtual-keyboard-mode="auto"
-                  math-virtual-keyboard-policy="auto"
+                  virtual-keyboard-mode="manual"
+                  math-virtual-keyboard-policy="manual"
+                  virtual-keyboard-policy="manual"
+                  onFocus={() => {
+                    if (modalMfRef.current) openKeypad(modalMfRef.current, level);
+                  }}
                   className="w-full text-2xl bg-slate-50 rounded-xl border-2 border-slate-200 p-4 focus:border-indigo-400 outline-none block"
                   style={{ minHeight: '4rem' }}
                 />
