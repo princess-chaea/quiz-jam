@@ -83,6 +83,14 @@ export function SegmentedInput({
   return (
     <div 
       className={cn("relative flex items-center justify-center cursor-text", className)}
+      onPointerDown={(e) => {
+        // Essential: focus in same stack as touch/pointer event for mobile
+        hiddenInputRef.current?.focus();
+      }}
+      onTouchStart={(e) => {
+        // Double safety for mobile browsers
+        hiddenInputRef.current?.focus();
+      }}
       onClick={handleContainerClick}
     >
       {/* 
@@ -101,7 +109,8 @@ export function SegmentedInput({
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
         onKeyDown={handleKeyDown}
-        className="w-full h-14 p-5 text-xl border-4 border-transparent rounded-2xl focus:outline-none text-center font-black bg-transparent text-transparent caret-transparent z-50 cursor-text"
+        className="w-full h-14 p-5 text-xl border-4 border-transparent rounded-2xl focus:outline-none text-center font-black opacity-[0.01] bg-white z-50 cursor-text"
+        style={{ fontSize: '16px' }}
         autoFocus={autoFocus}
         autoComplete="off"
         inputMode="text"

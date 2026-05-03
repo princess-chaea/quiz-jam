@@ -309,6 +309,7 @@ export function MathInput({
           const textarea = el.shadowRoot?.querySelector('textarea');
           if (textarea) {
             textarea.setAttribute('inputmode', 'text');
+            textarea.setAttribute('enterkeyhint', 'done');
             textarea.focus();
           }
         } catch (e) {}
@@ -521,8 +522,21 @@ export function MathInput({
           tabIndex={0}
           role="textbox"
           inputMode="text"
+          inputmode="text"
           virtual-keyboard-mode="manual"
           math-virtual-keyboard-policy="manual"
+          virtual-keyboard-policy="manual"
+          onPointerDown={(e: any) => {
+            // Direct touch/pointer trigger on the element itself is most reliable for OS detection
+            e.currentTarget.focus();
+            
+            // For teachers, also open our custom keypad
+            if (isTeacher) openKeypad(mfRef.current, level);
+          }}
+          onTouchStart={(e: any) => {
+            // Double safety for mobile touch events
+            e.currentTarget.focus();
+          }}
           onClick={(e: any) => {
             e.currentTarget.focus();
           }}
