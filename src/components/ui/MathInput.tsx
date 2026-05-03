@@ -69,7 +69,7 @@ export function MathInput({
   const modalMfRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastValueRef = useRef<string | undefined>(undefined);
-  const { activeField, openKeypad } = useMathKeypad();
+  const { activeField, openKeypad, closeKeypad } = useMathKeypad();
   const [isReady, setIsReady] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [showMathModal, setShowMathModal] = useState(false);
