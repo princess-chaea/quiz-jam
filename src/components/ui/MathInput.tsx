@@ -475,6 +475,26 @@ export function MathInput({
         containerClassName
       )}
       style={{ minHeight: 'auto' }}
+      onPointerDown={() => {
+        // When user taps ANYWHERE in the container (including padding above/below
+        // the math content), focus the shadow DOM textarea with inputmode='text'.
+        // setTimeout(0) runs AFTER MathLive's internal pointerdown handlers, which
+        // is when MathLive sets inputmode='none'. We override it immediately after.
+        // This is still within Android Chrome's ~1s user gesture activation window.
+        const mf = mfRef.current;
+        setTimeout(() => {
+          try {
+            const textarea = mf?.shadowRoot?.querySelector('textarea');
+            if (textarea) {
+              textarea.setAttribute('inputmode', 'text');
+              textarea.setAttribute('enterkeyhint', 'done');
+              if (document.activeElement !== textarea) {
+                textarea.focus();
+              }
+            }
+          } catch {}
+        }, 0);
+      }}
     >
       <style dangerouslySetInnerHTML={{ __html: `
         math-field {
@@ -546,36 +566,10 @@ export function MathInput({
           math-virtual-keyboard-policy="manual"
           virtual-keyboard-policy="manual"
           onPointerDown={(e: any) => {
-            // CRITICAL: Must focus the internal shadow DOM textarea directly,
-            // NOT the math-field element itself. Android Chrome only shows the
-            // keyboard when a NATIVE form control (textarea/input) receives focus
-            // within a user gesture. Custom elements (math-field) do not trigger it.
-            // This pointerdown handler IS within the user gesture context.
-            try {
-              const textarea = e.currentTarget.shadowRoot?.querySelector('textarea');
-              if (textarea) {
-                textarea.setAttribute('inputmode', 'text');
-                textarea.setAttribute('enterkeyhint', 'done');
-                textarea.focus();
-              } else {
-                e.currentTarget.focus();
-              }
-            } catch {
-              e.currentTarget.focus();
-            }
+            // Also handle directly on math-field for when user taps on math content.
+            // Use setTimeout(0) to run after MathLive's own internal handler
+            // (which sets inputmode='none'). We then override it back to 'text'.
             if (isTeacher) openKeypad(mfRef.current, level);
-          }}
-          onTouchStart={(e: any) => {
-            // Fallback for browsers that fire touchstart but not pointerdown
-            try {
-              const textarea = e.currentTarget.shadowRoot?.querySelector('textarea');
-              if (textarea) {
-                textarea.setAttribute('inputmode', 'text');
-                textarea.focus();
-              }
-            } catch {
-              e.currentTarget.focus();
-            }
           }}
           onClick={(e: any) => {
             e.currentTarget.focus();
