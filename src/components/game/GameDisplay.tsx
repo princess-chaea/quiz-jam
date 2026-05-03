@@ -645,9 +645,23 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                             return <span key={wordIdx} className="text-xl md:text-2xl font-black text-slate-400">{word}</span>;
                           })}
                         </div>
-                      ) : (
+                      ) : ((currentQuestion.math_mode || currentQuestion.type === "MATH") && (hasMathSymbols(currentQuestion.a) || hasMathSymbols(currentQuestion.template))) ? (
                         <div className="w-full">
                            <MathInput key={game.current_q_index} value={answer} onChange={handleAnswerChange} onEnter={() => handleSubmit()} className="w-full text-lg md:text-xl font-bold p-1" template={currentQuestion.template} focusOnMount={true} isFirstQuestion={game.current_q_index === 0} gameId={game.id} />
+                        </div>
+                      ) : (
+                        <div className="w-full">
+                           <input 
+                             type="text"
+                             value={answer}
+                             onChange={(e) => handleAnswerChange(e.target.value)}
+                             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+                             className="w-full p-5 text-xl border-4 border-slate-100 rounded-2xl focus:border-indigo-400 outline-none text-center font-black placeholder:text-gray-300 transition-all bg-slate-50/50"
+                             placeholder="정답을 입력하세요"
+                             autoFocus
+                             inputMode="text"
+                             autoComplete="off"
+                           />
                         </div>
                       )}
                       <Button size="xl" className="w-full py-5 md:py-6 text-xl md:text-2xl shadow-lg mt-auto" onClick={() => handleSubmit()}>정답 제출하기</Button>

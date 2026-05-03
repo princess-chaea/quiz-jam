@@ -101,7 +101,7 @@ export function SegmentedInput({
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
         onKeyDown={handleKeyDown}
-        className="w-full h-14 p-5 text-xl border-4 border-transparent rounded-2xl focus:outline-none text-center font-black bg-white opacity-[0.01] z-50 cursor-text"
+        className="w-full h-14 p-5 text-xl border-4 border-transparent rounded-2xl focus:outline-none text-center font-black bg-transparent text-transparent caret-transparent z-50 cursor-text"
         autoFocus={autoFocus}
         autoComplete="off"
         inputMode="text"
