@@ -104,21 +104,24 @@ export const normalizeMath = (s: string) => {
   if (!s) return "";
   let str = s.trim();
 
+  // Strip LaTeX $ delimiters (AI stores answers as "$1 \frac{1}{8}$")
+  str = str.replace(/\$\$?/g, '');
+
+  // Normalize fullwidth Unicode digits → ASCII (e.g. １２３ → 123, from JP/CN keyboards)
+  str = str.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFF10 + 0x30));
+
   // Remove common LaTeX artifacts from AI generation
   str = str.replace(/\\displaylines/g, '');
-  // Normalize double-backslash (JSON-escaped) to single backslash
-  str = str.replace(/\\\\/g, '\\');
-  // Remove backslash-space (LaTeX explicit space)
-  str = str.replace(/\\ /g, '');
+  str = str.replace(/\\\\/g, '\\');   // double-backslash → single
+  str = str.replace(/\\ /g, '');      // backslash-space → nothing
 
   // Convert mixed-number text "1 1/8" → "1\frac{1}{8}"
-  //   AI answers are plain text; student answers from MathLive are LaTeX.
   str = str.replace(/(\d+)\s+(\d+)\/(\d+)/g, '$1\\frac{$2}{$3}');
 
   // Convert simple fraction text "3/4" → "\frac{3}{4}"
   str = str.replace(/(\d+)\/(\d+)/g, '\\frac{$1}{$2}');
 
-  // Strip spaces, LaTeX ~ (non-breaking space), {}, common punctuation, lowercase
-  return str.toLowerCase().replace(/[\s~{}.,?!]+/g, "");
+  // Lowercase + strip spaces, LaTeX ~, {}, common punctuation, $ signs
+  return str.toLowerCase().replace(/[\s~{}$.,?!]+/g, "");
 };
 
