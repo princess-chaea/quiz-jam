@@ -433,14 +433,16 @@ export function MathInput({
     el.addEventListener("pointerup", handlePointerUp);
     el.addEventListener("blur", handleUpdate);
 
-    // MOBILE KEYBOARD: Native DOM listener fires BEFORE React synthetic events and is
-    // guaranteed to be within Android's user gesture context.
+    // MOBILE KEYBOARD: Use CAPTURE phase so this fires BEFORE MathLive's own
+    // pointerdown handler (MathLive registers its listeners in connectedCallback,
+    // which runs before our useEffect, so it fires first in bubble phase).
+    // With capture:true we intercept the event top-down, before MathLive can call
+    // textarea.focus() with inputmode='none'.
     const handleNativePointerDown = () => {
       try {
         const textarea = el.shadowRoot?.querySelector('textarea') as any;
         if (textarea) {
-          // Install monkey-patch INLINE so it's always active before textarea.focus().
-          // The setTimeout-based patch (300ms) might not be installed yet on the first tap.
+          // Install monkey-patch INLINE so it's active before MathLive's handler runs.
           if (!textarea.dataset.keyboardPatched) {
             textarea.dataset.keyboardPatched = 'true';
             const origSetAttr = HTMLElement.prototype.setAttribute.bind(textarea);
@@ -463,13 +465,19 @@ export function MathInput({
               });
             } catch {}
           }
+          // Set inputmode='text' BEFORE focus so keyboard triggers correctly
           textarea.setAttribute('inputmode', 'text');
           textarea.setAttribute('enterkeyhint', 'done');
-          textarea.focus(); // Within native event dispatch → keyboard triggers on Android
+          // If already focused, blur first so the subsequent focus() triggers the keyboard
+          if (document.activeElement === textarea) {
+            textarea.blur();
+          }
+          textarea.focus();
         }
       } catch {}
     };
-    el.addEventListener('pointerdown', handleNativePointerDown);
+    // CAPTURE phase: fires before MathLive's bubble-phase listener
+    el.addEventListener('pointerdown', handleNativePointerDown, { capture: true });
 
     
     // Initial sync
@@ -483,7 +491,7 @@ export function MathInput({
       el.removeEventListener("focus", handleFocus);
       el.removeEventListener("pointerup", handlePointerUp);
       el.removeEventListener("blur", handleUpdate);
-      el.removeEventListener('pointerdown', handleNativePointerDown);
+      el.removeEventListener('pointerdown', handleNativePointerDown, { capture: true });
     };
   }, [mfElement, isReady, openKeypad, level]);
 
