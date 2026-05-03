@@ -81,7 +81,10 @@ export function SegmentedInput({
   };
 
   return (
-    <div className={cn("relative flex items-center justify-center", className)}>
+    <div 
+      className={cn("relative flex items-center justify-center cursor-text", className)}
+      onClick={handleContainerClick}
+    >
       {/* 
         Standard visible-to-OS input that mirrors the Join page structure.
         We place it in the normal flow (relative) so the browser's viewport 
@@ -98,7 +101,7 @@ export function SegmentedInput({
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
         onKeyDown={handleKeyDown}
-        className="w-full h-14 p-5 text-xl border-4 border-transparent rounded-2xl focus:outline-none text-center font-black bg-white opacity-0 z-50 cursor-text"
+        className="w-full h-14 p-5 text-xl border-4 border-transparent rounded-2xl focus:outline-none text-center font-black bg-white opacity-[0.01] z-50 cursor-text"
         autoFocus={autoFocus}
         autoComplete="off"
         inputMode="text"

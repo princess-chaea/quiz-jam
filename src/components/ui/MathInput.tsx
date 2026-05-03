@@ -307,7 +307,10 @@ export function MathInput({
         // Aggressive: Try to focus internal textarea directly to force OS keyboard
         try {
           const textarea = el.shadowRoot?.querySelector('textarea');
-          if (textarea) textarea.focus();
+          if (textarea) {
+            textarea.setAttribute('inputmode', 'text');
+            textarea.focus();
+          }
         } catch (e) {}
 
         // SMART KEYPAD LOGIC: Always show for teachers.
@@ -520,7 +523,7 @@ export function MathInput({
           inputMode="text"
           virtual-keyboard-mode="manual"
           math-virtual-keyboard-policy="manual"
-          onPointerDown={(e: any) => {
+          onClick={(e: any) => {
             e.currentTarget.focus();
           }}
           onFocus={() => {
