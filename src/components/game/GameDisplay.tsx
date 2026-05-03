@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 import { useDialog } from '@/components/ui/DialogProvider';
-import { cn, getChoseong, processMathText } from '@/lib/utils';
+import { cn, getChoseong, processMathText, hasMathSymbols } from '@/lib/utils';
 import { 
   Trophy, Clock, Check, X, RefreshCw, Zap, Gift, 
   Shield, TrendingUp, ChevronLeft, ChevronRight, Scissors, Keyboard, Layers,
