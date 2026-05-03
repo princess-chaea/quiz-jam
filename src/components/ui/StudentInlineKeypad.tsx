@@ -124,18 +124,30 @@ function KoreanKeyboard({
     completedRef.current='';
     onInsert(shift?ch.toUpperCase():ch);
     setShift(false);
+    // CRITICAL: re-capture prefix after insert
+    setTimeout(()=>{
+      prefixRef.current = getFieldValue();
+    }, 10);
   }
 
   function tapNum(n:string){
-    const comp=toChar(ime);
-    const newCompleted=completedRef.current+comp;
-    completedRef.current=newCompleted;
-    setIme(null);
-    const finalLatex=newCompleted?`${prefixRef.current}\\text{${newCompleted}}`:`${prefixRef.current}`;
-    prefixRef.current=finalLatex;
-    completedRef.current='';
-    setFieldValue(finalLatex);
+    // Only flush Korean if actively composing
+    if(ime!==null || completedRef.current!==''){
+      const comp=toChar(ime);
+      const newCompleted=completedRef.current+comp;
+      completedRef.current='';
+      setIme(null);
+      const finalLatex=newCompleted?`${prefixRef.current}\\text{${newCompleted}}`:`${prefixRef.current}`;
+      setFieldValue(finalLatex);
+      // Update prefix to include Korean, then let onInsert append the number
+      prefixRef.current=finalLatex;
+    }
+    // Always insert number via onInsert (not setFieldValue)
     onInsert(n);
+    // CRITICAL: re-capture prefix after insert so next char appends correctly
+    setTimeout(()=>{
+      prefixRef.current = getFieldValue();
+    }, 10);
   }
 
   function bsp(){
@@ -245,7 +257,7 @@ export function StudentInlineKeypad({tabs,defaultTab,onInsert,onCmd,getFieldValu
   const [activeTab,setActiveTab]=useState(defaultTab);
   const isKor=activeTab==='kor';
   const keys=!isKor?(tabs.find(t=>t.id===activeTab)?.keys??[]):[];
-  const allTabs=[...tabs,{id:'kor',label:'한글',keys:[]}];
+  const allTabs=[...tabs,{id:'kor',label:'키보드',keys:[]}];
   const bspLP=useLongPress(()=>onCmd('deleteBackward'));
 
   return(

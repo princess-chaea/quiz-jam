@@ -519,85 +519,73 @@ export function MathInput({
   //   • inline keypad buttons (no floating popup / MathKeypadContext)
   //   • OK / Cancel
   if (!isTeacher) {
-    // 기호·단위 탭: 사칙연산 + 비교 + 분수 + 단위 (숫자 제외 — 한글 키보드 숫자 행 사용)
+    // 기호·단위 탭: 모든 연산자 + 공통 수식(분수,괄호) + 모든 단위 통합
     const SYMS = [
+      // 사칙연산 & 비교
       { label: '+',    latex: '+' },         { label: '-',    latex: '-' },
       { label: '×',    latex: '\\times' },   { label: '÷',    latex: '\\div' },
       { label: '=',    latex: '=' },         { label: '≠',    latex: '\\neq' },
       { label: '>',    latex: '>' },         { label: '<',    latex: '<' },
       { label: '≤',    latex: '\\le' },      { label: '≥',    latex: '\\ge' },
       { label: '%',    latex: '\\%' },       { label: '.',    latex: '.' },
+      // 필수 수식 구조
       { label: '□/□',  latex: '\\frac{#?}{#?}' }, { label: '□□/□', latex: '#?\\frac{#?}{#?}' },
-      { label: '(  )', latex: '(#?)' },      { label: '[  ]', latex: '[#?]' },
-      { label: 'cm',   latex: '\\text{cm}' }, { label: 'm',   latex: '\\text{m}' },
-      { label: 'km',   latex: '\\text{km}' }, { label: 'kg',  latex: '\\text{kg}' },
-      { label: 'g',    latex: '\\text{g}' },  { label: 'mL',  latex: '\\text{mL}' },
-      { label: 'L',    latex: '\\text{L}' },  { label: '원',  latex: '\\text{원}' },
+      { label: '( )',  latex: '(#?)' },      { label: '[ ]',  latex: '[#?]' },
+      // 단위: 개수/사람
+      { label: '개',   latex: '\\text{개}' }, { label: '명',   latex: '\\text{명}' },
+      { label: '마리', latex: '\\text{마리}' }, { label: '원',   latex: '\\text{원}' },
+      { label: '번',   latex: '\\text{번}' }, { label: '권',   latex: '\\text{권}' },
+      // 단위: 길이/무게/부피
+      { label: 'mm',   latex: '\\text{mm}' }, { label: 'cm',   latex: '\\text{cm}' },
+      { label: 'm',    latex: '\\text{m}' },  { label: 'km',   latex: '\\text{km}' },
+      { label: 'g',    latex: '\\text{g}' },  { label: 'kg',   latex: '\\text{kg}' },
+      { label: 't',    latex: '\\text{t}' },  { label: 'mL',   latex: '\\text{mL}' },
+      { label: 'L',    latex: '\\text{L}' },
+      // 단위: 시간/각도
+      { label: '초',   latex: '\\text{초}' }, { label: '분',   latex: '\\text{분}' },
+      { label: '시간', latex: '\\text{시간}' }, { label: '°',    latex: '^\\circ' },
     ];
-    // 초등: 사칙연산·분수·소수·비교·단위·도형
+    // 초등 수식: 도형 및 초등 특화 기호
     const ELEM = [
-      { label: '□/□',   latex: '\\frac{#?}{#?}' },
-      { label: '□□/□', latex: '#?\\frac{#?}{#?}' },
-      { label: '>',     latex: '>' },
-      { label: '<',     latex: '<' },
-      { label: '≤',     latex: '\\le' },
-      { label: '≥',     latex: '\\ge' },
-      { label: '(  )',  latex: '(#?)' },
-      { label: '[  ]',  latex: '[#?]' },
-      { label: '□:□',   latex: '#? : #?' },
-      { label: '∠',     latex: '\\angle' },
-      { label: '△',     latex: '\\triangle' },
-      { label: '□',     latex: '\\square' },
-      { label: 'cm²',   latex: '\\text{cm}^2' },
-      { label: 'm²',    latex: '\\text{m}^2' },
-      { label: 'km²',   latex: '\\text{km}^2' },
-      { label: '°',     latex: '^\\circ' },
+      { label: '□:□',  latex: '#? : #?' },   { label: '∠',    latex: '\\angle' },
+      { label: '△',    latex: '\\triangle' }, { label: '□',    latex: '\\square' },
+      { label: 'cm²',  latex: '\\text{cm}^2' }, { label: 'm²',   latex: '\\text{m}^2' },
+      { label: 'km²',  latex: '\\text{km}^2' }, { label: '□□°',  latex: '#?^\\circ' },
     ];
-    // 중등: 대수·함수·도형·집합·확률
+    // 중등 수식: 거듭제곱, 루트, 집합 등
     const MID = [
-      { label: 'xⁿ',    latex: '#?^{#?}' },
-      { label: 'xₙ',    latex: '#?_{#?}' },
-      { label: '√',     latex: '\\sqrt{#?}' },
-      { label: '|□|',   latex: '|#?|' },
-      { label: 'π',     latex: '\\pi' },
-      { label: '∞',     latex: '\\infty' },
-      { label: 'x',     latex: 'x' },
-      { label: 'y',     latex: 'y' },
-      { label: 'f(x)',  latex: 'f(x)' },
-      { label: '(x,y)', latex: '(x,y)' },
-      { label: '∝',     latex: '\\propto' },
-      { label: '∼',     latex: '\\sim' },
-      { label: '⊥',     latex: '\\perp' },
-      { label: '∥',     latex: '\\parallel' },
-      { label: '≡',     latex: '\\equiv' },
-      { label: '±',     latex: '\\pm' },
-      { label: '∈',     latex: '\\in' },
-      { label: '⊂',     latex: '\\subset' },
-      { label: '{  }',  latex: '\\{#?\\}' },
-      { label: 'P(A)',  latex: 'P(A)' },
+      { label: 'xⁿ',    latex: '#?^{#?}' },    { label: 'xₙ',    latex: '#?_{#?}' },
+      { label: '√',     latex: '\\sqrt{#?}' },   { label: '|□|',   latex: '|#?|' },
+      { label: 'π',     latex: '\\pi' },         { label: '∞',     latex: '\\infty' },
+      { label: 'f(x)',  latex: 'f(x)' },       { label: '(x,y)',  latex: '(x,y)' },
+      { label: '∝',     latex: '\\propto' },    { label: '∼',      latex: '\\sim' },
+      { label: '⊥',     latex: '\\perp' },      { label: '∥',      latex: '\\parallel' },
+      { label: '≡',     latex: '\\equiv' },     { label: '±',      latex: '\\pm' },
+      { label: '∈',     latex: '\\in' },        { label: '⊂',      latex: '\\subset' },
+      { label: '{ }',   latex: '\\{#?\\}' },   { label: 'P(A)',   latex: 'P(A)' },
+      { label: 'cm³',   latex: '\\text{cm}^3' }, { label: 'm³',     latex: '\\text{m}^3' },
+      { label: 'km/h',  latex: '\\text{km/h}' }, { label: 'm/s',    latex: '\\text{m/s}' },
+      { label: '°C',    latex: '^\\circ\\text{C}' },
     ];
-    // 고등: 해석·삼각함수·벡터·통계·지수로그
+    // 고등: 해석·삼각함수·벡터·통계·지수로그 + 고등 수준 단위
     const HIGH = [
-      { label: 'lim',    latex: '\\lim_{#? \\to #?}' },
-      { label: 'Σ',      latex: '\\sum_{#?}^{#?}' },
-      { label: '∫',      latex: '\\int_{#?}^{#?}' },
-      { label: "f'(x)",  latex: "f'(x)" },
-      { label: 'dy/dx',  latex: '\\frac{dy}{dx}' },
-      { label: 'sin',    latex: '\\sin' },
-      { label: 'cos',    latex: '\\cos' },
-      { label: 'tan',    latex: '\\tan' },
-      { label: 'θ',      latex: '\\theta' },
-      { label: 'log',    latex: '\\log_{#?}{#?}' },
-      { label: 'ln',     latex: '\\ln{#?}' },
-      { label: 'eˣ',     latex: 'e^{#?}' },
-      { label: 'ⁿ√',    latex: '\\sqrt[#?]{#?}' },
-      { label: 'vec',    latex: '\\vec{#?}' },
-      { label: 'AB→',    latex: '\\overrightarrow{#?}' },
-      { label: 'σ',      latex: '\\sigma' },
-      { label: 'x̄',     latex: '\\bar{x}' },
-      { label: 'nPr',    latex: '_{#?}P_{#?}' },
-      { label: 'nCr',    latex: '_{#?}C_{#?}' },
-      { label: 'E(X)',   latex: 'E(X)' },
+      // 수학 기호
+      { label: 'lim',    latex: '\\lim_{#? \\to #?}' }, { label: 'Σ',    latex: '\\sum_{#?}^{#?}' },
+      { label: '∫',      latex: '\\int_{#?}^{#?}' },   { label: "f'(x)",  latex: "f'(x)" },
+      { label: 'dy/dx',  latex: '\\frac{dy}{dx}' },   { label: 'sin',    latex: '\\sin' },
+      { label: 'cos',    latex: '\\cos' },              { label: 'tan',    latex: '\\tan' },
+      { label: 'θ',      latex: '\\theta' },            { label: 'log',    latex: '\\log_{#?}{#?}' },
+      { label: 'ln',     latex: '\\ln{#?}' },          { label: 'eˣ',    latex: 'e^{#?}' },
+      { label: 'ⁿ√',     latex: '\\sqrt[#?]{#?}' },  { label: 'vec',    latex: '\\vec{#?}' },
+      { label: 'AB→',    latex: '\\overrightarrow{#?}' }, { label: 'σ',   latex: '\\sigma' },
+      { label: 'x̄',     latex: '\\bar{x}' },          { label: 'nPr',    latex: '_{#?}P_{#?}' },
+      { label: 'nCr',    latex: '_{#?}C_{#?}' },       { label: 'E(X)',   latex: 'E(X)' },
+      // 단위 (고등/과학)
+      { label: 'rad',    latex: '\\text{rad}' },       { label: 'Pa',     latex: '\\text{Pa}' },
+      { label: 'N',      latex: '\\text{N}' },          { label: 'J',      latex: '\\text{J}' },
+      { label: 'W',      latex: '\\text{W}' },          { label: 'mol',    latex: '\\text{mol}' },
+      { label: 'A',      latex: '\\text{A}' },          { label: 'V',      latex: '\\text{V}' },
+      { label: 'K',      latex: '\\text{K}' },          { label: 'dB',     latex: '\\text{dB}' },
     ];
     const TABS: KeypadTab[] = [
       { id: 'sym',  label: '기호·단위', keys: SYMS },
@@ -752,7 +740,7 @@ export function MathInput({
             className="fixed inset-0 z-[9999] bg-black/20 flex flex-col justify-end sm:justify-center sm:items-center sm:p-4"
             onPointerDown={(e) => { if (e.target === e.currentTarget) closeMathModal(); }}
           >
-            <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col" style={{ maxHeight: '80vh' }}>
+            <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col" style={{ maxHeight: '95vh', minHeight: '60vh' }}>
 
               {/* Header */}
               <div className="bg-indigo-600 text-white px-5 py-3 flex items-center justify-between flex-shrink-0">
@@ -772,8 +760,8 @@ export function MathInput({
                 />
               </div>
 
-              {/* Inline keypad – scrollable if needed */}
-              <div className="overflow-y-auto flex-shrink-0">
+              {/* Inline keypad – scrollable */}
+              <div className="flex-1 overflow-y-auto min-h-0">
                 <StudentInlineKeypad
                   tabs={TABS}
                   defaultTab={level === 'high' ? 'high' : level === 'middle' ? 'mid' : 'sym'}
