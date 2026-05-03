@@ -164,11 +164,32 @@ export function MathInput({
             if (textarea) {
               textarea.setAttribute('inputmode', 'text');
               textarea.setAttribute('enterkeyhint', 'done');
-              // REMOVED: textarea.style.pointerEvents = 'auto'; 
-              // Allowing MathLive to handle internal navigation (numerator/denominator)
+
+              // CRITICAL: MathLive resets inputmode to 'none' to suppress the native
+              // keyboard (it prefers its own virtual keyboard). We use a MutationObserver
+              // to intercept these resets and immediately override them back to 'text'.
+              // This is the only reliable way to keep the native keyboard enabled.
+              if (!textarea.dataset.keyboardObserved) {
+                textarea.dataset.keyboardObserved = 'true';
+                const inputModeObserver = new MutationObserver((mutations) => {
+                  mutations.forEach((mutation) => {
+                    if (mutation.attributeName === 'inputmode') {
+                      const current = textarea.getAttribute('inputmode');
+                      if (current !== 'text') {
+                        textarea.setAttribute('inputmode', 'text');
+                      }
+                    }
+                  });
+                });
+                inputModeObserver.observe(textarea, {
+                  attributes: true,
+                  attributeFilter: ['inputmode']
+                });
+              }
             }
           } catch (err) {}
         };
+
 
         // Multiple attempts to ensure the shadow DOM is ready
         setTimeout(updateInternalTextarea, 300);
