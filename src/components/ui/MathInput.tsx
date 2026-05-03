@@ -66,11 +66,13 @@ export function MathInput({
   onRefresh
 }: MathInputProps) {
   const mfRef = useRef<any>(null);
+  const modalMfRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastValueRef = useRef<string | undefined>(undefined);
   const { activeField, openKeypad } = useMathKeypad();
   const [isReady, setIsReady] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [showMathModal, setShowMathModal] = useState(false);
   const onChangeRef = useRef(onChange);
   const onEnterRef = useRef(onEnter);
 
@@ -509,6 +511,111 @@ export function MathInput({
     }
   };
 
+  // ── STUDENT VIEW ────────────────────────────────────────────────────────────
+  // Use a plain <input> so the native mobile keyboard always appears.
+  // The math keyboard icon opens a modal with a MathLive editor.
+  if (!isTeacher) {
+    const handleTextChange = (v: string) => {
+      lastValueRef.current = v;
+      onChangeRef.current(v);
+    };
+
+    const handleModalConfirm = () => {
+      if (modalMfRef.current) {
+        const raw = modalMfRef.current.getValue?.() ?? modalMfRef.current.value ?? '';
+        const normalized = raw.replace(/~/g, ' ').replace(/\\displaylines/g, '').replace(/\\ /g, ' ');
+        lastValueRef.current = normalized;
+        onChangeRef.current(normalized);
+      }
+      setShowMathModal(false);
+    };
+
+    return (
+      <div className={cn("relative w-full", containerClassName)}>
+        {/* Plain text input – native keyboard always works */}
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            inputMode="text"
+            enterKeyHint="done"
+            value={value}
+            onChange={(e) => handleTextChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); onEnterRef.current?.(); }
+            }}
+            placeholder={placeholder || "답을 입력하세요"}
+            className={cn(
+              "flex-1 text-2xl md:text-3xl font-bold text-center bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 py-3",
+              "focus:outline-none focus:border-indigo-400 focus:bg-white transition-all",
+              className
+            )}
+          />
+          {/* Math keyboard button */}
+          <button
+            type="button"
+            onClick={() => setShowMathModal(true)}
+            className="w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all border-2 border-indigo-200"
+            title="수식 키보드 열기"
+          >
+            <Keyboard size={26} />
+          </button>
+        </div>
+
+        {/* Math input modal */}
+        {showMathModal && isReady && (
+          <div
+            className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowMathModal(false); }}
+          >
+            <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden">
+              <div className="bg-indigo-600 text-white px-5 py-4 flex items-center justify-between">
+                <h3 className="font-bold text-lg">수식 입력</h3>
+                <button onClick={() => setShowMathModal(false)} className="text-white/70 hover:text-white text-2xl leading-none">✕</button>
+              </div>
+              <div className="p-4">
+                <math-field
+                  ref={(el: any) => {
+                    modalMfRef.current = el;
+                    if (el) {
+                      el.mathVirtualKeyboardPolicy = 'auto';
+                      el.setValue(toMathLiveValue(value));
+                      setTimeout(() => el.focus(), 80);
+                    }
+                  }}
+                  virtual-keyboard-mode="auto"
+                  math-virtual-keyboard-policy="auto"
+                  className="w-full text-2xl bg-slate-50 rounded-xl border-2 border-slate-200 p-4 focus:border-indigo-400 outline-none block"
+                  style={{ minHeight: '4rem' }}
+                />
+              </div>
+              <div className="flex gap-3 px-4 pb-5">
+                <button
+                  onClick={() => setShowMathModal(false)}
+                  className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold text-lg hover:bg-slate-50 transition-all"
+                >취소</button>
+                <button
+                  onClick={handleModalConfirm}
+                  className="flex-[2] py-3 rounded-xl bg-indigo-600 text-white font-bold text-lg hover:bg-indigo-700 transition-all"
+                >확인</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Show loading only if modal is about to open but MathLive not ready yet */}
+        {showMathModal && !isReady && (
+          <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center">
+            <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+              <p className="font-bold text-slate-500">수식 편집기 로드 중...</p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── TEACHER VIEW ─────────────────────────────────────────────────────────────
   if (!isReady || !mounted) {
     return (
       <div className={cn("relative w-full rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center py-1", containerClassName)}>
@@ -530,14 +637,7 @@ export function MathInput({
       )}
       style={{ minHeight: 'auto' }}
       onPointerDown={() => {
-        // DEAD ZONE FIX: When user taps the container's padding area (above/below math
-        // content), focus the math-field element itself. MathLive will internally focus
-        // its textarea (with inputmode='text' from our monkey-patch).
-        // This is better than directly calling textarea.focus() which bypasses MathLive's
-        // keyboard routing on desktop.
-        try {
-          mfRef.current?.focus();
-        } catch {}
+        try { mfRef.current?.focus(); } catch {}
       }}
     >
       <style dangerouslySetInnerHTML={{ __html: `
@@ -637,34 +737,7 @@ export function MathInput({
           {toMathLiveValue(value)}
         </math-field>
       </div>
-      
-      {!isTeacher && (
-        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-30 p-0.5">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleManualRefresh();
-            }}
-            className="w-12 h-12 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-indigo-600 hover:text-white transition-all border-2 border-slate-200"
-            title="입력기 새로고침"
-          >
-            <RefreshCw size={24} />
-          </button>
-          
-          <div className="relative">
-            <button
-              type="button"
-              onClick={handleShowKeypad}
-              className="w-12 h-12 flex items-center justify-center rounded-xl bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition-all shadow-md border-2 border-indigo-100"
-              title="수식 키보드 열기"
-            >
-              <Keyboard size={24} />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
+

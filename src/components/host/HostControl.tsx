@@ -101,17 +101,10 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         if (answer?.answer) {
           if (question.type === "OX") {
             isCorrect = answer.answer.toUpperCase() === question.a.toUpperCase();
-          } else if (question.type === "MULTIPLE_CHOICE") {
-            isCorrect = normalizeMath(answer.answer) === normalizeMath(question.a);
           } else {
-            // Short answer or Blank: normalize both and compare
-            const normA = normalizeMath(answer.answer);
-            const normQ = normalizeMath(question.a);
-            isCorrect = normA === normQ;
-            console.log(`[Grade] raw_answer="${answer.answer}" raw_correct="${question.a}" | norm_answer="${normA}" norm_correct="${normQ}" | match=${isCorrect}`);
+            isCorrect = normalizeMath(answer.answer) === normalizeMath(question.a);
           }
         }
-
         let basePoints = question.points || 10;
         let points = 0;
         let event = 'none';
