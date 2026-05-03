@@ -2,7 +2,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMathKeypad } from "./MathKeypadContext";
 import { cn, hasMathSymbols } from "@/lib/utils";
-import { Keyboard, RefreshCw } from "lucide-react";
+import { Keyboard } from "lucide-react";
+import { StudentInlineKeypad, type KeypadTab } from "./StudentInlineKeypad";
 
 /**
  * Converts plain text or mixed LaTeX into a format that MathLive renders correctly,
@@ -511,9 +512,45 @@ export function MathInput({
     }
   };
 
-  // Display: rendered math (readonly math-field) when value is LaTeX,
-  //          plain text input (native keyboard) otherwise.
+  // ── STUDENT VIEW ────────────────────────────────────────────────────────────
+  // Main screen: text input (native keyboard) + ⌨ button
+  // Math button opens a bottom-sheet modal with:
+  //   • visible MathLive editor (focus() works because it IS visible)
+  //   • inline keypad buttons (no floating popup / MathKeypadContext)
+  //   • OK / Cancel
   if (!isTeacher) {
+    // Inline keypad data
+    const NUMS = [
+      { label: '1', latex: '1' }, { label: '2', latex: '2' }, { label: '3', latex: '3' }, { label: '+', latex: '+' },
+      { label: '4', latex: '4' }, { label: '5', latex: '5' }, { label: '6', latex: '6' }, { label: '-', latex: '-' },
+      { label: '7', latex: '7' }, { label: '8', latex: '8' }, { label: '9', latex: '9' }, { label: '×', latex: '\\times' },
+      { label: '.', latex: '.' }, { label: '0', latex: '0' }, { label: '=', latex: '=' }, { label: '÷', latex: '\\div' },
+    ];
+    const ELEM = [
+      { label: '□/□', latex: '\\frac{#?}{#?}' }, { label: '0.1', latex: '0.1' }, { label: '3.14', latex: '3.14' }, { label: '>', latex: '>' },
+      { label: '<', latex: '<' }, { label: 'cm²', latex: '\\text{cm}^2' }, { label: 'm²', latex: '\\text{m}^2' }, { label: 'km²', latex: '\\text{km}^2' },
+      { label: '( )', latex: '(#?)' }, { label: '{}', latex: '{#?}' }, { label: '[:]', latex: '#? : #?' }, { label: 'kg', latex: '\\text{kg}' },
+      { label: 'g', latex: '\\text{g}' }, { label: 'mL', latex: '\\text{mL}' }, { label: 'L', latex: '\\text{L}' }, { label: '원', latex: '\\text{원}' },
+    ];
+    const MID = [
+      { label: 'xⁿ', latex: '#?^{#?}' }, { label: '√□', latex: '\\sqrt{#?}' }, { label: '|□|', latex: '|#?|' }, { label: 'π', latex: '\\pi' },
+      { label: 'x', latex: 'x' }, { label: 'y', latex: 'y' }, { label: 'z', latex: 'z' }, { label: '△', latex: '\\triangle' },
+      { label: '∠', latex: '\\angle' }, { label: '⊥', latex: '\\perp' }, { label: '∥', latex: '\\parallel' }, { label: '≡', latex: '\\equiv' },
+      { label: '±', latex: '\\pm' }, { label: '≤', latex: '\\le' }, { label: '≥', latex: '\\ge' }, { label: '∞', latex: '\\infty' },
+    ];
+    const HIGH = [
+      { label: '∪', latex: '\\cup' }, { label: '∩', latex: '\\cap' }, { label: '∈', latex: '\\in' }, { label: '⊂', latex: '\\subset' },
+      { label: '→', latex: '\\rightarrow' }, { label: '∴', latex: '\\therefore' }, { label: 'f(x)', latex: 'f(x)' }, { label: 'lim', latex: '\\lim_{#? \\to #?}' },
+      { label: "f'(x)", latex: "f'(x)" }, { label: 'dy/dx', latex: '\\frac{dy}{dx}' }, { label: '∫', latex: '\\int_{#?}^{#?}' }, { label: 'Σ', latex: '\\sum_{#?=#?}^{#?}' },
+      { label: 'log', latex: '\\log_{#?}{#?}' }, { label: 'ln', latex: '\\ln{#?}' }, { label: 'nCr', latex: '_{#?}C_{#?}' }, { label: 'n!', latex: '#? !' },
+    ];
+    const TABS: KeypadTab[] = [
+      { id: 'num', label: '123', keys: NUMS },
+      { id: 'elem', label: '초등', keys: ELEM },
+      { id: 'mid',  label: '중등', keys: MID  },
+      { id: 'high', label: '고등', keys: HIGH },
+    ];
+
     const isLatexValue = value.includes('\\') || value.includes('{');
 
     const handleTextChange = (v: string) => {
@@ -524,65 +561,93 @@ export function MathInput({
     const handleClear = () => {
       lastValueRef.current = '';
       onChangeRef.current('');
-      if (modalMfRef.current) modalMfRef.current.setValue('');
     };
 
-    const handleMathButtonClick = () => {
-      if (!isReady || !modalMfRef.current) return;
-      modalMfRef.current.setValue(toMathLiveValue(value));
-      modalMfRef.current.focus();
-      openKeypad(modalMfRef.current, level);
+    const openMathModal = () => {
+      setShowMathModal(true);
+      // setValue after modal mounts (useEffect-like via setTimeout)
+      setTimeout(() => {
+        if (modalMfRef.current) {
+          modalMfRef.current.mathVirtualKeyboardPolicy = 'manual';
+          modalMfRef.current.setValue(toMathLiveValue(value));
+          modalMfRef.current.focus();
+        }
+      }, 120);
+    };
+
+    const closeMathModal = () => setShowMathModal(false);
+
+    const handleModalConfirm = () => {
+      if (modalMfRef.current) {
+        const raw: string = modalMfRef.current.getValue?.() ?? '';
+        const normalized = raw.replace(/~/g, ' ').replace(/\\displaylines/g, '').replace(/\\ /g, ' ');
+        lastValueRef.current = normalized;
+        onChangeRef.current(normalized);
+      }
+      closeMathModal();
+    };
+
+    // Inline keypad actions (operate directly on visible modal math-field)
+    const kpInsert = (latex: string) => {
+      const el = modalMfRef.current;
+      if (!el) return;
+      el.executeCommand(['insert', latex, { focus: true, feedback: true }]);
+      setTimeout(() => el.focus(), 0);
+    };
+    const kpCmd = (name: string) => {
+      const el = modalMfRef.current;
+      if (!el) return;
+      el.executeCommand([name]);
+      setTimeout(() => el.focus(), 0);
     };
 
     return (
-      <div className={cn("relative w-full", containerClassName)}>
+      <div className={cn('relative w-full', containerClassName)}>
+
+        {/* ── Main input row ── */}
         <div className="flex items-center gap-2">
 
-          {/* ── Display area ── */}
           {isLatexValue ? (
-            // LaTeX value → render as math formula (readonly)
+            // Rendered formula display (readonly)
             <div
               className={cn(
-                "flex-1 min-h-[3.5rem] flex items-center justify-center gap-2",
-                "bg-slate-50 border-2 border-indigo-300 rounded-2xl px-4 cursor-pointer",
-                "hover:border-indigo-400 hover:bg-white transition-all",
+                'flex-1 min-h-[3.5rem] flex items-center justify-center gap-2',
+                'bg-slate-50 border-2 border-indigo-300 rounded-2xl px-4 cursor-pointer',
+                'hover:border-indigo-400 hover:bg-white transition-all select-none',
                 className
               )}
-              onClick={handleMathButtonClick}
+              onPointerDown={(e) => { e.preventDefault(); openMathModal(); }}
               title="수식을 눌러 편집"
             >
               <math-field
+                key={value}
                 readonly
-                className="bg-transparent border-none outline-none pointer-events-none"
-                style={{ fontSize: '1.75rem' }}
+                style={{ fontSize: '1.75rem', background: 'transparent', border: 'none', outline: 'none', pointerEvents: 'none' }}
               >
                 {toMathLiveValue(value)}
               </math-field>
-              {/* Clear button */}
               <button
                 type="button"
-                onPointerDown={(e) => e.preventDefault()}
-                onClick={(e) => { e.stopPropagation(); handleClear(); }}
+                onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); handleClear(); }}
                 className="text-slate-400 hover:text-red-500 transition-colors flex-shrink-0 text-xl leading-none"
                 title="지우기"
               >✕</button>
             </div>
           ) : (
-            // Plain text → regular input (native keyboard always works)
+            // Plain text input – native keyboard
             <input
               type="text"
               inputMode="text"
               enterKeyHint="done"
               value={value}
               onChange={(e) => handleTextChange(e.target.value)}
-              onFocus={() => closeKeypad()}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') { e.preventDefault(); onEnterRef.current?.(); }
               }}
-              placeholder={placeholder || "답을 입력하세요"}
+              placeholder={placeholder || '답을 입력하세요'}
               className={cn(
-                "flex-1 text-2xl md:text-3xl font-bold text-center bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 py-3",
-                "focus:outline-none focus:border-indigo-400 focus:bg-white transition-all",
+                'flex-1 text-2xl md:text-3xl font-bold text-center bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 py-3',
+                'focus:outline-none focus:border-indigo-400 focus:bg-white transition-all',
                 className
               )}
             />
@@ -592,7 +657,7 @@ export function MathInput({
           <button
             type="button"
             onPointerDown={(e) => e.preventDefault()}
-            onClick={handleMathButtonClick}
+            onClick={openMathModal}
             className="w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all border-2 border-indigo-200"
             title="수식 키보드 열기"
           >
@@ -600,40 +665,49 @@ export function MathInput({
           </button>
         </div>
 
-        {/* Hidden off-screen MathLive field – receives custom keypad input */}
-        {isReady && (
-          <math-field
-            ref={(el: any) => {
-              const isNew = el !== null && el !== modalMfRef.current;
-              modalMfRef.current = el;
-              if (isNew && el) {
-                el.mathVirtualKeyboardPolicy = 'manual';
-                el.addEventListener('input', () => {
-                  const raw: string = el.getValue?.() ?? '';
-                  const normalized = raw
-                    .replace(/~/g, ' ')
-                    .replace(/\\displaylines/g, '')
-                    .replace(/\\ /g, ' ');
-                  if (normalized !== lastValueRef.current) {
-                    lastValueRef.current = normalized;
-                    onChangeRef.current(normalized);
-                  }
-                });
-              }
-            }}
-            virtual-keyboard-mode="manual"
-            math-virtual-keyboard-policy="manual"
-            virtual-keyboard-policy="manual"
-            style={{
-              position: 'fixed',
-              left: '-9999px',
-              top: '-9999px',
-              width: '1px',
-              height: '1px',
-              opacity: 0,
-              pointerEvents: 'none',
-            }}
-          />
+        {/* ── Bottom-sheet math modal ── */}
+        {showMathModal && isReady && (
+          <div
+            className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex flex-col justify-end sm:justify-center sm:items-center sm:p-4"
+            onPointerDown={(e) => { if (e.target === e.currentTarget) closeMathModal(); }}
+          >
+            <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+
+              {/* Header */}
+              <div className="bg-indigo-600 text-white px-5 py-3 flex items-center justify-between flex-shrink-0">
+                <span className="font-bold text-lg">수식 입력</span>
+                <button onPointerDown={(e) => e.preventDefault()} onClick={closeMathModal} className="text-white/70 hover:text-white text-2xl leading-none">✕</button>
+              </div>
+
+              {/* MathLive editor – VISIBLE so focus() works */}
+              <div className="px-4 pt-4 pb-2 flex-shrink-0">
+                <math-field
+                  ref={(el: any) => { modalMfRef.current = el; }}
+                  virtual-keyboard-mode="manual"
+                  math-virtual-keyboard-policy="manual"
+                  virtual-keyboard-policy="manual"
+                  className="w-full text-2xl bg-slate-50 rounded-xl border-2 border-slate-200 p-3 outline-none block focus:border-indigo-400"
+                  style={{ minHeight: '3.5rem', fontSize: '1.6rem' }}
+                />
+              </div>
+
+              {/* Inline keypad */}
+              <StudentInlineKeypad
+                tabs={TABS}
+                defaultTab={level === 'high' ? 'high' : level === 'middle' ? 'mid' : 'elem'}
+                onInsert={kpInsert}
+                onCmd={kpCmd}
+              />
+
+              {/* Footer: nav + OK/Cancel */}
+              <div className="flex gap-2 px-4 pb-4 pt-2 flex-shrink-0">
+                <button onPointerDown={(e) => e.preventDefault()} onClick={() => kpCmd('moveToPreviousChar')} className="flex-1 h-10 bg-slate-100 rounded-xl text-slate-600 font-bold text-lg">◀</button>
+                <button onPointerDown={(e) => e.preventDefault()} onClick={() => kpCmd('moveToNextChar')} className="flex-1 h-10 bg-slate-100 rounded-xl text-slate-600 font-bold text-lg">▶</button>
+                <button onPointerDown={(e) => e.preventDefault()} onClick={closeMathModal} className="flex-[1.5] h-10 bg-slate-100 rounded-xl text-slate-600 font-bold">취소</button>
+                <button onPointerDown={(e) => e.preventDefault()} onClick={handleModalConfirm} className="flex-[2] h-10 bg-indigo-600 rounded-xl text-white font-bold shadow-md">확인</button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     );
