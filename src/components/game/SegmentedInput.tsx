@@ -88,16 +88,20 @@ export function SegmentedInput({
     hiddenInputRef.current?.focus();
   };
 
-  // When user clicks the input, determine which box was clicked by x-coordinate
+  // When user clicks a box:
+  //   filled box → cursor goes AFTER it (so backspace deletes that character)
+  //   empty box  → cursor goes AT it   (so next keystroke fills that box)
   const handleInputClick = (e: React.MouseEvent<HTMLInputElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    // Estimate box index from click position
     const approxBoxIndex = Math.min(
       Math.floor((x / rect.width) * length),
       length - 1
     );
-    const newPos = Math.min(approxBoxIndex, localValue.length);
+    const char = localValue[approxBoxIndex];
+    const newPos = char
+      ? Math.min(approxBoxIndex + 1, localValue.length)
+      : Math.min(approxBoxIndex, localValue.length);
     hiddenInputRef.current?.setSelectionRange(newPos, newPos);
     setCursorPos(newPos);
   };
@@ -142,13 +146,14 @@ export function SegmentedInput({
       <div className="absolute inset-0 flex gap-1.5 items-center justify-center pointer-events-none z-10">
         {Array.from({ length }).map((_, i) => {
           const char = localValue[i];
-          // Active = focused AND cursor is at or near this box
-          const isActive = isFocused && (
-            i === Math.min(cursorBoxIndex, length - 1)
-          );
-          // Show cursor bar only in EMPTY boxes (or composing box)
-          const showCursor = isFocused && !isComposing && !char && i === cursorBoxIndex && i < length;
-          const showComposingCursor = isFocused && isComposing && i === cursorBoxIndex;
+          // isActive: highlight the BACKSPACE TARGET (filled box before cursor)
+          // or the typing position (empty box at cursor)
+          const isBackspaceTarget = isFocused && !isComposing && cursorPos > 0 && i === cursorPos - 1 && !!char;
+          const isTypingPosition  = isFocused && !isComposing && i === cursorPos && !char && i < length;
+          const isActive = isBackspaceTarget || isTypingPosition || (isFocused && isComposing && i === Math.max(0, localValue.length - 1));
+
+          const showCursor = isFocused && !isComposing && !char && i === cursorPos && i < length;
+          const showComposingCursor = isFocused && isComposing && i === Math.max(0, localValue.length - 1);
 
           return (
             <div

@@ -520,6 +520,11 @@ export function MathInput({
       onChangeRef.current(v);
     };
 
+    const closeModal = () => {
+      closeKeypad(); // Always close custom keypad when modal closes
+      setShowMathModal(false);
+    };
+
     const handleModalConfirm = () => {
       if (modalMfRef.current) {
         const raw = modalMfRef.current.getValue?.() ?? modalMfRef.current.value ?? '';
@@ -527,7 +532,7 @@ export function MathInput({
         lastValueRef.current = normalized;
         onChangeRef.current(normalized);
       }
-      setShowMathModal(false);
+      closeModal();
     };
 
     return (
@@ -565,25 +570,27 @@ export function MathInput({
         {showMathModal && isReady && (
           <div
             className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
-            onClick={(e) => { if (e.target === e.currentTarget) setShowMathModal(false); }}
+            onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
           >
             <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden">
               <div className="bg-indigo-600 text-white px-5 py-4 flex items-center justify-between">
                 <h3 className="font-bold text-lg">수식 입력</h3>
-                <button onClick={() => setShowMathModal(false)} className="text-white/70 hover:text-white text-2xl leading-none">✕</button>
+                <button onClick={closeModal} className="text-white/70 hover:text-white text-2xl leading-none">✕</button>
               </div>
               <div className="p-4">
                 <math-field
                   ref={(el: any) => {
+                    // isNew guard: only initialize on first mount of this element.
+                    // Without this, every re-render resets el.setValue() and erases
+                    // whatever the student typed.
+                    const isNew = el !== null && el !== modalMfRef.current;
                     modalMfRef.current = el;
-                    if (el) {
-                      // Use manual mode: suppress MathLive's built-in keyboard
-                      // (it appeared below the modal, inaccessible on mobile)
+                    if (isNew) {
                       el.mathVirtualKeyboardPolicy = 'manual';
                       el.setValue(toMathLiveValue(value));
                       setTimeout(() => {
                         el.focus();
-                        // Open our custom grade keypad (zIndex:10000 > modal's z-[9999])
+                        // Open our custom grade keypad (zIndex:10000 > modal z-[9999])
                         openKeypad(el, level);
                       }, 80);
                     }
@@ -591,16 +598,13 @@ export function MathInput({
                   virtual-keyboard-mode="manual"
                   math-virtual-keyboard-policy="manual"
                   virtual-keyboard-policy="manual"
-                  onFocus={() => {
-                    if (modalMfRef.current) openKeypad(modalMfRef.current, level);
-                  }}
                   className="w-full text-2xl bg-slate-50 rounded-xl border-2 border-slate-200 p-4 focus:border-indigo-400 outline-none block"
                   style={{ minHeight: '4rem' }}
                 />
               </div>
               <div className="flex gap-3 px-4 pb-5">
                 <button
-                  onClick={() => setShowMathModal(false)}
+                  onClick={closeModal}
                   className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold text-lg hover:bg-slate-50 transition-all"
                 >취소</button>
                 <button
