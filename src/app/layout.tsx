@@ -14,7 +14,7 @@ const noto = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
-  title: "클래스 퀴즈 잼! - 실시간 교실 퀴즈",
+  title: "퀴즈잼 - 실시간 교실 퀴즈",
   description: "선생님과 학생이 함께하는 초스피드 실시간 퀴즈 게임",
   verification: {
     google: "X-sp5whiQvZfdoFcikpiLEPOKjsSeSP8dllEyIrUjd0",
