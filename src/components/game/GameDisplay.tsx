@@ -43,12 +43,10 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   const [floatingEmojis, setFloatingEmojis] = useState<any[]>([]);
   const [hintStage, setHintStage] = useState<number>(game.current_hint_stage || 0);
   const [showEmojiBar, setShowEmojiBar] = useState(false);
-  const [isReady, setIsReady] = useState(false);
 
   const totalQuestions = game.options?.questions?.length || 0;
   const currentQuestion = game.options?.questions[game.current_q_index];
   
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const standardInputRef = useRef<HTMLInputElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const helpSidebarRef = useRef<HTMLDivElement>(null);
@@ -274,25 +272,6 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
       return () => clearInterval(interval);
     }
   }, [game?.status, game?.options?.current_q_started_at, game?.current_q_index, currentQuestion?.timeLimit]);
-
-  useEffect(() => {
-    if (game.status === 'PLAYING') {
-      const timer = setTimeout(() => {
-        setIsReady(true);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [game.status]);
-
-  // Ensure focus on mount for standard input
-  useEffect(() => {
-    if (standardInputRef.current && currentQuestion.type === "SHORT_ANSWER") {
-      const timer = setTimeout(() => {
-        standardInputRef.current?.focus();
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [game.current_q_index, currentQuestion.type]);
 
   const getQuestionFontSize = (text: string) => {
     const len = text.length;
@@ -681,8 +660,10 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                              className="w-full p-5 text-xl border-4 border-slate-100 rounded-2xl focus:border-indigo-400 outline-none text-center font-black placeholder:text-gray-300 transition-all bg-slate-50/50"
                              ref={standardInputRef}
                              placeholder="정답을 입력하세요"
+                             autoFocus
                              inputMode="text"
                              autoComplete="off"
+                             style={{ fontSize: '16px' }}
                            />
                         </div>
                       )}

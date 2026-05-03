@@ -83,20 +83,17 @@ export function SegmentedInput({
   return (
     <div 
       className={cn("relative flex items-center justify-center cursor-text", className)}
-      onPointerDown={(e) => {
-        // Essential: focus in same stack as touch/pointer event for mobile
-        hiddenInputRef.current?.focus();
-      }}
-      onTouchStart={(e) => {
-        // Double safety for mobile browsers
-        hiddenInputRef.current?.focus();
-      }}
       onClick={handleContainerClick}
     >
       {/* 
-        Standard visible-to-OS input that mirrors the Join page structure.
-        We place it in the normal flow (relative) so the browser's viewport 
-        scrolling and keyboard logic work perfectly.
+        CRITICAL: 'relative' on the input is required for z-index to take effect.
+        Without it, z-50 is ignored and the absolute overlay sits above this input
+        in the stacking order, preventing the browser from detecting a direct tap
+        on the input → no keyboard on Android/iOS.
+        
+        We use bg-transparent + text-transparent + visible caret so the input is
+        the topmost hit target (z-50 > overlay z-10) but appears invisible,
+        letting the visual segments below show through.
       */}
       <input
         ref={(el) => {
@@ -109,7 +106,7 @@ export function SegmentedInput({
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
         onKeyDown={handleKeyDown}
-        className="w-full h-14 p-5 text-xl border-4 border-transparent rounded-2xl focus:outline-none text-center font-black opacity-[0.01] bg-white z-50 cursor-text"
+        className="w-full h-14 p-5 border-4 border-transparent rounded-2xl focus:outline-none text-center font-black relative z-50 bg-transparent text-transparent caret-indigo-500 cursor-text"
         style={{ fontSize: '16px' }}
         autoFocus={autoFocus}
         autoComplete="off"
