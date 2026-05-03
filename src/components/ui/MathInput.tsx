@@ -512,32 +512,27 @@ export function MathInput({
   };
 
   // ── STUDENT VIEW ────────────────────────────────────────────────────────────
-  // Use a plain <input> so the native mobile keyboard always appears.
-  // The math keyboard icon opens a modal with a MathLive editor.
+  // ONE screen: regular text input (native keyboard) + math keyboard button
+  // (opens custom floating keypad connected to a hidden off-screen MathLive field).
+  // Tap text input → native keyboard, close keypad.
+  // Tap math button → custom keypad popup, insert formulas.
   if (!isTeacher) {
     const handleTextChange = (v: string) => {
       lastValueRef.current = v;
       onChangeRef.current(v);
     };
 
-    const closeModal = () => {
-      closeKeypad(); // Always close custom keypad when modal closes
-      setShowMathModal(false);
-    };
-
-    const handleModalConfirm = () => {
-      if (modalMfRef.current) {
-        const raw = modalMfRef.current.getValue?.() ?? modalMfRef.current.value ?? '';
-        const normalized = raw.replace(/~/g, ' ').replace(/\\displaylines/g, '').replace(/\\ /g, ' ');
-        lastValueRef.current = normalized;
-        onChangeRef.current(normalized);
-      }
-      closeModal();
+    const handleMathButtonClick = () => {
+      if (!isReady || !modalMfRef.current) return;
+      // Load current value into hidden MathLive then open custom keypad
+      modalMfRef.current.setValue(toMathLiveValue(value));
+      modalMfRef.current.focus();
+      openKeypad(modalMfRef.current, level);
     };
 
     return (
       <div className={cn("relative w-full", containerClassName)}>
-        {/* Plain text input – native keyboard always works */}
+        {/* Main text input – native keyboard always works */}
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -545,6 +540,7 @@ export function MathInput({
             enterKeyHint="done"
             value={value}
             onChange={(e) => handleTextChange(e.target.value)}
+            onFocus={() => closeKeypad()} // native keyboard → close math keypad
             onKeyDown={(e) => {
               if (e.key === 'Enter') { e.preventDefault(); onEnterRef.current?.(); }
             }}
@@ -558,7 +554,8 @@ export function MathInput({
           {/* Math keyboard button */}
           <button
             type="button"
-            onClick={() => setShowMathModal(true)}
+            onPointerDown={(e) => e.preventDefault()} // prevent text-input blur → keypad re-close
+            onClick={handleMathButtonClick}
             className="w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all border-2 border-indigo-200"
             title="수식 키보드 열기"
           >
@@ -566,64 +563,41 @@ export function MathInput({
           </button>
         </div>
 
-        {/* Math input modal */}
-        {showMathModal && isReady && (
-          <div
-            className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
-            onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
-          >
-            <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden">
-              <div className="bg-indigo-600 text-white px-5 py-4 flex items-center justify-between">
-                <h3 className="font-bold text-lg">수식 입력</h3>
-                <button onClick={closeModal} className="text-white/70 hover:text-white text-2xl leading-none">✕</button>
-              </div>
-              <div className="p-4">
-                <math-field
-                  ref={(el: any) => {
-                    // isNew guard: only initialize on first mount of this element.
-                    // Without this, every re-render resets el.setValue() and erases
-                    // whatever the student typed.
-                    const isNew = el !== null && el !== modalMfRef.current;
-                    modalMfRef.current = el;
-                    if (isNew) {
-                      el.mathVirtualKeyboardPolicy = 'manual';
-                      el.setValue(toMathLiveValue(value));
-                      setTimeout(() => {
-                        el.focus();
-                        // Open our custom grade keypad (zIndex:10000 > modal z-[9999])
-                        openKeypad(el, level);
-                      }, 80);
-                    }
-                  }}
-                  virtual-keyboard-mode="manual"
-                  math-virtual-keyboard-policy="manual"
-                  virtual-keyboard-policy="manual"
-                  className="w-full text-2xl bg-slate-50 rounded-xl border-2 border-slate-200 p-4 focus:border-indigo-400 outline-none block"
-                  style={{ minHeight: '4rem' }}
-                />
-              </div>
-              <div className="flex gap-3 px-4 pb-5">
-                <button
-                  onClick={closeModal}
-                  className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold text-lg hover:bg-slate-50 transition-all"
-                >취소</button>
-                <button
-                  onClick={handleModalConfirm}
-                  className="flex-[2] py-3 rounded-xl bg-indigo-600 text-white font-bold text-lg hover:bg-indigo-700 transition-all"
-                >확인</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Show loading only if modal is about to open but MathLive not ready yet */}
-        {showMathModal && !isReady && (
-          <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center">
-            <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-              <p className="font-bold text-slate-500">수식 편집기 로드 중...</p>
-            </div>
-          </div>
+        {/* Hidden off-screen MathLive field – receives custom keypad input */}
+        {isReady && (
+          <math-field
+            ref={(el: any) => {
+              const isNew = el !== null && el !== modalMfRef.current;
+              modalMfRef.current = el;
+              if (isNew && el) {
+                el.mathVirtualKeyboardPolicy = 'manual';
+                // Sync hidden field → text input whenever keypad inserts
+                el.addEventListener('input', () => {
+                  const raw: string = el.getValue?.() ?? '';
+                  const normalized = raw
+                    .replace(/~/g, ' ')
+                    .replace(/\\displaylines/g, '')
+                    .replace(/\\ /g, ' ');
+                  if (normalized !== lastValueRef.current) {
+                    lastValueRef.current = normalized;
+                    onChangeRef.current(normalized);
+                  }
+                });
+              }
+            }}
+            virtual-keyboard-mode="manual"
+            math-virtual-keyboard-policy="manual"
+            virtual-keyboard-policy="manual"
+            style={{
+              position: 'fixed',
+              left: '-9999px',
+              top: '-9999px',
+              width: '1px',
+              height: '1px',
+              opacity: 0,
+              pointerEvents: 'none',
+            }}
+          />
         )}
       </div>
     );
