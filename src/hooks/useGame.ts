@@ -99,7 +99,7 @@ export function useGame(quizCode: string, onPlayerUpdate?: () => void) {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'games', filter: `id=eq.${gameId}` },
           (payload) => {
-            console.log("[useGame] Game update received:", payload.eventType);
+
             setGame(prev => {
               if (!prev) return payload.new as Game;
               // Deep merge options to avoid losing data
@@ -111,12 +111,12 @@ export function useGame(quizCode: string, onPlayerUpdate?: () => void) {
         )
         .on('broadcast', { event: 'HINT_REVEAL' }, (payload: any) => {
           const data = payload.payload || payload;
-          console.log("[useGame] Broadcast HINT_REVEAL received:", data);
+
           setGame(prev => prev ? { ...prev, current_hint_stage: data.stage } : null);
         })
         .on('broadcast', { event: 'EMOJI_REACTION' }, (payload: any) => {
           const data = payload.payload || payload;
-          console.log("[useGame] EMOJI_REACTION received:", data.emoji, "from:", data.from);
+
           const newEmoji = { 
             id: Date.now() + Math.random(), 
             emoji: data.emoji, 
@@ -127,7 +127,7 @@ export function useGame(quizCode: string, onPlayerUpdate?: () => void) {
           setTimeout(() => setFloatingEmojis((prev) => prev.filter((e) => e.id !== newEmoji.id)), 4000);
         })
         .on('broadcast', { event: 'GAME_UPDATE' }, async () => {
-          console.log("[useGame] Broadcast GAME_UPDATE received. Refreshing...");
+
           // Refresh game data
           const { data: g } = await supabase.from('games').select('*').eq('id', gameId).maybeSingle();
           if (g) setGame(prev => ({ ...(prev || {}), ...g }));
@@ -135,11 +135,11 @@ export function useGame(quizCode: string, onPlayerUpdate?: () => void) {
           fetchPlayersThrottled(gameId);
         })
         .on('broadcast', { event: 'PLAYER_UPDATE' }, () => {
-          console.log("[useGame] PLAYER_UPDATE received, notifying callback...");
+
           if (onPlayerUpdate) onPlayerUpdate();
         })
         .subscribe((status) => {
-          console.log(`[useGame] Game channel status: ${status}`);
+
         });
 
       // 2. Players Subscription
@@ -149,7 +149,7 @@ export function useGame(quizCode: string, onPlayerUpdate?: () => void) {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'players', filter: `game_id=eq.${gameId}` },
           (payload) => {
-            console.log("[useGame] Players change detected:", payload.eventType);
+
             
             if (payload.eventType === 'UPDATE') {
               setPlayers(prev => prev.map(p => p.id === payload.new.id ? { ...p, ...payload.new } : p));

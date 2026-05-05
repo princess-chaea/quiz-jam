@@ -314,7 +314,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         answer: res.rawAnswer
       }));
 
-      console.log("Calculated Final Results for Host:", finalResults.map(r => ({ nick: r.player.nickname, pts: r.points, corr: r.isCorrect, evt: r.event })));
+
       setAnswers(updatedAnswers);
       setResultQuestion(question);
 
@@ -408,7 +408,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         currentSwapperNickname: swappers.length > 0 ? swappers[0].nickname : null
       };
 
-      console.log("[Host] Saving initial swapState to DB:", swapState);
+
 
       const newOptions = {
         ...(game.options || {}),
@@ -427,7 +427,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
       // 7. Broadcast Results Ready (to trigger student re-fetch)
       if (channelRef.current) {
-        console.log("[Host] Broadcasting results and updates...");
+
         
         await channelRef.current.send({
           type: 'broadcast',
@@ -442,7 +442,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         });
 
         if (swappers.length > 0) {
-          console.log("[Host] Broadcasting FIRST swap start:", swappers[0].nickname);
+
           await channelRef.current.send({
             type: 'broadcast',
             event: 'START_SWAP',
@@ -580,12 +580,12 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     const channel = supabase.channel(`game_events:${game.id}`)
       .on('broadcast', { event: 'EXECUTE_SWAP' }, async ({ payload }: { payload: any }) => {
         if (isSwappingRef.current) {
-          console.log("[Host] Already processing a swap, ignoring duplicate broadcast.");
+
           return;
         }
         
         const { swapperId, targetId } = payload;
-        console.log(`[Host] EXECUTE_SWAP received from ${swapperId} to ${targetId}`);
+
         
         isSwappingRef.current = true;
         
@@ -609,7 +609,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         };
 
         const advanceQueue = async () => {
-          console.log("[Host] advanceQueue called. current isSwappingRef:", isSwappingRef.current);
+
           try {
             const { data: freshGame, error: fetchError } = await supabase.from('games').select('status, options').eq('id', game.id).single();
             if (fetchError) throw fetchError;
@@ -617,10 +617,10 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             const currentOptions = freshGame?.options || gameRef.current?.options || {};
             const currentQueue = currentOptions.swapState?.queue || swapQueueRef.current || [];
             
-            console.log("[Host] Current swap queue length:", currentQueue.length);
+
 
             if (currentQueue.length === 0) {
-              console.log("[Host] Swap queue is empty, finalising round updates.");
+
               await refreshAllData();
               return;
             }
@@ -637,7 +637,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
               }
             };
 
-            console.log("[Host] Updating DB with next swap state. Next swapper:", nextSwapper?.nickname || "none (end of queue)");
+
             const { error: updateError } = await supabase.from("games").update({ options: newOptions }).eq("id", game.id);
             if (updateError) throw updateError;
 
@@ -649,7 +649,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
             // Sync all clients via broadcast - WE DO THIS AFTER REFRESHING DATA
             // AND SENDING SWAP_COMPLETED TO ENSURE STUDENTS RECEIVE RESULTS FIRST
-            console.log("[Host] Broadcasting GAME_UPDATE with current status:", freshGame.status);
+
             await channel.send({ 
               type: 'broadcast', 
               event: 'GAME_UPDATE', 
@@ -657,7 +657,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             });
 
             if (nextSwapper) {
-              console.log("[Host] Scheduling START_SWAP broadcast for:", nextSwapper.nickname);
+
               setTimeout(async () => {
                 try {
                   await channel.send({
@@ -665,20 +665,20 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                     event: 'START_SWAP',
                     payload: { playerId: String(nextSwapper.id), nickname: nextSwapper.nickname }
                   });
-                  console.log("[Host] START_SWAP successfully broadcast to:", nextSwapper.nickname);
+
                 } catch (sendErr) {
                   console.error("[Host] Failed to send START_SWAP broadcast:", sendErr);
                 }
               }, 1200);
             } else {
-              console.log("[Host] No more swappers. All swaps completed.");
+
               await refreshAllData();
             }
           } catch (err) {
             console.error("[Host] CRITICAL ERROR in advanceQueue:", err);
             // Even on error, we must allow the game to proceed if possible or at least reset the lock
           } finally {
-            console.log("[Host] advanceQueue finished. Resetting isSwappingRef.");
+
             isSwappingRef.current = false;
             clearTimeout(swapTimeout);
           }
@@ -690,14 +690,14 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
           if (!swapper) { await advanceQueue(); return; }
 
           if (!targetId) {
-            console.log("[Host] User skipped swap.");
+
             await channel.send({
               type: 'broadcast',
               event: 'SWAP_COMPLETED',
               payload: { swapperId, swapperName: swapper.nickname, targetId: null, targetName: null, skipped: true }
             });
           } else {
-            console.log(`[Host] Fetching target ${targetId}`);
+
             const { data: target } = await supabase.from('players').select('score, nickname, buffs').eq('id', targetId).maybeSingle();
             
             if (target) {
@@ -711,7 +711,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                   payload: { swapperId, swapperName: swapper.nickname, targetId, targetName: target.nickname, skipped: false, blocked: true }
                 });
               } else {
-                console.log(`[Host] Executing score swap: ${swapper.score} <-> ${target.score}`);
+
                 // Perform updates in parallel for faster response
                 const [e1, e2] = await Promise.all([
                   supabase.from('players').update({ score: target.score }).eq('id', swapperId),
@@ -789,7 +789,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     }
     // RESET SWAP & SUBMISSION STATES only when moving to a NEW question (PLAYING status)
     if (game.status === 'PLAYING' && prevQIndexRef.current !== game.current_q_index) {
-      console.log(`[HostControl] New question detected (${game.current_q_index}), resetting states.`);
+
       setCurrentSwapperId(null);
       setSwapQueue([]);
       // Only clear answers if we're entering a state where new answers are expected.
@@ -850,7 +850,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
       if (remaining <= 0) {
         clearInterval(timer);
         if (finishRoundRef.current && gameRef.current.status === 'PLAYING') {
-          console.log("[Timer] Time up, auto-finishing round...");
+
           finishRoundRef.current(true); 
         }
       }
@@ -862,7 +862,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         const remaining = syncTime();
         setTimeLeft(remaining);
         if (remaining <= 0 && gameRef.current.status === 'PLAYING') {
-          console.log("[Watchdog] Tab focused and time is already up. Finishing round.");
+
           if (finishRoundRef.current) finishRoundRef.current();
         }
       }

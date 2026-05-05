@@ -85,7 +85,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
       // 2. Use the existing component-level channel for broadcasting
       if (channelRef.current) {
-        console.log(`[Swap] Broadcasting EXECUTE_SWAP to target: ${targetId}`);
+
         await channelRef.current.send({
           type: 'broadcast',
           event: 'EXECUTE_SWAP',
@@ -152,7 +152,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
 
     const channel = supabase.channel(`game_events:${game.id}`)
       .on('broadcast', { event: 'START_SWAP' }, ({ payload }: { payload: { playerId: string; nickname: string } }) => {
-        console.log("[Student] START_SWAP received for:", payload.nickname);
+
         setActiveSwapperName(payload.nickname);
         if (String(payload.playerId) === String(player.id)) {
           setIsMyTurnToSwap(true);
@@ -238,13 +238,13 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
   useEffect(() => {
     if (game?.status === 'RESULT' && game?.options?.swapState?.currentSwapperId !== player.id) {
       if (isSwapExecuting) {
-        console.log("[Game] Clearing stuck executing state based on swapState");
+
         setIsSwapExecuting(false);
       }
     }
     if (game?.status === 'RESULT' && game?.options?.swapState?.currentSwapperId === player.id) {
       if (!isMyTurnToSwap && !isSwapExecuting) {
-        console.log("[Game] State-based swap trigger activated for:", player.nickname);
+
         setIsMyTurnToSwap(true);
         // Auto-open removed for better mobile UX
         // setShowScoreTab(true);

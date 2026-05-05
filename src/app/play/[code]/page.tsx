@@ -127,7 +127,7 @@ function StudentPlayContent() {
           payload: { player_id: me.id, q_index: game.current_q_index, is_retracted: false }
         });
       }
-      console.log("[Submit] Answer successfully submitted/updated:", res.data);
+
     } catch (err: any) {
       console.error("Submit failed:", err);
       showAlert({ message: "정답 제출 중 오류가 발생했습니다." });
@@ -138,7 +138,7 @@ function StudentPlayContent() {
     const me = players.find((p: any) => p.nickname === name);
     if (!me || !game) return;
     try {
-      console.log(`[Retraction] Retracting answer for player ${me.id}, q_index ${game.current_q_index}`);
+
       
       // Update to '(retracted)' first to ensure the Host UI immediately filters it out
       await supabase
@@ -176,7 +176,7 @@ function StudentPlayContent() {
   // 1. Game result redirection
   useEffect(() => {
     if (game?.status === 'ENDED') {
-      console.log("Game ended, redirecting to results...");
+
       const encodedName = encodeURIComponent(name);
       router.replace(`/play/${code}/results?name=${encodedName}`);
     }
@@ -188,7 +188,7 @@ function StudentPlayContent() {
   useEffect(() => {
     if (!game?.id || !name) return;
 
-    console.log("[Student] Setting up real-time channel for game:", game.id);
+
     const channel = supabase.channel(`game_events:${game.id}`);
     
     // Assign immediately so it's available even before subscription is complete
@@ -197,19 +197,19 @@ function StudentPlayContent() {
     channel
       .on('broadcast', { event: 'KICK_PLAYER' }, (payload: any) => {
         if (payload.payload.nickname === name) {
-          console.log("Kicked via broadcast!");
+
           setWasKicked(true);
         }
       })
       .on('broadcast', { event: 'ROUND_RESULTS_READY' }, (payload: any) => {
-        console.log("Broadcast: ROUND_RESULTS_READY", payload);
+
         if (payload.payload.q_index === qIndexRef.current) {
           const resultsArray = payload.payload.results;
           if (resultsArray) {
             const currentMe = playersRef.current.find(p => p.nickname === name);
             const myResult = resultsArray.find((r: any) => r.player_id === currentMe?.id);
             if (myResult) {
-               console.log("Applying rich broadcasted result directly:", myResult);
+
                setPlayerResult(myResult);
                return; 
             }
@@ -217,11 +217,11 @@ function StudentPlayContent() {
         }
       })
       .subscribe((status) => {
-        console.log(`[Student] Channel status for ${game.id}: ${status}`);
+
       });
 
     return () => {
-      console.log("[Student] Cleaning up channel");
+
       channel.unsubscribe();
       channelRef.current = null;
     };
@@ -235,7 +235,7 @@ function StudentPlayContent() {
     const isLobby = game?.status === 'WAITING';
     
     if (!isLobby && now - lastEmojiTime < 3000) {
-       console.log("[Student] Emoji throttled");
+
        return;
     }
 
@@ -243,14 +243,14 @@ function StudentPlayContent() {
 
     // Lazy initialization if channel is missing
     if (!activeChannel && game?.id) {
-      console.log("[Student] Channel missing, attempting lazy creation...");
+
       activeChannel = supabase.channel(`game_events:${game.id}`);
       activeChannel.subscribe();
       channelRef.current = activeChannel;
     }
 
     if (activeChannel) {
-      console.log("[Student] Broadcasting emoji:", emoji);
+
       activeChannel.send({
         type: 'broadcast',
         event: 'EMOJI_REACTION',
@@ -278,7 +278,7 @@ function StudentPlayContent() {
       setHasFoundMe(true);
     } else {
       if (hasFoundMe) {
-        console.log("Student no longer in player list - triggering kick state");
+
         setWasKicked(true);
       }
     }
@@ -291,7 +291,7 @@ function StudentPlayContent() {
     if (!me || !game || game.status !== 'WAITING') return;
 
     const deleteMe = async () => {
-      console.log("[Lobby] Deleting player on exit...", name);
+
       // Use best-effort delete
       await supabase.from("players").delete().eq("id", me.id);
     };
@@ -322,7 +322,7 @@ function StudentPlayContent() {
       const currentMe = players.find(p => p.nickname === name);
       if (!currentMe) return;
 
-      console.log("Fetching round result for index:", game.current_q_index);
+
       const { data, error: fetchErr } = await supabase
         .from("answers")
         .select("*")
@@ -418,7 +418,7 @@ function StudentPlayContent() {
      // If we are not loading anymore but 'me' isn't found, 
      // it's likely they were cleaned up or never existed.
      // Redirect to join page to re-verify/re-insert.
-     console.log("Player record not found, redirecting to join...");
+
      const encodedCode = encodeURIComponent(code as string);
      const encodedName = encodeURIComponent(name);
      router.replace(`/join?code=${encodedCode}&name=${encodedName}`);
