@@ -214,7 +214,16 @@ export default function LibraryPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredQuizzes.map(quiz => (
-              <div key={quiz.id} className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 hover:shadow-xl hover:shadow-indigo-50 hover:-translate-y-1 transition-all flex flex-col group">
+              <div key={quiz.id} className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col group relative">
+                {isAdmin && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleHideQuiz(quiz.id); }}
+                    className="absolute top-8 right-8 p-2.5 bg-red-50 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all z-10 shadow-sm border border-red-100"
+                    title="관리자 권한으로 숨기기"
+                  >
+                    <EyeOff size={20} />
+                  </button>
+                )}
                 <div className="flex-1">
                   <div className="flex flex-wrap gap-2 mb-4">
                     {quiz.school_level && (
@@ -282,16 +291,6 @@ export default function LibraryPage() {
                       </>
                     )}
                   </Button>
-                  
-                  {isAdmin && (
-                    <Button 
-                      variant="ghost" 
-                      className="w-full rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 border-2 border-transparent hover:border-red-100 mt-1"
-                      onClick={() => handleHideQuiz(quiz.id)}
-                    >
-                      <EyeOff size={16} className="mr-2" /> 관리자 권한으로 숨기기
-                    </Button>
-                  )}
                 </div>
               </div>
             ))}

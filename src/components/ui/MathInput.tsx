@@ -800,12 +800,11 @@ export function MathInput({
                 />
               </div>
 
-              {/* Footer */}
               <div className="flex gap-2 px-4 pb-4 pt-2 flex-shrink-0">
                 <button onPointerDown={(e) => e.preventDefault()} onClick={() => kpCmd('moveToPreviousChar')} className="flex-1 h-10 bg-slate-100 rounded-xl text-slate-600 font-bold text-lg">◀</button>
                 <button onPointerDown={(e) => e.preventDefault()} onClick={() => kpCmd('moveToNextChar')} className="flex-1 h-10 bg-slate-100 rounded-xl text-slate-600 font-bold text-lg">▶</button>
-                <button onPointerDown={(e) => e.preventDefault()} onClick={closeMathModal} className="flex-[1.5] h-10 bg-slate-100 rounded-xl text-slate-600 font-bold">취소</button>
                 <button onPointerDown={(e) => e.preventDefault()} onClick={handleModalConfirm} className="flex-[2] h-10 bg-indigo-600 rounded-xl text-white font-bold shadow-md">확인</button>
+                <button onPointerDown={(e) => e.preventDefault()} onClick={closeMathModal} className="flex-[1.5] h-10 bg-slate-100 rounded-xl text-slate-600 font-bold">취소</button>
               </div>
             </div>
           </div>

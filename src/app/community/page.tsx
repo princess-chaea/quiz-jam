@@ -475,8 +475,8 @@ export default function CommunityPage() {
                             autoFocus
                           />
                           <div className="flex justify-end gap-2">
-                            <button onClick={() => setEditingCommentId(null)} className="text-xs font-bold text-gray-400 hover:text-gray-600">취소</button>
                             <button onClick={() => handleUpdateComment(comment.id)} className="text-xs font-bold text-indigo-600 hover:text-indigo-700">수정완료</button>
+                            <button onClick={() => setEditingCommentId(null)} className="text-xs font-bold text-gray-400 hover:text-gray-600">취소</button>
                           </div>
                         </div>
                       ) : (
@@ -576,11 +576,11 @@ export default function CommunityPage() {
             </div>
             
             <div className="p-6 bg-gray-50/50 border-t border-gray-100 flex justify-end gap-3 mt-auto">
-              <Button variant="ghost" className="rounded-xl px-6" onClick={() => setIsWriteModalOpen(false)}>
-                취소
-              </Button>
               <Button variant="primary" className="rounded-xl px-8 shadow-lg shadow-indigo-100" onClick={handleCreatePost}>
                 {editingPost ? '수정완료' : '등록하기'}
+              </Button>
+              <Button variant="ghost" className="rounded-xl px-6" onClick={() => setIsWriteModalOpen(false)}>
+                취소
               </Button>
             </div>
           </div>

@@ -140,15 +140,6 @@ export function DialogProvider({ children }: { children: ReactNode }) {
             </div>
             
             <div className="p-4 bg-gray-50 border-t border-gray-100 flex gap-3">
-              {(dialog.type === 'confirm' || dialog.type === 'prompt') && (
-                <Button 
-                  variant="ghost" 
-                  className="flex-1 rounded-xl py-3 border border-gray-200 bg-white"
-                  onClick={() => closeDialog(dialog.id, dialog.type === 'confirm' ? false : null)}
-                >
-                  {dialog.cancelLabel || "취소"}
-                </Button>
-              )}
               <Button 
                 variant="primary" 
                 className={`flex-1 rounded-xl py-3 shadow-sm ${
@@ -159,6 +150,15 @@ export function DialogProvider({ children }: { children: ReactNode }) {
               >
                 {dialog.confirmLabel || "확인"}
               </Button>
+              {(dialog.type === 'confirm' || dialog.type === 'prompt') && (
+                <Button 
+                  variant="ghost" 
+                  className="flex-1 rounded-xl py-3 border border-gray-200 bg-white"
+                  onClick={() => closeDialog(dialog.id, dialog.type === 'confirm' ? false : null)}
+                >
+                  {dialog.cancelLabel || "취소"}
+                </Button>
+              )}
             </div>
           </div>
         </div>

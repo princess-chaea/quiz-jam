@@ -209,19 +209,19 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
 
         <div className="flex gap-4 mb-6">
           <Button 
-            variant="ghost" 
-            className="flex-1 py-4.5 rounded-2xl text-gray-400 font-bold hover:text-gray-900 border-2 border-transparent hover:border-gray-100 transition-all"
-            onClick={onClose}
-          >
-            취소
-          </Button>
-          <Button 
             variant="primary" 
             className={`flex-[2] py-4.5 rounded-2xl text-lg font-black shadow-xl transition-all ${hasChanges ? 'shadow-indigo-100' : 'opacity-40 grayscale pointer-events-none'}`}
             onClick={handleSave}
             disabled={saving || uploading}
           >
             {saving ? "저장 중..." : "변경사항 저장"}
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="flex-1 py-4.5 rounded-2xl text-gray-400 font-bold hover:text-gray-900 border-2 border-transparent hover:border-gray-100 transition-all"
+            onClick={onClose}
+          >
+            취소
           </Button>
         </div>
 
@@ -258,6 +258,14 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
               
               <div className="flex gap-3 pt-2">
                 <Button 
+                  variant="primary" 
+                  className={`flex-1 rounded-xl py-3 bg-red-500 hover:bg-red-600 shadow-red-100 ${deleteConfirmText === "회원 탈퇴" ? "" : "opacity-30 grayscale pointer-events-none"}`}
+                  onClick={handleDeleteAccount}
+                  disabled={deleting}
+                >
+                  {deleting ? "처리 중..." : "탈퇴 확정"}
+                </Button>
+                <Button 
                   variant="ghost" 
                   className="flex-1 rounded-xl py-3 text-gray-400"
                   onClick={() => {
@@ -266,14 +274,6 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
                   }}
                 >
                   취소
-                </Button>
-                <Button 
-                  variant="primary" 
-                  className={`flex-1 rounded-xl py-3 bg-red-500 hover:bg-red-600 shadow-red-100 ${deleteConfirmText === "회원 탈퇴" ? "" : "opacity-30 grayscale pointer-events-none"}`}
-                  onClick={handleDeleteAccount}
-                  disabled={deleting}
-                >
-                  {deleting ? "처리 중..." : "탈퇴 확정"}
                 </Button>
               </div>
             </div>
