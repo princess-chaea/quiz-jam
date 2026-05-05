@@ -15,7 +15,8 @@ import {
   UserPlus,
   Trash2,
   BookOpen,
-  Mail
+  Mail,
+  Crown
 } from "lucide-react";
 import { TopNavbar } from "@/components/layout/TopNavbar";
 import { useDialog } from "@/components/ui/DialogProvider";
@@ -97,6 +98,42 @@ export default function AdminManagementPage() {
       fetchUsers();
     } catch (err) {
       await showAlert({ message: "변경 실패: " + (err as Error).message });
+    }
+  };
+
+  const handleTransferSuperAdmin = async (targetUser: any) => {
+    if (!isSuperAdmin) return;
+
+    const confirm = await showConfirm({
+      title: "최고 관리자 권한 양도",
+      message: `${targetUser.name} 선생님께 최고 관리자 권한을 양도하시겠습니까? 양도 후 본인은 일반 관리자로 변경되며, 이 작업은 되돌릴 수 없습니다.`,
+      confirmLabel: "양도하기",
+      cancelLabel: "취소"
+    });
+
+    if (!confirm) return;
+
+    try {
+      // 1. Promote target to SUPER_ADMIN
+      const { error: promoError } = await supabase
+        .from("profiles")
+        .update({ role: 'SUPER_ADMIN' })
+        .eq("id", targetUser.id);
+      
+      if (promoError) throw promoError;
+
+      // 2. Demote self to ADMIN
+      const { error: demoteError } = await supabase
+        .from("profiles")
+        .update({ role: 'ADMIN' })
+        .eq("id", user?.id);
+
+      if (demoteError) throw demoteError;
+
+      await showAlert({ message: "최고 관리자 권한이 성공적으로 양도되었습니다. 페이지를 새로고침합니다." });
+      window.location.reload();
+    } catch (err) {
+      await showAlert({ message: "양도 실패: " + (err as Error).message });
     }
   };
 
@@ -262,6 +299,15 @@ export default function AdminManagementPage() {
                                 onClick={() => handleToggleAdmin(u)}
                               >
                                 {u.role === 'ADMIN' ? <UserMinus size={18} /> : <UserPlus size={18} />}
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="rounded-xl text-amber-600 hover:bg-amber-50"
+                                onClick={() => handleTransferSuperAdmin(u)}
+                                title="최고 관리자 권한 양도"
+                              >
+                                <Crown size={18} />
                               </Button>
                               <Button 
                                 variant="ghost" 
