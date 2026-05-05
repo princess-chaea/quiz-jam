@@ -469,6 +469,17 @@ export function MathInput({
             } catch {}
           }
           // Set inputmode='text' BEFORE focus so keyboard triggers correctly
+          // Hide the clear button and menu toggle via Shadow DOM parts
+          const style = document.createElement('style');
+          style.textContent = `
+            math-field::part(clear-button) { display: none !important; }
+            math-field::part(menu-toggle) { display: none !important; }
+          `;
+          el.shadowRoot?.appendChild(style);
+
+          el.setAttribute('clear-button', 'never');
+          el.setAttribute('menu-toggle', 'none');
+
           textarea.setAttribute('inputmode', 'text');
           textarea.setAttribute('enterkeyhint', 'done');
           // If already focused, blur first so the subsequent focus() triggers the keyboard
@@ -519,73 +530,77 @@ export function MathInput({
   //   • inline keypad buttons (no floating popup / MathKeypadContext)
   //   • OK / Cancel
   if (!isTeacher) {
-    // 기호·단위 탭: 모든 연산자 + 공통 수식(분수,괄호) + 모든 단위 통합
+    // 기호·단위 탭: 모든 연산자 + 모든 단위 통합
     const SYMS = [
       // 사칙연산 & 비교
-      { label: '+',    latex: '+' },         { label: '-',    latex: '-' },
-      { label: '×',    latex: '\\times' },   { label: '÷',    latex: '\\div' },
-      { label: '=',    latex: '=' },         { label: '≠',    latex: '\\neq' },
-      { label: '>',    latex: '>' },         { label: '<',    latex: '<' },
-      { label: '≤',    latex: '\\le' },      { label: '≥',    latex: '\\ge' },
-      { label: '%',    latex: '\\%' },       { label: '.',    latex: '.' },
-      // 필수 수식 구조
-      { label: '□/□',  latex: '\\frac{#?}{#?}' }, { label: '□□/□', latex: '#?\\frac{#?}{#?}' },
-      { label: '( )',  latex: '(#?)' },      { label: '[ ]',  latex: '[#?]' },
-      // 단위: 개수/사람
+      { label: '+',    latex: '+', name: '더하기' },         { label: '-',    latex: '-', name: '빼기' },
+      { label: '×',    latex: '\\times', name: '곱하기' },   { label: '÷',    latex: '\\div', name: '나누기' },
+      { label: '=',    latex: '=', name: '같다' },         { label: '≠',    latex: '\\neq', name: '다르다' },
+      { label: '>',    latex: '>', name: '크다' },         { label: '<',    latex: '<', name: '작다' },
+      { label: '≤',    latex: '\\le', name: '작거나 같다' }, { label: '≥',    latex: '\\ge', name: '크거나 같다' },
+      { label: '%',    latex: '\\%', name: '백분율' },       { label: '.',    latex: '.', name: '소수점' },
+      // 단위: 개수/돈/횟수
       { label: '개',   latex: '\\text{개}' }, { label: '명',   latex: '\\text{명}' },
       { label: '마리', latex: '\\text{마리}' }, { label: '원',   latex: '\\text{원}' },
       { label: '번',   latex: '\\text{번}' }, { label: '권',   latex: '\\text{권}' },
-      // 단위: 길이/무게/부피
+      // 단위: 길이
       { label: 'mm',   latex: '\\text{mm}' }, { label: 'cm',   latex: '\\text{cm}' },
       { label: 'm',    latex: '\\text{m}' },  { label: 'km',   latex: '\\text{km}' },
+      // 단위: 무게/부피
       { label: 'g',    latex: '\\text{g}' },  { label: 'kg',   latex: '\\text{kg}' },
       { label: 't',    latex: '\\text{t}' },  { label: 'mL',   latex: '\\text{mL}' },
       { label: 'L',    latex: '\\text{L}' },
       // 단위: 시간/각도
       { label: '초',   latex: '\\text{초}' }, { label: '분',   latex: '\\text{분}' },
-      { label: '시간', latex: '\\text{시간}' }, { label: '°',    latex: '^\\circ' },
-    ];
-    // 초등 수식: 도형 및 초등 특화 기호
-    const ELEM = [
-      { label: '□:□',  latex: '#? : #?' },   { label: '∠',    latex: '\\angle' },
-      { label: '△',    latex: '\\triangle' }, { label: '□',    latex: '\\square' },
+      { label: '시간', latex: '\\text{시간}' }, { label: '°',    latex: '^\\circ', name: '각도' },
+      // 넓이/부피/속도
       { label: 'cm²',  latex: '\\text{cm}^2' }, { label: 'm²',   latex: '\\text{m}^2' },
-      { label: 'km²',  latex: '\\text{km}^2' }, { label: '□□°',  latex: '#?^\\circ' },
+      { label: 'km²',  latex: '\\text{km}^2' }, { label: 'cm³',   latex: '\\text{cm}^3' },
+      { label: 'm³',     latex: '\\text{m}^3' }, { label: 'km/h',  latex: '\\text{km/h}' },
+      { label: 'm/s',    latex: '\\text{m/s}' }, { label: '°C',    latex: '^\\circ\\text{C}' },
+      // 고등/과학 단위
+      { label: 'rad',    latex: '\\text{rad}' }, { label: 'Pa',     latex: '\\text{Pa}' },
+      { label: 'N',      latex: '\\text{N}' },    { label: 'J',      latex: '\\text{J}' },
+      { label: 'W',      latex: '\\text{W}' },    { label: 'mol',    latex: '\\text{mol}' },
+      { label: 'A',      latex: '\\text{A}' },    { label: 'V',      latex: '\\text{V}' },
+      { label: 'K',      latex: '\\text{K}' },    { label: 'dB',     latex: '\\text{dB}' },
     ];
-    // 중등 수식: 거듭제곱, 루트, 집합 등
+    // 초등 수식: 분수, 괄호, 초등 도형 특화
+    const ELEM = [
+      { label: '□/□',  latex: '\\frac{#?}{#?}', name: '분수' }, 
+      { label: '□□/□', latex: '#?\\frac{#?}{#?}', name: '대분수' },
+      { label: '( )',  latex: '(#?)', name: '괄호' },      
+      { label: '[ ]',  latex: '[#?]', name: '대괄호' },
+      { label: '□:□',  latex: '#? : #?', name: '비' },   
+      { label: '∠',    latex: '\\angle', name: '각' },
+      { label: '△',    latex: '\\triangle', name: '삼각형' }, 
+      { label: '□',    latex: '\\square', name: '사각형' },
+      { label: '□□°',  latex: '#?^\\circ', name: '몇 도' },
+    ];
+    // 중등 수식: 거듭제곱, 루트, 집합, 함수 등
     const MID = [
-      { label: 'xⁿ',    latex: '#?^{#?}' },    { label: 'xₙ',    latex: '#?_{#?}' },
-      { label: '√',     latex: '\\sqrt{#?}' },   { label: '|□|',   latex: '|#?|' },
-      { label: 'π',     latex: '\\pi' },         { label: '∞',     latex: '\\infty' },
-      { label: 'f(x)',  latex: 'f(x)' },       { label: '(x,y)',  latex: '(x,y)' },
-      { label: '∝',     latex: '\\propto' },    { label: '∼',      latex: '\\sim' },
-      { label: '⊥',     latex: '\\perp' },      { label: '∥',      latex: '\\parallel' },
-      { label: '≡',     latex: '\\equiv' },     { label: '±',      latex: '\\pm' },
-      { label: '∈',     latex: '\\in' },        { label: '⊂',      latex: '\\subset' },
-      { label: '{ }',   latex: '\\{#?\\}' },   { label: 'P(A)',   latex: 'P(A)' },
-      { label: 'cm³',   latex: '\\text{cm}^3' }, { label: 'm³',     latex: '\\text{m}^3' },
-      { label: 'km/h',  latex: '\\text{km/h}' }, { label: 'm/s',    latex: '\\text{m/s}' },
-      { label: '°C',    latex: '^\\circ\\text{C}' },
+      { label: 'xⁿ',    latex: '#?^{#?}', name: '거듭제곱' },    { label: 'xₙ',    latex: '#?_{#?}', name: '밑첨자' },
+      { label: '√',     latex: '\\sqrt{#?}', name: '제곱근' },   { label: '|□|',   latex: '|#?|', name: '절댓값' },
+      { label: 'π',     latex: '\\pi', name: '파이' },         { label: '∞',     latex: '\\infty', name: '무한대' },
+      { label: 'f(x)',  latex: 'f(x)', name: '함수' },       { label: '(x,y)',  latex: '(x,y)', name: '순서쌍' },
+      { label: '∝',     latex: '\\propto', name: '정비례' },    { label: '∼',      latex: '\\sim', name: '닮음' },
+      { label: '⊥',     latex: '\\perp', name: '수직' },      { label: '∥',      latex: '\\parallel', name: '평행' },
+      { label: '≡',     latex: '\\equiv', name: '합동' },     { label: '±',      latex: '\\pm', name: '플러스마이너스' },
+      { label: '∈',     latex: '\\in', name: '원소' },        { label: '⊂',      latex: '\\subset', name: '부분집합' },
+      { label: '{ }',   latex: '\\{#?\\}', name: '집합' },   { label: 'P(A)',   latex: 'P(A)', name: '확률' },
     ];
-    // 고등: 해석·삼각함수·벡터·통계·지수로그 + 고등 수준 단위
+    // 고등 수식: 미적분, 통계, 벡터, 로그 등
     const HIGH = [
-      // 수학 기호
-      { label: 'lim',    latex: '\\lim_{#? \\to #?}' }, { label: 'Σ',    latex: '\\sum_{#?}^{#?}' },
-      { label: '∫',      latex: '\\int_{#?}^{#?}' },   { label: "f'(x)",  latex: "f'(x)" },
-      { label: 'dy/dx',  latex: '\\frac{dy}{dx}' },   { label: 'sin',    latex: '\\sin' },
-      { label: 'cos',    latex: '\\cos' },              { label: 'tan',    latex: '\\tan' },
-      { label: 'θ',      latex: '\\theta' },            { label: 'log',    latex: '\\log_{#?}{#?}' },
-      { label: 'ln',     latex: '\\ln{#?}' },          { label: 'eˣ',    latex: 'e^{#?}' },
-      { label: 'ⁿ√',     latex: '\\sqrt[#?]{#?}' },  { label: 'vec',    latex: '\\vec{#?}' },
-      { label: 'AB→',    latex: '\\overrightarrow{#?}' }, { label: 'σ',   latex: '\\sigma' },
-      { label: 'x̄',     latex: '\\bar{x}' },          { label: 'nPr',    latex: '_{#?}P_{#?}' },
-      { label: 'nCr',    latex: '_{#?}C_{#?}' },       { label: 'E(X)',   latex: 'E(X)' },
-      // 단위 (고등/과학)
-      { label: 'rad',    latex: '\\text{rad}' },       { label: 'Pa',     latex: '\\text{Pa}' },
-      { label: 'N',      latex: '\\text{N}' },          { label: 'J',      latex: '\\text{J}' },
-      { label: 'W',      latex: '\\text{W}' },          { label: 'mol',    latex: '\\text{mol}' },
-      { label: 'A',      latex: '\\text{A}' },          { label: 'V',      latex: '\\text{V}' },
-      { label: 'K',      latex: '\\text{K}' },          { label: 'dB',     latex: '\\text{dB}' },
+      { label: 'lim',    latex: '\\lim_{#? \\to #?}', name: '극한' }, { label: 'Σ',    latex: '\\sum_{#?}^{#?}', name: '시그마' },
+      { label: '∫',      latex: '\\int_{#?}^{#?}', name: '적분' },   { label: "f'(x)",  latex: "f'(x)", name: '도함수' },
+      { label: 'dy/dx',  latex: '\\frac{dy}{dx}', name: '미분' },   { label: 'sin',    latex: '\\sin', name: '사인' },
+      { label: 'cos',    latex: '\\cos', name: '코사인' },              { label: 'tan',    latex: '\\tan', name: '탄젠트' },
+      { label: 'θ',      latex: '\\theta', name: '세타' },            { label: 'log',    latex: '\\log_{#?}{#?}', name: '로그' },
+      { label: 'ln',     latex: '\\ln{#?}', name: '자연로그' },          { label: 'eˣ',    latex: 'e^{#?}', name: '지수함수' },
+      { label: 'ⁿ√',     latex: '\\sqrt[#?]{#?}', name: '거듭제곱근' },  { label: 'vec',    latex: '\\vec{#?}', name: '벡터' },
+      { label: 'AB→',    latex: '\\overrightarrow{#?}', name: '선분벡터' }, { label: 'σ',   latex: '\\sigma', name: '표준편차' },
+      { label: 'x̄',     latex: '\\bar{x}', name: '평균' },          { label: 'nPr',    latex: '_{#?}P_{#?}', name: '순열' },
+      { label: 'nCr',    latex: '_{#?}C_{#?}', name: '조합' },       { label: 'E(X)',   latex: 'E(X)', name: '기댓값' },
     ];
     const TABS: KeypadTab[] = [
       { id: 'sym',  label: '기호·단위', keys: SYMS },

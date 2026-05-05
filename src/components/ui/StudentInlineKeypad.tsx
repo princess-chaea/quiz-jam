@@ -2,7 +2,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
-export type KeypadTab = { id: string; label: string; keys: { label: string; latex: string }[] };
+export type KeypadTab = { id: string; label: string; keys: { label: string; latex: string; name?: string }[] };
 
 // ── Korean IME ────────────────────────────────────────────────────────────────
 const CHO  = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
@@ -277,13 +277,23 @@ export function StudentInlineKeypad({tabs,defaultTab,onInsert,onCmd,getFieldValu
         <div className="grid grid-cols-4 gap-1.5">
           {keys.map((key,i)=>(
             <button key={activeTab+i} onPointerDown={e=>e.preventDefault()} onClick={()=>onInsert(key.latex)}
-              className="h-10 bg-white border-b-4 border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-indigo-50 active:border-b-0 active:translate-y-1 transition-all shadow-sm">
-              {key.label}
+              className="h-11 bg-white border-b-4 border-slate-200 rounded-xl text-slate-700 hover:bg-indigo-50 active:border-b-0 active:translate-y-1 transition-all shadow-sm flex flex-col items-center justify-center leading-none px-1 overflow-hidden">
+              {key.name && (
+                <span className="text-[9px] text-indigo-500 font-black mb-0.5 whitespace-nowrap opacity-90 scale-[0.85] origin-center">
+                  {key.name}
+                </span>
+              )}
+              <span className={cn(
+                "font-bold",
+                key.name ? "text-xs" : "text-sm"
+              )}>
+                {key.label}
+              </span>
             </button>
           ))}
-          <button {...bspLP} className="h-10 bg-red-50 border-b-4 border-red-200 rounded-xl text-sm font-bold text-red-500 active:border-b-0 active:translate-y-1 transition-all shadow-sm">⌫</button>
+          <button {...bspLP} className="h-11 bg-red-50 border-b-4 border-red-200 rounded-xl text-sm font-bold text-red-500 active:border-b-0 active:translate-y-1 transition-all shadow-sm">⌫</button>
           <button onPointerDown={e=>e.preventDefault()} onClick={()=>onCmd('moveToNextPlaceholder')}
-            className="h-10 bg-emerald-50 border-b-4 border-emerald-200 rounded-xl text-sm font-bold text-emerald-600 active:border-b-0 active:translate-y-1 transition-all shadow-sm">Tab</button>
+            className="h-11 bg-emerald-50 border-b-4 border-emerald-200 rounded-xl text-sm font-bold text-emerald-600 active:border-b-0 active:translate-y-1 transition-all shadow-sm">Tab</button>
         </div>
       )}
     </div>

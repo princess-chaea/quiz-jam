@@ -90,3 +90,11 @@ body {
 [id^="mathlive"] {
   z-index: 99999 !important;
 }
+/* Hide MathLive clear button and menu toggle */
+math-field::part(clear-button) {
+  display: none !important;
+}
+
+math-field::part(menu-toggle) {
+  display: none !important;
+}
