@@ -74,9 +74,20 @@ export function TopNavbar() {
              )}
              
              {profile ? (
-               <span className="text-sm font-bold text-gray-700">
-                 <span className="text-indigo-600">{profile.school_name}</span> {profile.name} 선생님
-               </span>
+               <div className="flex flex-col items-start leading-none gap-0.5">
+                 {profile.role !== 'USER' && (
+                   <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter border ${
+                     profile.role === 'SUPER_ADMIN' 
+                      ? 'bg-amber-50 text-amber-600 border-amber-100' 
+                      : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                   }`}>
+                     {profile.role === 'SUPER_ADMIN' ? '최고 관리자' : '일반 관리자'}
+                   </span>
+                 )}
+                 <span className="text-sm font-bold text-gray-700">
+                   <span className="text-indigo-600">{profile.school_name}</span> {profile.name} 선생님
+                 </span>
+               </div>
              ) : (
                <span className="text-sm font-bold text-gray-700">{user.email?.split('@')[0]}</span>
              )}
