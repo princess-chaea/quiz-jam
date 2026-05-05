@@ -80,7 +80,8 @@ export default function AdminManagementPage() {
     const confirm = await showConfirm({
       title: isCurrentlyAdmin ? "관리자 권한 해제" : "관리자 권한 부여",
       message: `${targetUser.name} 선생님의 관리자 권한을 ${isCurrentlyAdmin ? '해제' : '부여'}하시겠습니까?`,
-      confirmText: isCurrentlyAdmin ? "해제하기" : "부여하기",
+      confirmLabel: isCurrentlyAdmin ? "해제하기" : "부여하기",
+      cancelLabel: "취소"
     });
 
     if (!confirm) return;
@@ -113,8 +114,8 @@ export default function AdminManagementPage() {
     const confirm = await showConfirm({
       title: "사용자 삭제",
       message: `${targetUser.name} 사용자와 관련된 모든 데이터(퀴즈 포함)가 삭제됩니다. 정말 삭제하시겠습니까?`,
-      confirmText: "삭제",
-      confirmVariant: "danger"
+      confirmLabel: "삭제",
+      cancelLabel: "취소"
     });
 
     if (!confirm) return;

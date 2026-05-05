@@ -103,8 +103,8 @@ export default function LibraryPage() {
     const confirm = await showConfirm({
       title: "퀴즈 숨기기",
       message: "이 퀴즈를 라이브러리에서 숨기시겠습니까? (작성자의 보관함에는 유지되며, 라이브러리에서만 비공개로 전환됩니다)",
-      confirmText: "숨기기",
-      cancelText: "취소"
+      confirmLabel: "숨기기",
+      cancelLabel: "취소"
     });
     
     if (!confirm) return;
