@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { BookOpen, LogOut, Library, Users, User as UserIcon } from "lucide-react";
+import { BookOpen, LogOut, Library, Users, User as UserIcon, ShieldCheck } from "lucide-react";
 import { ProfileEditModal } from "@/components/auth/ProfileEditModal";
 import { useState } from "react";
 
@@ -51,6 +51,14 @@ export function TopNavbar() {
             active={isActive("/community")} 
             onClick={() => router.push("/community")} 
           />
+          {(profile?.role === 'ADMIN' || profile?.role === 'SUPER_ADMIN') && (
+            <TabButton 
+              icon={<ShieldCheck size={18} />} 
+              label="관리 모드" 
+              active={isActive("/admin")} 
+              onClick={() => router.push("/admin")} 
+            />
+          )}
         </div>
         <div className="flex items-center gap-3 bg-gray-100 py-1.5 px-4 rounded-full border border-gray-200 shadow-inner">
            <button 

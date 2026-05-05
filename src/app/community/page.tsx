@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 
 export default function CommunityPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,7 @@ export default function CommunityPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const POSTS_PER_PAGE = 10;
 
-  const isAdmin = user?.email === "dltjdrms320@gmail.com";
+  const isAdmin = profile?.role === 'ADMIN' || profile?.role === 'SUPER_ADMIN';
 
   useEffect(() => {
     fetchPosts();

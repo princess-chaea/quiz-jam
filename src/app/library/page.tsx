@@ -28,9 +28,8 @@ import 'katex/dist/katex.min.css';
 
 export default function LibraryPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
-  const ADMIN_EMAIL = 'dltjdrms320@gmail.com';
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const { user, profile, loading: authLoading } = useAuth();
+  const isAdmin = profile?.role === 'ADMIN' || profile?.role === 'SUPER_ADMIN';
   
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
