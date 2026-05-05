@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   GraduationCap,
   BookOpen,
+  Filter,
   X,
   Hash,
   EyeOff
