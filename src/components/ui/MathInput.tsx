@@ -615,6 +615,7 @@ export function MathInput({
           // 암시적 곱셈 시각화 완전 제거
           el.setOptions({
             computeImplicitMultiply: () => null,
+            contentEditableClearButton: 'never',
             smartMode: false,
             smartFence: false,
           });
@@ -765,6 +766,8 @@ export function MathInput({
                   ref={(el: any) => { modalMfRef.current = el; }}
                   virtual-keyboard-mode="auto"
                   math-virtual-keyboard-policy="manual"
+                  clear-button="never"
+                  menu-toggle="none"
                   className="student-modal-mf w-full text-2xl bg-slate-50 rounded-xl border-2 border-slate-200 p-3 outline-none block focus:border-indigo-400"
                   style={{ minHeight: '3rem', fontSize: '1.5rem' }}
                 />

@@ -16,14 +16,15 @@ export default function ResultsPage() {
   const sortedPlayers = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
   
   // Calculate ranks using competition ranking (1, 1, 1, 4)
-  const rankedPlayers = sortedPlayers.map((player, index) => {
+  const rankedPlayers: any[] = [];
+  sortedPlayers.forEach((player, index) => {
+    let rank = index + 1;
     if (index > 0 && player.score === sortedPlayers[index - 1].score) {
-      return { ...player, rank: (sortedPlayers as any)[index - 1].rank };
+      rank = rankedPlayers[index - 1].rank;
     }
-    return { ...player, rank: index + 1 };
+    rankedPlayers.push({ ...player, rank });
   });
   
-  // Update sortedPlayers to include rank
   const finalSortedPlayers = rankedPlayers;
 
   // Team score calculation
@@ -39,6 +40,19 @@ export default function ResultsPage() {
   const sortedTeams = Object.entries(teamScores)
     .map(([team, score]) => ({ team, score, name: teamNames[team] }))
     .sort((a, b) => b.score - a.score);
+
+  const getOrdinal = (n: number) => {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
+  const getRankColor = (rank: number) => {
+    if (rank === 1) return "from-yellow-600 to-yellow-400 border-yellow-200 text-yellow-400";
+    if (rank === 2) return "from-slate-500 to-slate-400 border-white/20 text-slate-100";
+    if (rank === 3) return "from-orange-600 to-orange-500 border-white/20 text-orange-100";
+    return "from-indigo-600 to-indigo-500 border-white/20 text-white";
+  };
 
   useEffect(() => {
     if (!loading && players.length > 0) {
@@ -156,13 +170,22 @@ export default function ResultsPage() {
                  />
               </div>
 
-              <div className="w-full bg-gradient-to-t from-slate-500 to-slate-400 h-44 md:h-64 rounded-t-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center justify-center relative border-x-4 border-t-4 border-white/20 group hover:scale-105 transition-transform overflow-hidden pt-8">
+              <div className={cn(
+                "w-full h-44 md:h-64 rounded-t-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center justify-center relative border-x-4 border-t-4 group hover:scale-105 transition-transform overflow-hidden pt-8 bg-gradient-to-t",
+                getRankColor(finalSortedPlayers[1].rank)
+              )}>
                  <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                  <div className="relative flex items-center justify-center mt-4">
-                   <Medal size={64} className="text-slate-100 drop-shadow-lg" />
-                   <span className="absolute text-slate-500 font-black text-xl mt-1.5">2</span>
+                   {finalSortedPlayers[1].rank === 1 ? (
+                     <Trophy size={64} className="text-white drop-shadow-lg" />
+                   ) : (
+                     <>
+                        <Medal size={64} className="drop-shadow-lg" />
+                        <span className="absolute text-slate-500 font-black text-xl mt-1.5">{finalSortedPlayers[1].rank}</span>
+                     </>
+                   )}
                  </div>
-                 <div className="absolute bottom-6 md:bottom-10 text-5xl md:text-6xl font-black text-slate-900/20 italic select-none">{finalSortedPlayers[1]?.rank}nd</div>
+                 <div className="absolute bottom-6 md:bottom-10 text-5xl md:text-6xl font-black text-black/10 italic select-none">{getOrdinal(finalSortedPlayers[1].rank)}</div>
               </div>
             </div>
           )}
@@ -217,13 +240,22 @@ export default function ResultsPage() {
                  />
               </div>
 
-              <div className="w-full bg-gradient-to-t from-orange-600 to-orange-500 h-36 md:h-52 rounded-t-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center justify-center relative border-x-4 border-t-4 border-white/20 group hover:scale-105 transition-transform overflow-hidden pt-4">
+              <div className={cn(
+                "w-full h-36 md:h-52 rounded-t-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center justify-center relative border-x-4 border-t-4 group hover:scale-105 transition-transform overflow-hidden pt-4 bg-gradient-to-t",
+                getRankColor(finalSortedPlayers[2].rank)
+              )}>
                  <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                  <div className="relative flex items-center justify-center mt-2">
-                   <Medal size={56} className="text-orange-100 drop-shadow-lg" />
-                   <span className="absolute text-orange-800 font-black text-lg mt-1">3</span>
+                    {finalSortedPlayers[2].rank === 1 ? (
+                      <Trophy size={56} className="text-white drop-shadow-lg" />
+                    ) : (
+                      <>
+                        <Medal size={56} className="drop-shadow-lg" />
+                        <span className="absolute text-orange-800 font-black text-lg mt-1">{finalSortedPlayers[2].rank}</span>
+                      </>
+                    )}
                  </div>
-                 <div className="absolute bottom-4 md:bottom-8 text-4xl md:text-5xl font-black text-orange-900/20 italic select-none">{finalSortedPlayers[2]?.rank}rd</div>
+                 <div className="absolute bottom-4 md:bottom-8 text-4xl md:text-5xl font-black text-black/10 italic select-none">{getOrdinal(finalSortedPlayers[2].rank)}</div>
               </div>
             </div>
           )}

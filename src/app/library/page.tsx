@@ -12,9 +12,9 @@ import {
   ChevronLeft,
   GraduationCap,
   BookOpen,
-  Filter,
   X,
-  Hash
+  Hash,
+  EyeOff
 } from "lucide-react";
 import { TopNavbar } from "@/components/layout/TopNavbar";
 import { useDialog } from "@/components/ui/DialogProvider";
@@ -29,6 +29,8 @@ import 'katex/dist/katex.min.css';
 export default function LibraryPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const ADMIN_EMAIL = 'dltjdrms320@gmail.com';
+  const isAdmin = user?.email === ADMIN_EMAIL;
   
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +40,7 @@ export default function LibraryPage() {
   const [filterSubject, setFilterSubject] = useState<string>("all");
   const [copyingId, setCopyingId] = useState<string | null>(null);
   const [previewQuiz, setPreviewQuiz] = useState<any>(null);
-  const { showAlert } = useDialog();
+  const { showAlert, showConfirm } = useDialog();
 
   useEffect(() => {
     fetchQuizzes();
@@ -93,6 +95,33 @@ export default function LibraryPage() {
       await showAlert({ message: "복사 실패: " + (err as Error).message });
     } finally {
       setCopyingId(null);
+    }
+  };
+  
+  const handleHideQuiz = async (quizId: string) => {
+    if (!isAdmin) return;
+    
+    const confirm = await showConfirm({
+      title: "퀴즈 숨기기",
+      message: "이 퀴즈를 라이브러리에서 숨기시겠습니까? (작성자의 보관함에는 유지되며, 라이브러리에서만 비공개로 전환됩니다)",
+      confirmText: "숨기기",
+      cancelText: "취소"
+    });
+    
+    if (!confirm) return;
+
+    try {
+      const { error } = await supabase
+        .from("quizzes")
+        .update({ is_public: false })
+        .eq("id", quizId);
+
+      if (error) throw error;
+      
+      setQuizzes(prev => prev.filter(q => q.id !== quizId));
+      await showAlert({ message: "퀴즈가 비공개로 전환되었습니다." });
+    } catch (err) {
+      await showAlert({ message: "처리 실패: " + (err as Error).message });
     }
   };
 
@@ -253,6 +282,16 @@ export default function LibraryPage() {
                       </>
                     )}
                   </Button>
+                  
+                  {isAdmin && (
+                    <Button 
+                      variant="ghost" 
+                      className="w-full rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 border-2 border-transparent hover:border-red-100 mt-1"
+                      onClick={() => handleHideQuiz(quiz.id)}
+                    >
+                      <EyeOff size={16} className="mr-2" /> 관리자 권한으로 숨기기
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}

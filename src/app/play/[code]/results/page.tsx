@@ -215,16 +215,19 @@ function ResultsContent() {
 
         <div className="max-w-md w-full animate-pop">
           <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-b-8 border-indigo-200">
-            <div className="bg-indigo-600 p-10 flex flex-col items-center text-white relative">
-              <img src="/logo.png" className="w-16 h-16 object-contain mb-4 animate-pop shadow-md rounded-2xl bg-white/10 p-2" alt="Quiz Jam Logo" />
-              <div className="mb-2">
-                <Trophy size={64} className="text-yellow-400 drop-shadow-lg" />
-              </div>
-              <h1 className="text-3xl font-jua">게임 완료</h1>
-              <p className="opacity-80 font-bold">{name} 학생, 수고했어요!</p>
+            <div className="bg-indigo-600 p-6 md:p-10 flex flex-col items-center text-white relative min-h-[180px] md:min-h-[220px] justify-center">
+              <img src="/logo.png" className="absolute top-4 left-4 w-10 h-10 md:w-14 md:h-14 object-contain animate-pop shadow-md rounded-xl bg-white/10 p-1.5" alt="Quiz Jam Logo" />
               
-              {/* Added Current Avatar to Main Card */}
-              <div className="mt-4 w-24 h-24 rounded-3xl bg-white/20 border-2 border-white/30 overflow-hidden p-1 shadow-inner relative">
+              <div className="flex flex-col items-center mt-4 md:mt-0">
+                <div className="mb-2">
+                  <Trophy size={48} className="text-yellow-400 drop-shadow-lg md:w-16 md:h-16" />
+                </div>
+                <h1 className="text-2xl md:text-3xl font-jua">게임 완료</h1>
+                <p className="opacity-80 font-bold text-sm md:text-base">{name} 학생, 수고했어요!</p>
+              </div>
+              
+              {/* Current Avatar */}
+              <div className="absolute bottom-[-2rem] right-6 w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-white border-4 border-indigo-50 overflow-hidden p-1 shadow-xl relative z-10">
                  <img 
                    src={`/avatars/avatar_${me?.avatar_id || 1}.png`} 
                    className="w-full h-full object-cover rounded-2xl" 

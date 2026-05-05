@@ -24,7 +24,8 @@ import {
   Gift,
   RefreshCw,
   X,
-  Sparkles
+  Sparkles,
+  User
 } from "lucide-react";
 import { TopNavbar } from "@/components/layout/TopNavbar";
 import { Footer } from "@/components/layout/Footer";
@@ -39,7 +40,7 @@ export default function Dashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ totalStudents: 0, totalGames: 0, totalQuestions: 0, totalQuizzesGlobal: 0 });
+  const [stats, setStats] = useState({ totalStudents: 0, totalGames: 0, totalQuestions: 0, totalQuizzesGlobal: 0, totalProfiles: 0 });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedQuiz, setSelectedQuiz] = useState<any | null>(null);
   const { showAlert, showConfirm, showPrompt } = useDialog();
@@ -157,12 +158,14 @@ export default function Dashboard() {
         { count: globalQuizCount },
         { data: allQuizzesQuestions },
         { count: globalGameCount },
-        { count: globalStudentCount }
+        { count: globalStudentCount },
+        { count: globalProfileCount }
       ] = await Promise.all([
         supabase.from("quizzes").select("*", { count: "exact", head: true }),
         supabase.from("quizzes").select("questions"),
         supabase.from("games").select("*", { count: "exact", head: true }),
-        supabase.from("players").select("*", { count: "exact", head: true })
+        supabase.from("players").select("*", { count: "exact", head: true }),
+        supabase.from("profiles").select("*", { count: "exact", head: true })
       ]);
 
       let totalQuestions = 0;
@@ -174,7 +177,8 @@ export default function Dashboard() {
         totalStudents: globalStudentCount || 0, 
         totalGames: globalGameCount || 0, 
         totalQuestions: totalQuestions || 0,
-        totalQuizzesGlobal: globalQuizCount || 0
+        totalQuizzesGlobal: globalQuizCount || 0,
+        totalProfiles: globalProfileCount || 0
       });
 
     } catch (err: any) {
@@ -272,11 +276,12 @@ export default function Dashboard() {
         <div className="absolute bottom-0 left-0 -z-10 w-96 h-96 bg-violet-100/30 rounded-full blur-[100px]" />
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 mb-12">
+           <StatsCard label="가입자" value={`${stats.totalProfiles}명`} icon={<User />} color="sky" />
            <StatsCard label="전체 퀴즈" value={`${stats.totalQuizzesGlobal}개`} icon={<BookOpen />} color="indigo" />
            <StatsCard label="전체 문항 수" value={`${stats.totalQuestions}개`} icon={<Sparkles />} color="violet" />
            <StatsCard label="퀴즈 진행" value={`${stats.totalGames}회`} icon={<Play />} color="amber" />
-           <StatsCard label="참여 학생" value={`${stats.totalStudents}명`} icon={<Users />} color="emerald" />
+           <StatsCard label="누적 참여 학생" value={`${stats.totalStudents}명`} icon={<Users />} color="emerald" />
         </div>
 
         {/* Dashboard Header */}
@@ -536,6 +541,7 @@ function StatsCard({ label, value, icon, color }: { label: string, value: string
     emerald: "bg-emerald-50 text-emerald-600",
     amber: "bg-amber-50 text-amber-600",
     violet: "bg-violet-50 text-violet-600",
+    sky: "bg-sky-50 text-sky-600",
   };
 
   return (
