@@ -274,7 +274,7 @@ export default function AdminManagementPage() {
                             </>
                           )}
                           {u.role === 'SUPER_ADMIN' && (
-                             <ShieldAlert size={18} className="text-amber-500 m-2" title="최고 관리자는 수정 불가" />
+                             <ShieldAlert size={18} className="text-amber-500 m-2" />
                           )}
                         </div>
                       </td>
