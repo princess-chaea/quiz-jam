@@ -24,16 +24,16 @@ import { cn } from "@/lib/utils";
 
 export default function AdminManagementPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const { showAlert, showConfirm } = useDialog();
 
-  // Role check
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
-  const isAdmin = user?.role === 'ADMIN' || isSuperAdmin;
+  // Role check - Use profile.role instead of user.role
+  const isSuperAdmin = profile?.role === 'SUPER_ADMIN';
+  const isAdmin = profile?.role === 'ADMIN' || isSuperAdmin;
 
   useEffect(() => {
     if (!authLoading) {
