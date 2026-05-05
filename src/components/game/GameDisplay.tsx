@@ -620,7 +620,11 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                       {currentQuestion.options.map((opt: string, idx: number) => (
                         <Button key={idx} size="xl" variant="ghost" className={cn("py-6 md:py-8 h-full whitespace-normal break-keep font-black border-2 flex items-center gap-3", getOptionFontSize(opt))} onClick={() => handleSubmit(opt)}>
                           <span className="shrink-0">{idx + 1}.</span>
-                          <div className="flex-1 text-left"><ReactMarkdown components={{ p: 'span' }}>{processMathText(opt)}</ReactMarkdown></div>
+                          <div className="flex-1 text-left">
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                              {processMathText(opt)}
+                            </ReactMarkdown>
+                          </div>
                         </Button>
                       ))}
                     </div>

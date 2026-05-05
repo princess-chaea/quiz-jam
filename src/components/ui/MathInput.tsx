@@ -612,6 +612,12 @@ export function MathInput({
         if (modalMfRef.current) {
           const el = modalMfRef.current;
           el.mathVirtualKeyboardPolicy = 'manual'; // prevent auto-show on focus
+          // 암시적 곱셈 시각화 완전 제거
+          el.setOptions({
+            computeImplicitMultiply: () => null,
+            smartMode: false,
+            smartFence: false,
+          });
           el.setValue(toMathLiveValue(value));
           // Suppress implicit multiply symbol display
           try { el.setOptions?.({ implicitMultiply: '' }); } catch {}
@@ -633,8 +639,9 @@ export function MathInput({
           .replace(/\}\s*\\(?:times|cdot)\s*(?=\\)/g, '} ')
           // 3. Trailing × / · at end of string
           .replace(/\\(?:times|cdot)\s*$/g, '')
-          // 4. Between } and next atom (digit / letter)
+          // 4. Between atoms (digit / letter) or after closing brace
           .replace(/\}\s*\\(?:times|cdot)\s*/g, '} ')
+          .replace(/(\d|(?:\text\{.*?\}))\s*\\(?:times|cdot)\s*(\d|\\text\{)/g, '$1 $2')
           // General cleanup
           .replace(/~/g, ' ')
           .replace(/\\displaylines/g, '')
@@ -750,7 +757,10 @@ export function MathInput({
 
               {/* MathLive editor */}
               <div className="px-4 pt-3 pb-2 flex-shrink-0">
-                <style dangerouslySetInnerHTML={{ __html: `.student-modal-mf::part(menu-toggle) { display: none !important; }` }} />
+                <style dangerouslySetInnerHTML={{ __html: `
+                  .student-modal-mf::part(menu-toggle) { display: none !important; }
+                  .student-modal-mf::part(clear-button) { display: none !important; }
+                ` }} />
                 <math-field
                   ref={(el: any) => { modalMfRef.current = el; }}
                   virtual-keyboard-mode="auto"

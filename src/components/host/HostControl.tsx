@@ -40,6 +40,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   const [timeLeft, setTimeLeft] = useState<number>(30); // Default
   const [showLargeAnswer, setShowLargeAnswer] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
+  const [resultQuestion, setResultQuestion] = useState<any>(null);
   const { showConfirm, showAlert } = useDialog();
   const currentQuestion = game.options?.questions[game.current_q_index];
 
@@ -315,6 +316,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
       console.log("Calculated Final Results for Host:", finalResults.map(r => ({ nick: r.player.nickname, pts: r.points, corr: r.isCorrect, evt: r.event })));
       setAnswers(updatedAnswers);
+      setResultQuestion(question);
 
       // Status 1: Update Answers, Players, and Broadcast events
       const answerPromises = finalResults.map(async res => {
@@ -496,6 +498,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     const isLast = game.current_q_index >= (game.options?.questions?.length || 1) - 1;
     const nextStatus = isLast ? "ENDED" : "PLAYING";
     const nextIndex = isLast ? game.current_q_index : game.current_q_index + 1;
+    setResultQuestion(null);
     
     // Add start timestamp to options for timer sync and CLEAR any lingering swapState
     const nextOptions = {
@@ -967,6 +970,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   if (game.status === 'ENDED') return null;
 
   if (game.status === 'RESULT') {
+    const displayQuestion = resultQuestion || currentQuestion;
     return (
       <div className="h-screen w-full flex flex-col bg-indigo-900 text-white overflow-hidden relative">
         {/* Large Answer Popup Overlay */}
@@ -977,7 +981,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                 Correct Answer
               </div>
               <div className="text-[8rem] md:text-[12rem] font-black text-yellow-300 drop-shadow-[0_20px_50px_rgba(253,224,71,0.3)] leading-none font-jua [&_p]:m-0">
-                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(currentQuestion?.a || "")}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{processMathText(displayQuestion?.a || "")}</ReactMarkdown>
               </div>
               <div className="mt-12 w-32 h-2 bg-yellow-400/20 rounded-full overflow-hidden">
                 <div className="h-full bg-yellow-400 animate-loading-bar" />
@@ -1022,7 +1026,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
                     rehypePlugins={[rehypeKatex]}
                     components={{ p: 'span' }}
                   >
-                    {processMathText(currentQuestion?.a || "")}
+                    {processMathText(displayQuestion?.a || "")}
                   </ReactMarkdown>
                 </h3>
               </div>
