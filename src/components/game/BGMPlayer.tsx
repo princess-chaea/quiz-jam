@@ -42,6 +42,7 @@ export function BGMPlayer({ status, audioPath = "/audio/quiz_bgm.mp3" }: BGMPlay
     if (!audio) return;
     if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
     audio.play().catch(() => {});
+    setIsPlaying(true); // Sync icon state
     let currentVol = audio.volume;
     fadeIntervalRef.current = setInterval(() => {
       currentVol = Math.min(volume, currentVol + 0.05);
@@ -60,6 +61,7 @@ export function BGMPlayer({ status, audioPath = "/audio/quiz_bgm.mp3" }: BGMPlay
       audio.volume = currentVol;
       if (currentVol <= 0) {
         audio.pause();
+        setIsPlaying(false); // Sync icon state
         clearInterval(fadeIntervalRef.current!);
       }
     }, 100);
@@ -89,7 +91,7 @@ export function BGMPlayer({ status, audioPath = "/audio/quiz_bgm.mp3" }: BGMPlay
   };
 
   return (
-    <div className="fixed top-20 right-6 z-[200] flex flex-col items-end gap-2 group/player">
+    <div className="fixed bottom-24 left-6 z-[200] flex flex-col items-start gap-2 group/player">
       {/* Credits Panel (Hover) */}
       <div className={cn(
         "bg-white/95 backdrop-blur-md border-2 border-indigo-200 p-4 rounded-2xl shadow-2xl max-w-xs transition-all duration-300 pointer-events-none",
@@ -133,7 +135,7 @@ export function BGMPlayer({ status, audioPath = "/audio/quiz_bgm.mp3" }: BGMPlay
           </button>
           
           <div className={cn(
-            "absolute right-full mr-2 bg-white px-3 py-2 rounded-xl shadow-xl border border-indigo-100 transition-all origin-right flex items-center gap-2",
+            "absolute left-full ml-2 bg-white px-3 py-2 rounded-xl shadow-xl border border-indigo-100 transition-all origin-left flex items-center gap-2",
             showVolumeSlider ? "scale-100 opacity-100" : "scale-90 opacity-0 pointer-events-none"
           )}>
             <input 

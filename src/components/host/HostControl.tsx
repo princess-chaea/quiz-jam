@@ -565,6 +565,14 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   };
 
   // 3. Effects (Must be above any status return)
+  useEffect(() => {
+    if (game.status === 'RESULT') {
+      const audio = new Audio('/audio/reveal_answer.mp3');
+      audio.volume = 0.6; // Slightly louder than BGM
+      audio.play().catch(e => console.log('[Audio] Reveal sound failed:', e));
+    }
+  }, [game.status, game.current_q_index]);
+
   useEffect(() => { playersRef.current = players; }, [players]);
   useEffect(() => { answersRef.current = answers; }, [answers]);
   useEffect(() => { gameRef.current = game; }, [game]);
@@ -1311,15 +1319,15 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
 
           {/* Floating QR Card (Slides down) */}
           <div className={cn(
-            "w-40 bg-white border-2 border-indigo-100 rounded-3xl shadow-2xl p-4 transition-all duration-500 origin-top flex flex-col items-center gap-3",
+            "w-80 bg-white border-4 border-indigo-100 rounded-[3rem] shadow-2xl p-8 transition-all duration-500 origin-top flex flex-col items-center gap-6",
             showFloatingQR ? "scale-100 opacity-100 translate-y-0" : "scale-90 opacity-0 -translate-y-4 pointer-events-none"
           )}>
-            <div className="text-[10px] font-black text-indigo-600 uppercase tracking-tighter">Scan to Join</div>
-            <div className="bg-white p-2 rounded-xl shadow-inner border-2 border-indigo-50">
-              <QRCodeSVG value={typeof window !== 'undefined' ? `${window.location.origin}/join?code=${game.code}` : ''} size={100} />
+            <div className="text-sm font-black text-indigo-600 uppercase tracking-widest">Scan to Join</div>
+            <div className="bg-white p-4 rounded-3xl shadow-inner border-2 border-indigo-50">
+              <QRCodeSVG value={typeof window !== 'undefined' ? `${window.location.origin}/join?code=${game.code}` : ''} size={260} />
             </div>
-            <div className="text-[9px] font-bold text-gray-400 text-center leading-tight">
-              뒤늦게 온 친구들은<br/>QR을 스캔하세요!
+            <div className="text-xs font-bold text-gray-500 text-center leading-relaxed">
+              뒤늦게 온 친구들은<br/>QR 코드를 스캔하여 입장하세요!
             </div>
           </div>
         </div>
