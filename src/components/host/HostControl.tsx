@@ -568,7 +568,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   useEffect(() => {
     if (game.status === 'RESULT') {
       const audio = new Audio('/audio/reveal_answer.mp3');
-      audio.volume = 0.6; // Slightly louder than BGM
+      audio.volume = 1.0; // Max volume for better impact
       audio.play().catch(e => console.log('[Audio] Reveal sound failed:', e));
     }
   }, [game.status, game.current_q_index]);
@@ -1004,10 +1004,34 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
         <div className="h-screen w-full flex flex-col bg-indigo-900 text-white overflow-hidden">
           {/* Header Section: Results & Question Info */}
           <div className="shrink-0 pt-8 px-8 pb-4 flex flex-col items-center border-b border-white/5 bg-indigo-900/50 backdrop-blur-md relative z-10">
-            {/* Game Entry Code */}
-            <div className="absolute top-4 left-8 flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-xl border border-white/20">
-              <span className="text-[10px] font-black text-indigo-200 uppercase tracking-widest">CODE</span>
-              <span className="text-xl font-black text-white tracking-wider font-mono">{game.code}</span>
+            {/* Game Entry Code & Floating QR */}
+            <div className="absolute top-4 left-8 z-50 flex flex-col items-start gap-2">
+              <div 
+                className="flex items-center gap-3 bg-white/10 px-4 py-1.5 rounded-xl border border-white/20 hover:border-white/40 transition-all cursor-pointer group"
+                onMouseEnter={() => setShowFloatingQR(true)}
+                onMouseLeave={() => setShowFloatingQR(false)}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-indigo-200 uppercase tracking-widest">CODE</span>
+                  <span className="text-xl font-black text-white tracking-wider font-mono">{game.code}</span>
+                </div>
+                <div className="h-6 w-px bg-white/20" />
+                <QrCode size={20} className="text-indigo-200 group-hover:scale-110 transition-transform" />
+              </div>
+
+              {/* Floating QR Card (Slides down) - DOUBLED SIZE */}
+              <div className={cn(
+                "w-[40rem] bg-white border-8 border-indigo-500 rounded-[5rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] p-12 transition-all duration-500 origin-top flex flex-col items-center gap-10",
+                showFloatingQR ? "scale-100 opacity-100 translate-y-0" : "scale-90 opacity-0 -translate-y-8 pointer-events-none"
+              )}>
+                <div className="text-3xl font-black text-indigo-600 uppercase tracking-[0.2em]">Scan to Join</div>
+                <div className="bg-white p-6 rounded-[3rem] shadow-2xl border-4 border-indigo-50">
+                  <QRCodeSVG value={typeof window !== 'undefined' ? `${window.location.origin}/join?code=${game.code}` : ''} size={520} />
+                </div>
+                <div className="text-xl font-bold text-gray-500 text-center leading-relaxed">
+                  뒤늦게 온 친구들은<br/>QR 코드를 스캔하여 입장하세요!
+                </div>
+              </div>
             </div>
 
             <div className="absolute top-4 right-8 no-print">
@@ -1317,16 +1341,16 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
             <QrCode size={20} className="text-indigo-500 group-hover:scale-110 transition-transform" />
           </div>
 
-          {/* Floating QR Card (Slides down) */}
+          {/* Floating QR Card (Slides down) - DOUBLED SIZE */}
           <div className={cn(
-            "w-80 bg-white border-4 border-indigo-100 rounded-[3rem] shadow-2xl p-8 transition-all duration-500 origin-top flex flex-col items-center gap-6",
-            showFloatingQR ? "scale-100 opacity-100 translate-y-0" : "scale-90 opacity-0 -translate-y-4 pointer-events-none"
+            "w-[40rem] bg-white border-8 border-indigo-500 rounded-[5rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] p-12 transition-all duration-500 origin-top flex flex-col items-center gap-10",
+            showFloatingQR ? "scale-100 opacity-100 translate-y-0" : "scale-90 opacity-0 -translate-y-8 pointer-events-none"
           )}>
-            <div className="text-sm font-black text-indigo-600 uppercase tracking-widest">Scan to Join</div>
-            <div className="bg-white p-4 rounded-3xl shadow-inner border-2 border-indigo-50">
-              <QRCodeSVG value={typeof window !== 'undefined' ? `${window.location.origin}/join?code=${game.code}` : ''} size={260} />
+            <div className="text-3xl font-black text-indigo-600 uppercase tracking-[0.2em]">Scan to Join</div>
+            <div className="bg-white p-6 rounded-[3rem] shadow-2xl border-4 border-indigo-50">
+              <QRCodeSVG value={typeof window !== 'undefined' ? `${window.location.origin}/join?code=${game.code}` : ''} size={520} />
             </div>
-            <div className="text-xs font-bold text-gray-500 text-center leading-relaxed">
+            <div className="text-xl font-bold text-gray-500 text-center leading-relaxed">
               뒤늦게 온 친구들은<br/>QR 코드를 스캔하여 입장하세요!
             </div>
           </div>
