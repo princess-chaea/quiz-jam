@@ -2,156 +2,103 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Music, Volume2, VolumeX, Pause, Play, Info } from "lucide-react";
-import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
 interface BGMPlayerProps {
-  status: string; // 'PLAYING', 'RESULT', 'WAITING', etc.
-  videoId?: string;
-  autoPlay?: boolean;
+  status: string;
+  audioPath?: string;
 }
 
-declare global {
-  interface Window {
-    onYouTubeIframeAPIReady: () => void;
-    YT: any;
-  }
-}
-
-export function BGMPlayer({ status, videoId = "nnYB6DZS3x4", autoPlay = true }: BGMPlayerProps) {
-  const [player, setPlayer] = useState<any>(null);
+export function BGMPlayer({ status, audioPath = "/audio/quiz_bgm.mp3" }: BGMPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(50);
+  const [volume, setVolume] = useState(0.5); // 0.0 ~ 1.0
   const [showCredits, setShowCredits] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<any>(null);
+  
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const fadeIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load YouTube API
+  // 초기 설정
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    if (!window.YT) {
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName("script")[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-
-      window.onYouTubeIframeAPIReady = () => {
-        initPlayer();
-      };
-    } else {
-      initPlayer();
-    }
-
-    function initPlayer() {
-      if (playerRef.current) return;
-
-      playerRef.current = new window.YT.Player("youtube-player", {
-        height: "0",
-        width: "0",
-        videoId: videoId,
-        playerVars: {
-          autoplay: 0,
-          controls: 0,
-          loop: 1,
-          playlist: videoId, // Required for looping
-        },
-        events: {
-          onReady: (event: any) => {
-            setPlayer(event.target);
-            event.target.setVolume(volume);
-          },
-          onStateChange: (event: any) => {
-            if (event.data === window.YT.PlayerState.PLAYING) {
-              setIsPlaying(true);
-            } else {
-              setIsPlaying(false);
-            }
-          },
-        },
-      });
-    }
+    const audio = new Audio(audioPath);
+    audio.loop = true;
+    audio.volume = 0;
+    audioRef.current = audio;
 
     return () => {
+      audio.pause();
       if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
     };
-  }, [videoId]);
+  }, [audioPath]);
 
-  // Handle game status changes
+  // 상태 변화 감지
   useEffect(() => {
-    if (!player) return;
+    if (!audioRef.current) return;
 
     if (status === "PLAYING") {
       fadeIn();
     } else if (status === "RESULT" || status === "ENDED") {
       fadeOut();
     }
-  }, [status, player]);
+  }, [status]);
 
   const fadeIn = () => {
-    if (!player) return;
+    const audio = audioRef.current;
+    if (!audio) return;
     if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
 
-    player.playVideo();
-    let currentVol = 0;
-    player.setVolume(currentVol);
-    
+    audio.play().catch(() => {
+      console.warn("Autoplay blocked. User interaction needed.");
+    });
+
+    let currentVol = audio.volume;
     fadeIntervalRef.current = setInterval(() => {
-      currentVol += 5;
+      currentVol = Math.min(volume, currentVol + 0.05);
+      audio.volume = currentVol;
       if (currentVol >= volume) {
-        player.setVolume(volume);
         if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
-      } else {
-        player.setVolume(currentVol);
       }
     }, 100);
   };
 
   const fadeOut = () => {
-    if (!player) return;
+    const audio = audioRef.current;
+    if (!audio) return;
     if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
 
-    let currentVol = player.getVolume();
-    
+    let currentVol = audio.volume;
     fadeIntervalRef.current = setInterval(() => {
-      currentVol -= 5;
+      currentVol = Math.max(0, currentVol - 0.05);
+      audio.volume = currentVol;
       if (currentVol <= 0) {
-        player.setVolume(0);
-        player.pauseVideo();
+        audio.pause();
         if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
-      } else {
-        player.setVolume(currentVol);
       }
     }, 100);
   };
 
   const togglePlay = () => {
-    if (!player) return;
+    const audio = audioRef.current;
+    if (!audio) return;
     if (isPlaying) {
-      player.pauseVideo();
+      audio.pause();
+      setIsPlaying(false);
     } else {
-      player.playVideo();
+      audio.play().catch(() => {});
+      audio.volume = volume;
+      setIsPlaying(true);
     }
   };
 
   const toggleMute = () => {
-    if (!player) return;
-    if (isMuted) {
-      player.unMute();
-      setIsMuted(false);
-    } else {
-      player.mute();
-      setIsMuted(true);
-    }
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.muted = !isMuted;
+    setIsMuted(!isMuted);
   };
 
   return (
     <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-3">
-      {/* Hidden Player */}
-      <div id="youtube-player" className="hidden"></div>
-
       {/* Credits Panel */}
       {showCredits && (
         <div className="bg-white/95 backdrop-blur-md border-2 border-indigo-200 p-4 rounded-2xl shadow-2xl max-w-xs animate-in slide-in-from-bottom-4 duration-300">
@@ -165,44 +112,29 @@ export function BGMPlayer({ status, videoId = "nnYB6DZS3x4", autoPlay = true }: 
             <p>℗ 11014098 Records DK</p>
             <p>Released on: 2025-12-11</p>
             <p>Auto-generated by YouTube.</p>
-            <a 
-              href={`https://www.youtube.com/watch?v=${videoId}`} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-block mt-2 text-indigo-600 hover:underline font-bold"
-            >
-              Original Link
-            </a>
           </div>
         </div>
       )}
 
       {/* Main Control Bar */}
       <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md border-2 border-indigo-100 p-2 rounded-full shadow-lg ring-4 ring-white/50">
-        <button
-          onClick={() => setShowCredits(!showCredits)}
+        <button 
+          onClick={() => setShowCredits(!showCredits)} 
           className={cn(
-            "w-10 h-10 rounded-full flex items-center justify-center transition-all",
+            "w-10 h-10 rounded-full flex items-center justify-center transition-all", 
             showCredits ? "bg-indigo-600 text-white" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
           )}
-          title="Music Info"
         >
           <Info size={18} />
         </button>
 
         <div className="h-6 w-px bg-indigo-100 mx-1" />
 
-        <button
-          onClick={togglePlay}
-          className="w-10 h-10 bg-white border border-indigo-50 rounded-full flex items-center justify-center text-indigo-600 hover:scale-110 active:scale-95 transition-all shadow-sm"
-        >
+        <button onClick={togglePlay} className="w-10 h-10 bg-white border border-indigo-50 rounded-full flex items-center justify-center text-indigo-600 hover:scale-110 active:scale-95 transition-all shadow-sm">
           {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} className="ml-0.5" fill="currentColor" />}
         </button>
 
-        <button
-          onClick={toggleMute}
-          className="w-10 h-10 bg-white border border-indigo-50 rounded-full flex items-center justify-center text-indigo-600 hover:scale-110 active:scale-95 transition-all shadow-sm"
-        >
+        <button onClick={toggleMute} className="w-10 h-10 bg-white border border-indigo-50 rounded-full flex items-center justify-center text-indigo-600 hover:scale-110 active:scale-95 transition-all shadow-sm">
           {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
         </button>
         
@@ -213,13 +145,8 @@ export function BGMPlayer({ status, videoId = "nnYB6DZS3x4", autoPlay = true }: 
       </div>
 
       <style jsx>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 8s linear infinite;
-        }
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin-slow 8s linear infinite; }
       `}</style>
     </div>
   );

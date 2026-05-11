@@ -131,26 +131,29 @@ function ResultsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-indigo-50 flex flex-col items-center justify-center p-6 text-center overflow-hidden relative" onClick={() => { if(showScoreTab) setShowScoreTab(false); }}>
+    <div className="min-h-screen bg-indigo-50 flex flex-col items-center justify-start md:justify-center p-4 md:p-6 text-center overflow-x-hidden relative" onClick={() => { if(showScoreTab) setShowScoreTab(false); }}>
         
-        {/* Floating Leaderboard Sidebar */}
+        {/* Floating Leaderboard Sidebar - Mobile Optimized */}
         <div 
           ref={sidebarRef}
           className={cn(
-            "fixed right-0 top-1/2 -translate-y-1/2 z-50 transition-transform duration-300 flex items-center",
-            showScoreTab ? "translate-x-0" : "translate-x-[calc(100%-40px)]"
+            "fixed right-0 top-1/2 -translate-y-1/2 z-50 transition-transform duration-500 flex items-center",
+            showScoreTab ? "translate-x-0" : "translate-x-[calc(100%-44px)]"
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          <button onClick={() => setShowScoreTab(!showScoreTab)} className="w-10 h-24 bg-indigo-600 text-white rounded-l-2xl flex flex-col items-center justify-center gap-2 shadow-lg hover:bg-indigo-700 transition-colors">
-            <Trophy size={18} />
-            <span className="text-[8px] font-black [writing-mode:vertical-lr]">RANKING</span>
-            {showScoreTab ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          <button 
+            onClick={() => setShowScoreTab(!showScoreTab)} 
+            className="w-11 h-28 bg-indigo-600 text-white rounded-l-2xl flex flex-col items-center justify-center gap-2 shadow-2xl hover:bg-indigo-700 transition-all border-y-2 border-l-2 border-white/20"
+          >
+            <Trophy size={20} className={cn(showScoreTab && "animate-bounce")} />
+            <span className="text-[9px] font-black [writing-mode:vertical-lr] tracking-widest">RANKING</span>
+            {showScoreTab ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
-          <div className="w-64 md:w-72 h-[60vh] bg-white shadow-2xl border-2 border-indigo-100 rounded-l-2xl p-4 overflow-y-auto custom-scrollbar flex flex-col text-left">
-            <div className="flex items-center justify-between border-b pb-2 mb-3">
-              <h3 className="font-black text-indigo-900">최종 순위</h3>
-              <span className="text-[10px] text-indigo-400 font-bold">집계완료</span>
+          <div className="w-[80vw] max-w-[300px] md:w-72 h-[75vh] bg-white shadow-2xl border-l-4 border-indigo-500 rounded-l-3xl p-4 md:p-5 overflow-y-auto custom-scrollbar flex flex-col text-left">
+            <div className="flex items-center justify-between border-b pb-3 mb-4">
+              <h3 className="font-black text-indigo-900 text-lg">최종 순위</h3>
+              <span className="text-[10px] text-indigo-400 font-bold px-2 py-0.5 bg-indigo-50 rounded-full">집계완료</span>
             </div>
 
             {game?.options?.isTeamMode && (
@@ -160,41 +163,13 @@ function ResultsContent() {
               </div>
             )}
 
-            {/* Detailed Team Stats for Results */}
-            {game?.options?.isTeamMode && me?.team && (
-              <div className="mb-4 p-3 bg-indigo-50/50 rounded-2xl border-2 border-indigo-100/50 shrink-0">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-black text-indigo-400">우리팀 현황</span>
-                  <span className="px-2 py-0.5 bg-indigo-600 text-white text-[8px] font-black rounded-full">
-                    {me.team === 'RED' ? '빨강팀' : me.team === 'BLUE' ? '파랑팀' : me.team === 'GREEN' ? '초록팀' : me.team === 'YELLOW' ? '노랑팀' : me.team}
-                  </span>
-                </div>
-                <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
-                  {players.filter(p => p.team === me.team).map(member => (
-                    <div key={member.id} className="flex justify-between items-center bg-white/60 p-1.5 rounded-lg border border-indigo-50 text-left">
-                      <span className={cn("text-[11px] font-bold truncate pr-1 flex-1", member.nickname === name ? "text-indigo-600" : "text-slate-600")}>
-                        {member.nickname === name && "👤 "}{member.nickname}
-                      </span>
-                      <span className="text-[11px] font-black text-slate-500 tabular-nums">{(member.score || 0).toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-3 flex justify-between items-center border-t border-indigo-100 pt-2 pb-0.5">
-                  <span className="text-[10px] font-black text-indigo-800 uppercase tracking-tighter">우리팀 합계</span>
-                  <span className="text-sm font-black text-indigo-600 tabular-nums">
-                    {players.filter(p => p.team === me.team).reduce((acc, curr) => acc + (curr.score || 0), 0).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            )}
-
             <div className="space-y-2 overflow-y-auto flex-1 pr-1 custom-scrollbar">
               {rankingTab === 'team' && game?.options?.isTeamMode ? (
                 teamRankings.map((tr, i) => (
-                  <div key={tr.teamName} className={cn("flex items-center justify-between p-2 rounded-xl border bg-slate-50 border-slate-100", tr.teamName === me?.team ? "bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100" : "")}>
-                    <div className="flex items-center gap-2">
-                      <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black", i===0 ? "bg-yellow-400 text-white" : "bg-slate-200 text-slate-500")}>{i+1}</span>
-                      <span className="font-bold text-sm text-slate-700 truncate max-w-[100px]">{tr.teamName === 'RED' ? '빨강팀' : tr.teamName === 'BLUE' ? '파랑팀' : tr.teamName === 'GREEN' ? '초록팀' : tr.teamName === 'YELLOW' ? '노랑팀' : tr.teamName} {tr.teamName === me.team && "(우리팀)"}</span>
+                  <div key={tr.teamName} className={cn("flex items-center justify-between p-3 rounded-2xl border bg-slate-50 border-slate-100", tr.teamName === me?.team ? "bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100 shadow-sm" : "")}>
+                    <div className="flex items-center gap-3">
+                      <span className={cn("w-7 h-7 rounded-full flex items-center justify-center text-xs font-black", i===0 ? "bg-yellow-400 text-white" : "bg-slate-200 text-slate-500")}>{i+1}</span>
+                      <span className="font-bold text-sm text-slate-700 truncate max-w-[120px]">{tr.teamName === 'RED' ? '빨강팀' : tr.teamName === 'BLUE' ? '파랑팀' : tr.teamName === 'GREEN' ? '초록팀' : tr.teamName === 'YELLOW' ? '노랑팀' : tr.teamName}</span>
                     </div>
                     <span className="font-black text-indigo-600 text-sm">{tr.score.toLocaleString()}</span>
                   </div>
@@ -213,66 +188,77 @@ function ResultsContent() {
           </div>
         </div>
 
-        <div className="max-w-md w-full animate-pop">
-          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-b-8 border-indigo-200">
-            <div className="bg-indigo-600 p-6 md:p-10 flex flex-col items-center text-white relative min-h-[180px] md:min-h-[220px] justify-center">
-              <img src="/logo.png" className="absolute top-4 left-4 w-10 h-10 md:w-14 md:h-14 object-contain animate-pop shadow-md rounded-xl bg-white/10 p-1.5" alt="Quiz Jam Logo" />
+        {/* Main Results Card */}
+        <div className="w-full max-w-md animate-pop my-4">
+          <div className="bg-white rounded-[2.5rem] md:rounded-3xl shadow-2xl overflow-hidden border-b-8 border-indigo-200 flex flex-col">
+            {/* Header Section */}
+            <div className="bg-indigo-600 p-8 md:p-10 flex flex-col items-center text-white relative min-h-[200px] md:min-h-[220px] justify-center overflow-visible">
+              <img src="/logo.png" className="absolute top-6 left-6 w-10 h-10 md:w-14 md:h-14 object-contain shadow-lg rounded-xl bg-white/20 p-1.5 backdrop-blur-sm" alt="Logo" />
               
-              <div className="flex flex-col items-center mt-4 md:mt-0">
-                <div className="mb-2">
-                  <Trophy size={48} className="text-yellow-400 drop-shadow-lg md:w-16 md:h-16" />
+              <div className="flex flex-col items-center mt-2">
+                <div className="mb-3 animate-float">
+                  <Trophy size={56} className="text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] md:w-16 md:h-16" />
                 </div>
-                <h1 className="text-2xl md:text-3xl font-jua">게임 완료</h1>
-                <p className="opacity-80 font-bold text-sm md:text-base">{name} 학생, 수고했어요!</p>
+                <h1 className="text-3xl md:text-4xl font-jua mb-1">게임 완료</h1>
+                <p className="opacity-90 font-bold text-base md:text-lg">{name} 학생, 수고했어요!</p>
               </div>
               
-              {/* Current Avatar */}
-              <div className="absolute bottom-[-2rem] right-6 w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-white border-4 border-indigo-50 overflow-hidden p-1 shadow-xl relative z-10">
+              {/* Avatar Center - Fixed Positioning */}
+              <div className="absolute bottom-0 translate-y-1/2 left-1/2 -translate-x-1/2 w-24 h-24 md:w-28 md:h-28 rounded-[2rem] bg-white border-4 border-white shadow-2xl z-20 flex items-center justify-center p-1.5 overflow-hidden">
                  <img 
                    src={`/avatars/avatar_${me?.avatar_id || 1}.png`} 
-                   className="w-full h-full object-cover rounded-2xl" 
-                   alt="char"
+                   className="w-full h-full object-cover rounded-[1.5rem]" 
+                   alt="Character"
                    onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
                  />
               </div>
             </div>
 
-            <div className="p-10 space-y-8">
+            {/* Score & Ranking Section */}
+            <div className="p-6 pt-16 md:p-10 md:pt-20 space-y-8">
               <div className="flex flex-col items-center">
-                <div className="text-sm font-black text-gray-400 uppercase tracking-widest mb-2">최종 점수</div>
-                <div className="text-7xl font-black text-indigo-600 drop-shadow-sm">{me?.score || 0}</div>
-              </div>
-
-              <div className="flex justify-between items-center bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                <div className="flex items-center gap-3 text-left">
-                  <div className="bg-yellow-100 text-yellow-600 p-3 rounded-xl">
-                    <Medal size={32} />
-                  </div>
-                  <div>
-                     <div className="text-xs font-black text-gray-400 uppercase">순위</div>
-                     <div className="text-2xl font-black text-gray-800">{myRank === 0 ? '-' : myRank}위 / {players.length}명</div>
-                  </div>
+                <div className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-2">FINAL SCORE</div>
+                <div className="text-7xl md:text-8xl font-black text-indigo-600 drop-shadow-sm tracking-tighter">
+                  {me?.score || 0}
                 </div>
-                {myRank === 1 && (
-                  <div className="bg-indigo-600 text-white px-4 py-1 rounded-full font-black text-xs animate-pulse">
-                    1등
-                  </div>
-                )}
               </div>
 
-              <p className="text-gray-500 font-bold leading-relaxed">
-                정말 잘했어요! <br/>
-                선생님과 친구들과 함께한 퀴즈 게임이 즐거웠나요?
-              </p>
+              <div className="bg-slate-50 p-6 md:p-8 rounded-[2rem] border-2 border-slate-100 flex flex-col gap-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-yellow-400 text-white p-3 rounded-2xl shadow-lg shadow-yellow-100">
+                      <Medal size={32} />
+                    </div>
+                    <div className="text-left">
+                       <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5">나의 순위</div>
+                       <div className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">
+                         {myRank === 0 ? '-' : myRank}위 <span className="text-slate-300 mx-1 font-normal">/</span> <span className="text-lg text-slate-400">{players.length}명</span>
+                       </div>
+                    </div>
+                  </div>
+                  {myRank === 1 && (
+                    <div className="bg-indigo-600 text-white px-5 py-2 rounded-2xl font-black text-sm animate-pulse shadow-lg shadow-indigo-100">
+                      1등 ✨
+                    </div>
+                  )}
+                </div>
+              </div>
 
-              <Button 
-                variant="primary" 
-                size="xl" 
-                className="w-full py-6 rounded-2xl text-xl font-black shadow-xl"
-                onClick={() => router.push("/join")}
-              >
-                홈으로 이동
-              </Button>
+              <div className="space-y-4">
+                <p className="text-slate-500 font-bold leading-relaxed break-keep">
+                  정말 잘했어요! <br/>
+                  선생님과 친구들과 함께한 퀴즈 게임이 즐거웠나요? 😊
+                </p>
+
+                <Button 
+                  variant="primary" 
+                  size="xl" 
+                  className="w-full py-7 rounded-[1.8rem] text-xl font-black shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  onClick={() => router.push("/join")}
+                >
+                  홈으로 이동
+                </Button>
+              </div>
             </div>
           </div>
         </div>
