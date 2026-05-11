@@ -661,7 +661,7 @@ export function GameDisplay({ game, player, players, onSubmit, refresh, result, 
                              value={answer}
                              onChange={(e) => handleAnswerChange(e.target.value)}
                              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                             className="w-full p-5 text-xl border-4 border-slate-100 rounded-2xl focus:border-indigo-400 outline-none text-center font-black placeholder:text-gray-300 transition-all bg-slate-50/50"
+                             className="w-full p-5 text-xl border-4 border-slate-100 rounded-2xl focus:border-indigo-400 outline-none text-center font-black text-slate-900 placeholder:text-gray-300 transition-all bg-slate-50/50"
                              ref={standardInputRef}
                              placeholder="정답을 입력하세요"
                              inputMode="text"

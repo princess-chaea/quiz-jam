@@ -178,7 +178,7 @@ export default function JoinPage() {
                 placeholder="내 이름 입력"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
-                className="w-full p-5 text-xl border-4 border-yellow-100 rounded-2xl focus:border-yellow-400 outline-none text-center font-black placeholder:text-gray-300 transition-all"
+                className="w-full p-5 text-xl border-4 border-yellow-100 rounded-2xl focus:border-yellow-400 outline-none text-center font-black text-slate-900 placeholder:text-gray-300 transition-all"
               />
             </div>
             <div className="relative">
@@ -187,7 +187,7 @@ export default function JoinPage() {
                 placeholder="퀴즈 코드 6자리"
                 value={quizCode}
                 onChange={(e) => setQuizCode(e.target.value)}
-                className="w-full p-5 text-xl border-4 border-yellow-100 rounded-2xl focus:border-yellow-400 outline-none text-center font-black uppercase placeholder:text-gray-300 transition-all"
+                className="w-full p-5 text-xl border-4 border-yellow-100 rounded-2xl focus:border-yellow-400 outline-none text-center font-black text-slate-900 uppercase placeholder:text-gray-300 transition-all"
               />
             </div>
             <Button 

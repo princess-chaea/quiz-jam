@@ -738,7 +738,7 @@ export function MathInput({
               }}
               placeholder={placeholder || '답을 입력하세요'}
               className={cn(
-                'flex-1 text-2xl md:text-3xl font-bold text-center bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 py-3',
+                'flex-1 text-2xl md:text-3xl font-bold text-center text-slate-900 bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 py-3',
                 'focus:outline-none focus:border-indigo-400 focus:bg-white transition-all',
                 className
               )}
