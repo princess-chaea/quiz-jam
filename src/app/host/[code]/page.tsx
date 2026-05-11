@@ -12,6 +12,7 @@ import { Leaderboard } from "@/components/host/Leaderboard";
 import { QRCodeModal } from "@/components/host/QRCodeModal";
 import { KickConfirmModal, ChangeTeamModal } from "@/components/host/LobbyModals";
 import { useDialog } from "@/components/ui/DialogProvider";
+import { BGMPlayer } from "@/components/game/BGMPlayer";
 
 export default function HostPage() {
   const { code } = useParams();
@@ -361,6 +362,9 @@ export default function HostPage() {
           </div>
         ))}
       </div>
+
+      {/* Background Music Player */}
+      <BGMPlayer status={game.status} />
     </div>
   );
 }

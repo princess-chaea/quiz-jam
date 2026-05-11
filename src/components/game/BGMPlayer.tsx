@@ -98,7 +98,7 @@ export function BGMPlayer({ status, audioPath = "/audio/quiz_bgm.mp3" }: BGMPlay
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-3">
+    <div className="fixed bottom-6 right-6 z-[200] flex flex-col items-end gap-3">
       {/* Credits Panel */}
       {showCredits && (
         <div className="bg-white/95 backdrop-blur-md border-2 border-indigo-200 p-4 rounded-2xl shadow-2xl max-w-xs animate-in slide-in-from-bottom-4 duration-300">
