@@ -8,7 +8,7 @@ import {
   Settings, Save, Plus, Trash2, Edit2, Play,
   CheckCircle2, AlertCircle, Menu, X, ChevronRight,
   Shield, Gift, RefreshCw, Scissors, Check,
-  Award, HelpCircle, LogOut, Eye, EyeOff, Layers
+  Award, HelpCircle, LogOut, Eye, EyeOff, Layers, QrCode
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import confetti from "canvas-confetti";
@@ -19,6 +19,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { QRCodeSVG } from "qrcode.react";
 
 interface HostControlProps {
   game: any;
@@ -41,6 +42,7 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
   const [showLargeAnswer, setShowLargeAnswer] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
   const [resultQuestion, setResultQuestion] = useState<any>(null);
+  const [showFloatingQR, setShowFloatingQR] = useState(false);
   const { showConfirm, showAlert } = useDialog();
   const currentQuestion = game.options?.questions[game.current_q_index];
 
@@ -1292,10 +1294,34 @@ export function HostControl({ game, players, refreshPlayers }: HostControlProps)
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
       {/* Current Question Display */}
       <div className="flex-1 bg-white p-10 relative z-10 flex flex-col justify-center overflow-y-auto">
-        {/* Game Entry Code */}
-        <div className="absolute top-4 left-4 flex items-center gap-2 bg-indigo-50 px-4 py-1.5 rounded-xl border border-indigo-100">
-          <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">CODE</span>
-          <span className="text-2xl font-black text-indigo-900 tracking-wider font-mono">{game.code}</span>
+        {/* Game Entry Code & Floating QR */}
+        <div className="absolute top-4 left-4 z-50 flex flex-col items-start gap-2">
+          <div 
+            className="flex items-center gap-3 bg-indigo-50 px-4 py-1.5 rounded-xl border-2 border-indigo-100 hover:border-indigo-300 transition-all cursor-pointer shadow-sm group"
+            onMouseEnter={() => setShowFloatingQR(true)}
+            onMouseLeave={() => setShowFloatingQR(false)}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">CODE</span>
+              <span className="text-2xl font-black text-indigo-900 tracking-wider font-mono">{game.code}</span>
+            </div>
+            <div className="h-6 w-px bg-indigo-200" />
+            <QrCode size={20} className="text-indigo-500 group-hover:scale-110 transition-transform" />
+          </div>
+
+          {/* Floating QR Card (Slides down) */}
+          <div className={cn(
+            "w-40 bg-white border-2 border-indigo-100 rounded-3xl shadow-2xl p-4 transition-all duration-500 origin-top flex flex-col items-center gap-3",
+            showFloatingQR ? "scale-100 opacity-100 translate-y-0" : "scale-90 opacity-0 -translate-y-4 pointer-events-none"
+          )}>
+            <div className="text-[10px] font-black text-indigo-600 uppercase tracking-tighter">Scan to Join</div>
+            <div className="bg-white p-2 rounded-xl shadow-inner border-2 border-indigo-50">
+              <QRCodeSVG value={typeof window !== 'undefined' ? `${window.location.origin}/join?code=${game.code}` : ''} size={100} />
+            </div>
+            <div className="text-[9px] font-bold text-gray-400 text-center leading-tight">
+              뒤늦게 온 친구들은<br/>QR을 스캔하세요!
+            </div>
+          </div>
         </div>
 
         {/* Exit Button */}
