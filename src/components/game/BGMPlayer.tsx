@@ -1,0 +1,226 @@
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
+import { Music, Volume2, VolumeX, Pause, Play, Info } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
+
+interface BGMPlayerProps {
+  status: string; // 'PLAYING', 'RESULT', 'WAITING', etc.
+  videoId?: string;
+  autoPlay?: boolean;
+}
+
+declare global {
+  interface Window {
+    onYouTubeIframeAPIReady: () => void;
+    YT: any;
+  }
+}
+
+export function BGMPlayer({ status, videoId = "nnYB6DZS3x4", autoPlay = true }: BGMPlayerProps) {
+  const [player, setPlayer] = useState<any>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [volume, setVolume] = useState(50);
+  const [showCredits, setShowCredits] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<any>(null);
+  const fadeIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load YouTube API
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if (!window.YT) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName("script")[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+      window.onYouTubeIframeAPIReady = () => {
+        initPlayer();
+      };
+    } else {
+      initPlayer();
+    }
+
+    function initPlayer() {
+      if (playerRef.current) return;
+
+      playerRef.current = new window.YT.Player("youtube-player", {
+        height: "0",
+        width: "0",
+        videoId: videoId,
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          loop: 1,
+          playlist: videoId, // Required for looping
+        },
+        events: {
+          onReady: (event: any) => {
+            setPlayer(event.target);
+            event.target.setVolume(volume);
+          },
+          onStateChange: (event: any) => {
+            if (event.data === window.YT.PlayerState.PLAYING) {
+              setIsPlaying(true);
+            } else {
+              setIsPlaying(false);
+            }
+          },
+        },
+      });
+    }
+
+    return () => {
+      if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
+    };
+  }, [videoId]);
+
+  // Handle game status changes
+  useEffect(() => {
+    if (!player) return;
+
+    if (status === "PLAYING") {
+      fadeIn();
+    } else if (status === "RESULT" || status === "ENDED") {
+      fadeOut();
+    }
+  }, [status, player]);
+
+  const fadeIn = () => {
+    if (!player) return;
+    if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
+
+    player.playVideo();
+    let currentVol = 0;
+    player.setVolume(currentVol);
+    
+    fadeIntervalRef.current = setInterval(() => {
+      currentVol += 5;
+      if (currentVol >= volume) {
+        player.setVolume(volume);
+        if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
+      } else {
+        player.setVolume(currentVol);
+      }
+    }, 100);
+  };
+
+  const fadeOut = () => {
+    if (!player) return;
+    if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
+
+    let currentVol = player.getVolume();
+    
+    fadeIntervalRef.current = setInterval(() => {
+      currentVol -= 5;
+      if (currentVol <= 0) {
+        player.setVolume(0);
+        player.pauseVideo();
+        if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
+      } else {
+        player.setVolume(currentVol);
+      }
+    }, 100);
+  };
+
+  const togglePlay = () => {
+    if (!player) return;
+    if (isPlaying) {
+      player.pauseVideo();
+    } else {
+      player.playVideo();
+    }
+  };
+
+  const toggleMute = () => {
+    if (!player) return;
+    if (isMuted) {
+      player.unMute();
+      setIsMuted(false);
+    } else {
+      player.mute();
+      setIsMuted(true);
+    }
+  };
+
+  return (
+    <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-3">
+      {/* Hidden Player */}
+      <div id="youtube-player" className="hidden"></div>
+
+      {/* Credits Panel */}
+      {showCredits && (
+        <div className="bg-white/95 backdrop-blur-md border-2 border-indigo-200 p-4 rounded-2xl shadow-2xl max-w-xs animate-in slide-in-from-bottom-4 duration-300">
+          <div className="flex justify-between items-start mb-2">
+            <h4 className="font-black text-indigo-900 text-sm">Music Credits</h4>
+            <button onClick={() => setShowCredits(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+          </div>
+          <div className="text-[10px] text-gray-600 space-y-1 leading-tight">
+            <p className="font-bold">Provided to YouTube by DistroKid</p>
+            <p>oriental beat "거문((검은黑))(black) 국악비트 거문고비트 · TaWoo</p>
+            <p>℗ 11014098 Records DK</p>
+            <p>Released on: 2025-12-11</p>
+            <p>Auto-generated by YouTube.</p>
+            <a 
+              href={`https://www.youtube.com/watch?v=${videoId}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-block mt-2 text-indigo-600 hover:underline font-bold"
+            >
+              Original Link
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Main Control Bar */}
+      <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md border-2 border-indigo-100 p-2 rounded-full shadow-lg ring-4 ring-white/50">
+        <button
+          onClick={() => setShowCredits(!showCredits)}
+          className={cn(
+            "w-10 h-10 rounded-full flex items-center justify-center transition-all",
+            showCredits ? "bg-indigo-600 text-white" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+          )}
+          title="Music Info"
+        >
+          <Info size={18} />
+        </button>
+
+        <div className="h-6 w-px bg-indigo-100 mx-1" />
+
+        <button
+          onClick={togglePlay}
+          className="w-10 h-10 bg-white border border-indigo-50 rounded-full flex items-center justify-center text-indigo-600 hover:scale-110 active:scale-95 transition-all shadow-sm"
+        >
+          {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} className="ml-0.5" fill="currentColor" />}
+        </button>
+
+        <button
+          onClick={toggleMute}
+          className="w-10 h-10 bg-white border border-indigo-50 rounded-full flex items-center justify-center text-indigo-600 hover:scale-110 active:scale-95 transition-all shadow-sm"
+        >
+          {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        </button>
+        
+        <div className="flex items-center gap-2 px-3">
+          <Music size={16} className={cn("text-indigo-400", isPlaying && "animate-spin-slow")} />
+          <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest hidden md:inline">BGM</span>
+        </div>
+      </div>
+
+      <style jsx>{`
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+          animation: spin-slow 8s linear infinite;
+        }
+      `}</style>
+    </div>
+  );
+}

@@ -7,6 +7,7 @@ import { Play, CheckCircle, ArrowRight, AlertTriangle, BarChart3 } from "lucide-
 import { supabase } from "@/lib/supabase";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { BGMPlayer } from "@/components/game/BGMPlayer";
 
 export default function HostGameDashboard() {
   const { code } = useParams();
@@ -145,6 +146,9 @@ export default function HostGameDashboard() {
           })}
         </div>
       </main>
+
+      {/* Background Music Player */}
+      <BGMPlayer status={game.status} />
     </div>
   );
 }
